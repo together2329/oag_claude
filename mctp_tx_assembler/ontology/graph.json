@@ -1,0 +1,48 @@
+{
+  "schema_version": "oag_ontology_graph.v1",
+  "generated_at": "2026-06-22T13:22:14Z",
+  "ip": "mctp_tx_assembler",
+  "nodes": [
+    {
+      "id": "ip::mctp_tx_assembler",
+      "type": "ip",
+      "label": "mctp_tx_assembler",
+      "status": "draft"
+    },
+    {
+      "id": "requirement::REQ_MCTP_TX_ASSEMBLER_001",
+      "type": "requirement",
+      "label": "REQ_MCTP_TX_ASSEMBLER_001",
+      "status": "draft"
+    },
+    {
+      "id": "obligation::OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "type": "obligation",
+      "label": "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "status": "open"
+    },
+    {
+      "id": "contract::CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+      "type": "contract",
+      "label": "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+      "status": "draft"
+    }
+  ],
+  "edges": [
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_MCTP_TX_ASSEMBLER_001",
+      "label": "has_requirement"
+    },
+    {
+      "source": "requirement::REQ_MCTP_TX_ASSEMBLER_001",
+      "target": "obligation::OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "label": "has_obligation"
+    },
+    {
+      "source": "obligation::OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "target": "contract::CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+      "label": "judged_by"
+    }
+  ]
+}

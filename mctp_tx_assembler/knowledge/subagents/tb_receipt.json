@@ -1,0 +1,57 @@
+{
+  "schema_version": "oag_subagent_receipt.v1",
+  "role_name": "oag-tb-implementation-agent",
+  "dispatch_id": "DISPATCH_MCTP_TX_ASSEMBLER_TB_IMPLEMENTATION_20260622T160330Z_FCD6BC8F",
+  "dispatch_path": "mctp_tx_assembler/knowledge/dispatches/DISPATCH_MCTP_TX_ASSEMBLER_TB_IMPLEMENTATION_20260622T160330Z_FCD6BC8F.json",
+  "status": "HANDOFF_PASS",
+  "may_claim_complete": false,
+  "changed_paths": [
+    "mctp_tx_assembler/tb/test_mctp_tx_assembler.py",
+    "mctp_tx_assembler/tb/Makefile"
+  ],
+  "generated_side_effects": [],
+  "evidence_outputs": [],
+  "expected_source_policy": "contract_oracle_only",
+  "scenarios_covered": [
+    "SCN_TX_INTAKE",
+    "SCN_TX_FRAGMENT",
+    "SCN_TX_SOM_EOM",
+    "SCN_TX_SEQNUM",
+    "SCN_TX_HEADER",
+    "SCN_TX_SINGLEMSG",
+    "SCN_TX_ERR_BACKPRESSURE",
+    "SCN_TX_ERR_UNDERRUN",
+    "SCN_TX_ERR_OVERSIZE",
+    "SCN_TX_ERR_ZEROLEN",
+    "SCN_TX_STATUS",
+    "SCN_TX_RESET"
+  ],
+  "scoreboard_schema": "scoreboard_rows.v1",
+  "checks_run": "python3 -c \"import ast; ast.parse(...)\" -> AST_PARSE_OK (test_mctp_tx_assembler.py is syntactically valid Python). Offline oracle self-test REFERENCE_MODEL_SELFTEST_OK (fragment ceil(len/MTU), SOM/EOM, seq mod4, DSP0236 header byte3 0x8D/0x6D, body order, zero_len/oversize/underrun -> no packets). SEQ_WRAP_ORACLE_OK: with CSR MTU=16 and a legal 96-byte body (<= MAX_MSG default 192), ceil(96/16)=6 packets give seq [0,1,2,3,0,1] -- a genuine mod-4 3->0 wrap on a non-oversize message. SCOREBOARD_SEQNUM_SCHEMA_OK: the refined SCN_TX_SEQNUM emits 6 per-packet rows + 1 summary row, all carrying the 10 scoreboard_rows.v1 fields, expected_source=cycle_rules.tx.seqnum, coverage_refs=[COV_TX_SEQNUM_WRAP], observed mod4_wrap_3to0=true. GENERAL_SCHEMA_OK: shared Scoreboard unchanged (all 10 fields, expected_source in {behavior_model,cycle_rules}, observed_source in {monitor,dut_signal}, passing row empty mismatch / failing row non-empty mismatch, coverage_refs resolve to per-objective COV_TX_* goals); 12 SCN_TX_* tests present. Full simulation NOT run (sim-execution agent owns sim/; RTL not yet present at dispatch time).",
+  "tb_methodology_notes": {
+    "methodology_profile": "simple_leaf_apb_peripheral / directed_table_driven_micro_tb",
+    "framework": "cocotb + icarus (SIM=icarus, TOPLEVEL_LANG=verilog)",
+    "architecture_roles": {
+      "driver": "drive_message + APB-lite apb_write/apb_read + configure; ingress s_* and CSR stimulus only",
+      "monitor": "EgressMonitor samples DUT-facing m_valid&m_ready / m_data / m_sop / m_eop and decodes packets (header + payload + SOM/EOM/SEQ); observation only",
+      "predictor": "ReferenceModel (independent Python oracle) encoding behavior_model.tx.fragment/som_eom/header/err and cycle_rules.tx.seqnum; never reads DUT",
+      "scoreboard": "Scoreboard emits scoreboard_rows.v1 JSONL to ../sim/scoreboard_events.jsonl, one row per checked item",
+      "coverage": "coverage_refs per row map to verification_plan per-objective COV_TX_* goals",
+      "result_writer": "scoreboard JSONL written at run time; results.xml/scenario_mapping.json produced by cocotb/sim-execution agent"
+    },
+    "stimulus_strategy": "directed micro-TB; legal-message scenarios + negative error scenarios (underrun via s_abort mid-message, oversize via len>MAX_MSG, zero_len via s_empty&s_last) + backpressure via m_ready toggling; no constrained-random (profile random disabled)",
+    "coverage_strategy": "contract-linked per-objective coverage refs recorded for passing checks; failed rows excluded from closure coverage by policy",
+    "assertion_hooks": "none added (directed scoreboard is byte-exact and sufficient for v0; assertion/formal candidates remain in verification_plan for a later stronger-proof pass)",
+    "formal_candidates": [
+      "FORM_TX_NO_PARTIAL_EMIT",
+      "FORM_TX_SEQ_MOD4",
+      "FORM_TX_SINGLE_MSG_MUTEX",
+      "FORM_TX_SOM_EOM_EXCLUSIVITY"
+    ],
+    "open_methodology_blockers": [],
+    "design_truth_notes": [
+      "SCN_TX_SEQNUM: a genuine mod-4 wrap (seq 3->0) needs >=5 packets. Under default MTU=64 and MAX_MSG=192 the deepest legal message is only 3 packets (seq 0,1,2), so the wrap would be unreachable. RESOLVED per team-lead guidance with no ontology/constant change: the test programs a SMALL MTU via the CSR (MTU=16) and drives a fully legal body (96 bytes <= MAX_MSG=192), giving ceil(96/16)=6 packets => seq 0,1,2,3,0,1. The 3->0 mod-4 wrap is now demonstrated end-to-end on a non-oversize message; one scoreboard_rows.v1 row is emitted per packet plus a summary row confirming the observed wrap, all with expected_source=cycle_rules.tx.seqnum and coverage_refs=[COV_TX_SEQNUM_WRAP]. Expected seq still comes only from cycle_rules.tx.seqnum, never the DUT. MAX_MSG stays at its default in this scenario; oversize behavior is exercised only in SCN_TX_ERR_OVERSIZE."
+    ]
+  },
+  "summary": "Implemented the cocotb directed micro-TB for mctp_tx_assembler as a black-box against the frozen interface (doc/v0_parameters_interface.md). Built an independent Python ReferenceModel (predictor) that computes the expected MCTP packet byte stream and error outcome purely from input body + attributes (dest_eid/msg_tag/to) + CSR config (src_eid/MTU/MAX_MSG), encoding behavior_model.tx.* and cycle_rules.tx.seqnum; expected values never come from DUT output. Separate driver (ingress s_* + APB-lite CSR + backpressure) and EgressMonitor (DUT-facing m_* sampling and packet decode). Twelve directed tests cover all 12 SCN_TX_* scenarios including the three negative error scenarios (underrun/oversize/zero_len -> ERR_FLAGS bit, DROP_CNT++, irq_err, NO egress packet) and backpressure (no byte lost). Scoreboard writes scoreboard_rows.v1 JSONL to ../sim/scoreboard_events.jsonl with exactly the 10 required fields, per-scenario expected_source matching evidence_plan, DUT-facing observed_source, and contract-linked coverage_refs. SCN_TX_SEQNUM was refined per team-lead guidance to prove a real mod-4 wrap: with CSR MTU=16 and a legal 96-byte body (<= MAX_MSG default 192) it produces 6 packets seq 0,1,2,3,0,1, emits one scoreboard row per packet plus a summary row confirming the observed 3->0 wrap, all expected_source=cycle_rules.tx.seqnum, coverage_refs=[COV_TX_SEQNUM_WRAP]; the earlier MAX_MSG-raise workaround was removed (MAX_MSG behavior now lives only in SCN_TX_ERR_OVERSIZE). tb/Makefile targets SIM=icarus with -g2012. AST parse, oracle self-tests (incl. SEQ_WRAP_ORACLE_OK), and scoreboard schema self-tests (incl. SCOREBOARD_SEQNUM_SCHEMA_OK and GENERAL_SCHEMA_OK with 12 tests) all pass; full simulation deferred to the sim-execution agent (owns sim/; RTL not present at dispatch time)."
+}

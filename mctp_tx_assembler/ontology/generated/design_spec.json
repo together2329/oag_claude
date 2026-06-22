@@ -1,0 +1,75 @@
+{
+  "schema_version": "oag_generated_design_spec.v1",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "source_files": [
+    "ontology/structure.yaml",
+    "ontology/decomposition.yaml",
+    "ontology/requirements.yaml",
+    "ontology/obligations.yaml",
+    "ontology/contracts.yaml",
+    "ontology/policies.yaml",
+    "ontology/modeling.yaml",
+    "ontology/domain_intent.yaml",
+    "ontology/tb_methodology.yaml",
+    "ontology/verification_plan.yaml"
+  ],
+  "structure_profile": "small_leaf_single_file",
+  "status": "fail",
+  "issues": [
+    "mctp_tx_assembler: owned obligation not found: OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+    "mctp_tx_assembler: owned contract not found: CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+    "OBL_TX_ERR: obligation has no owning decomposition module",
+    "OBL_TX_FRAGMENT: obligation has no owning decomposition module",
+    "OBL_TX_HEADER: obligation has no owning decomposition module",
+    "OBL_TX_INTAKE: obligation has no owning decomposition module",
+    "OBL_TX_RESET: obligation has no owning decomposition module",
+    "OBL_TX_SEQNUM: obligation has no owning decomposition module",
+    "OBL_TX_SINGLEMSG: obligation has no owning decomposition module",
+    "OBL_TX_SOM_EOM: obligation has no owning decomposition module",
+    "OBL_TX_STATUS: obligation has no owning decomposition module",
+    "CONTRACT_TX_ERR: contract has no owning decomposition module",
+    "CONTRACT_TX_FRAGMENT: contract has no owning decomposition module",
+    "CONTRACT_TX_HEADER: contract has no owning decomposition module",
+    "CONTRACT_TX_INTAKE: contract has no owning decomposition module",
+    "CONTRACT_TX_RESET: contract has no owning decomposition module",
+    "CONTRACT_TX_SEQNUM: contract has no owning decomposition module",
+    "CONTRACT_TX_SINGLEMSG: contract has no owning decomposition module",
+    "CONTRACT_TX_SOM_EOM: contract has no owning decomposition module",
+    "CONTRACT_TX_STATUS: contract has no owning decomposition module"
+  ],
+  "structure": {
+    "clock_domains": [],
+    "reset_domains": [],
+    "signals": [],
+    "interfaces": [],
+    "registers": [],
+    "state": [],
+    "derived_signals": []
+  },
+  "modules": [
+    {
+      "id": "mctp_tx_assembler",
+      "name": "mctp_tx_assembler",
+      "role": "top",
+      "ownership": "current_ip",
+      "file": "rtl/mctp_tx_assembler.sv",
+      "implementation_style": "small_leaf_single_file",
+      "owned_obligations": [
+        "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN"
+      ],
+      "owned_contracts": [
+        "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD"
+      ],
+      "structure_refs": [],
+      "source_refs": [
+        "ontology/requirements.yaml",
+        "ontology/obligations.yaml",
+        "ontology/contracts.yaml"
+      ],
+      "edit_policy": "editable",
+      "notes": "Replace this with greenfield_modular, legacy_preserve, or wrapper_adapter when the IP shape is known."
+    }
+  ]
+}

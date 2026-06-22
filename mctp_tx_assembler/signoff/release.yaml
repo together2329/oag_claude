@@ -1,0 +1,4 @@
+schema: ip_release.v1
+ip: mctp_tx_assembler
+status: draft
+validations: []

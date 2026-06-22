@@ -1,0 +1,324 @@
+schema_version: oag_decision_matrix.v1
+ip: mctp_tx_assembler
+policy:
+  status: draft
+  purpose: Record product/design decisions that must be resolved before lock-ready
+    implementation.
+  lock_gate: lock_required decisions must be decided or waived before post-lock RTL,
+    TB, or closure work.
+decisions:
+- id: DEC_MCTP_TX_ASSEMBLER_RESET_BOUNDARY
+  question: What concrete reset signal, polarity, timing, and observable default state
+    define the first lock scope?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: null
+  decision: 'Asynchronous active-low reset assert with synchronous deassert; on reset
+    the IP is idle with no in-flight message, packet sequence number = 0, and error
+    counters cleared; CSR fields take their defined reset values.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r4
+  rationale: Scaffold seed cannot infer reset/default product semantics.
+  affects:
+  - requirements
+  - requirement_atoms
+  - obligations
+  - contracts
+  - verification
+  refs:
+  - ontology/requirement_atoms.yaml
+- id: D001_INTERFACE_PROFILE
+  question: What ingress and egress interface profiles are in scope?
+  status: waived
+  lock_required: true
+  owner: happygrowth33
+  recommended: Keep ingress, egress, CSR, and debug/control paths separate.
+  decision: null
+  waiver_reason: 'Superseded by DT001 (message-source interface) and DT002 (egress
+    binding/MTU); generic RX-leaning seed retained for trace only. (Human, intake round 4.)'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r4
+  rationale: 'Generic seed, likely superseded by DT001 (msg source) + DT002 (egress);
+    pending user confirmation to waive as duplicate.'
+  affects:
+  - interfaces
+  - requirements
+  - contracts
+  - rtl
+  - tb
+  refs:
+  - .claude/oag/profiles/protocol-packet-ip.yaml
+- id: D002_PACKET_BOUNDARY
+  question: How does the IP know packet start/end boundaries?
+  status: waived
+  lock_required: true
+  owner: happygrowth33
+  recommended: Define one explicit framing rule and malformed framing policy.
+  decision: null
+  waiver_reason: 'Superseded by DT003 (fragmentation / SOM-EOM boundary); generic seed
+    retained for trace only. (Human, intake round 4.)'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r4
+  rationale: 'Generic seed, likely superseded by DT003 (fragmentation/SOM-EOM boundary);
+    pending user confirmation to waive as duplicate.'
+  affects:
+  - interfaces
+  - parser
+  - contracts
+  - verification
+  refs:
+  - .claude/oag/profiles/protocol-packet-ip.yaml
+- id: D003_BYTE_ORDERING
+  question: What byte-lane and multi-byte field ordering applies at each boundary (egress
+    header/payload byte and bit order)?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: Define egress lane-to-byte and multi-byte field ordering before RTL.
+  decision: 'MCTP header is emitted in the DSP0236-defined byte layout; the message
+    body bytes are transmitted in the order received from the source (order-preserving).'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r4
+  rationale: Real egress field-ordering decision; not fully covered by other DT rows.
+  affects:
+  - interfaces
+  - contracts
+  - rtl
+  - scoreboard
+  refs:
+  - .claude/oag/profiles/protocol-packet-ip.yaml
+- id: D004_ERROR_DROP_MATRIX
+  question: Which malformed or unsupported packets are dropped, counted, surfaced,
+    or stalled?
+  status: waived
+  lock_required: true
+  owner: happygrowth33
+  recommended: Use drop-and-count for unsupported v0 formats unless backpressure is
+    explicitly required.
+  decision: null
+  waiver_reason: 'Superseded by DT007 (error/abort policy); generic seed retained for
+    trace only. (Human, intake round 4.)'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r4
+  rationale: 'Generic seed, likely superseded by DT007 (error/abort policy); pending
+    user confirmation to waive as duplicate.'
+  affects:
+  - requirements
+  - contracts
+  - verification
+  - firmware
+  refs:
+  - .claude/oag/profiles/protocol-packet-ip.yaml
+- id: DT001_MSG_SOURCE_IF
+  question: How is an outbound MCTP message delivered to the assembler (streaming bus
+    with last/length, SRAM descriptor+payload with FW ownership, or register-pushed),
+    and which attributes travel with it (dest EID, msg tag, TO, msg type/IC)?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: streaming input with a last-flag + sideband attribute
+    word is simplest; SRAM descriptor model if FW batches messages. Not locked truth.'
+  decision: 'Streaming input bus with a last-flag marking message end; a sideband attribute
+    word carries dest EID, message tag, TO, and message type/IC.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r2
+  rationale: TX message-source interface is load-bearing for interfaces, contracts, and TB.
+  affects:
+  - interfaces
+  - requirements
+  - contracts
+  - tb
+  - firmware
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_MSG_SOURCE_IF
+- id: DT002_EGRESS_BINDING_MTU
+  question: What egress transport binding (AXI-Stream, SMBus/I2C, PCIe VDM, USB, KCS,
+    serial, generic packet bus) and per-packet payload (transport unit / MTU) limit
+    in bytes apply?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: generic packet/AXI-Stream egress with a configurable
+    max-payload register defaulting to the MCTP baseline body size. Not locked truth.'
+  decision: 'Generic packet / AXI-Stream egress with a configurable max-payload (MTU)
+    register. Default MTU value still to be fixed (open sub-detail).'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r2
+  rationale: Egress binding and MTU set the packetization boundary and header framing.
+  affects:
+  - interfaces
+  - contracts
+  - rtl
+  - verification
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_EGRESS_BINDING
+- id: DT003_FRAGMENTATION_POLICY
+  question: Fixed vs configurable max packet payload, final short-packet handling,
+    zero-length/minimum message policy, and single-packet special case?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: configurable max payload; last packet may be short;
+    single-packet message sets SOM=EOM=1; reject zero-length unless required. Not locked truth.'
+  decision: 'Configurable max payload; the final packet may be short; a single-packet
+    message sets SOM=1 and EOM=1; zero-length messages are rejected.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r3
+  rationale: Core assembly behavior; defines SOM/EOM/sequence semantics and oracle.
+  affects:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_FRAGMENTATION
+- id: DT004_HEADER_FIELD_OWNERSHIP
+  question: Which MCTP header fields does the IP compute (SOM, EOM, packet sequence
+    number) vs which the caller supplies (dest EID, source EID, TO, msg tag, msg type/IC),
+    and is source EID fixed or programmable?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: IP owns SOM/EOM/seq#; caller supplies dest EID,
+    TO, tag, msg type; source EID programmable via CSR. Not locked truth.'
+  decision: 'IP computes SOM, EOM, and the 2-bit packet sequence number; caller supplies
+    dest EID, TO, message tag, and message type/IC; source EID is programmable via CSR.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r2
+  rationale: Field ownership separates DUT guarantees from environment assumptions.
+  affects:
+  - requirements
+  - contracts
+  - rtl
+  - verification
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_HEADER_OWNERSHIP
+- id: DT005_TAG_POLICY
+  question: Does the assembler allocate/track message tags and the TO bit or pass them
+    through, and how many outstanding tags/messages are supported?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: pass-through tag/TO from caller for v0; tag allocation
+    is a later feature. Not locked truth.'
+  decision: 'Caller supplies the message tag and TO bit (pass-through); the IP does
+    not allocate tags in v0. With one-message-at-a-time (DT006) outstanding tags = 1.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r3
+  rationale: Tag ownership affects multi-message correctness and firmware contract.
+  affects:
+  - requirements
+  - contracts
+  - verification
+  - firmware
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_TAG_POLICY
+- id: DT006_MESSAGE_INTERLEAVE
+  question: Multiple messages in flight (queued/interleaved across tags) or strictly
+    one-message-at-a-time, and what arbitration if queued?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: one-message-at-a-time for v0 (no interleave). Not
+    locked truth.'
+  decision: 'One message at a time for v0; no interleaving. A new message is accepted
+    only after the current message has fully emitted (EOM).'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r2
+  rationale: Interleaving drives buffering, state machine depth, and PPA.
+  affects:
+  - requirements
+  - contracts
+  - rtl
+  - verification
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_INTERLEAVE
+- id: DT007_ERROR_ABORT_POLICY
+  question: Source underrun, oversized message, egress backpressure/error, and abort
+    handling - drop, stall, abort-with-forced-EOM, or flag-and-discard?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: backpressure-stall on egress; flag+count on
+    underrun/oversize; no partial-message emission. Not locked truth.'
+  decision: 'Egress backpressure causes stall; source underrun and oversize raise a
+    status flag and increment an error counter; the IP never emits a partial message.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r3
+  rationale: Negative/error behavior must be explicit for closure-grade contracts.
+  affects:
+  - requirements
+  - contracts
+  - verification
+  - firmware
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_ERROR_ABORT
+- id: DT008_STATUS_IRQ_CSR
+  question: What completion/error status, interrupt, and counter set is exposed, over
+    what CSR interface?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: per-message done IRQ + error IRQ + sent/dropped
+    counters over a simple APB-like CSR. Not locked truth.'
+  decision: 'Expose a per-message done IRQ, an error IRQ, and sent/dropped counters
+    over a simple APB-like CSR interface.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r4
+  rationale: Firmware-visible status is part of the external contract.
+  affects:
+  - interfaces
+  - requirements
+  - contracts
+  - firmware
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_STATUS_IRQ
+- id: DT009_SPEC_SUBSET
+  question: Which MCTP base spec (DSP0236) version and feature subset, fixed header
+    version value, and supported message types are in v0 scope?
+  status: decided
+  lock_required: true
+  owner: happygrowth33
+  recommended: 'Draft guidance only: DSP0236 transport packetization only, header
+    version fixed, message-type-agnostic body. Not locked truth.'
+  decision: 'v0 scope is DSP0236 transport packetization/header construction only;
+    header version is a fixed value; the message body is treated as opaque
+    (message-type-agnostic), no per-type validation.'
+  decided_by:
+    kind: human
+    id: happygrowth33
+  decided_round: intake_r3
+  rationale: Spec subset bounds requirements and conformance scope.
+  affects:
+  - requirements
+  - contracts
+  - verification
+  refs:
+  - req/ambiguity_register.yaml#AMB_TX_SPEC_SUBSET

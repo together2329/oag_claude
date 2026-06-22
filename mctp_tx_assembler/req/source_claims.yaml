@@ -1,0 +1,63 @@
+schema_version: oag_source_claims.v1
+ip: mctp_tx_assembler
+claims:
+  - id: CLAIM_TX_PRIMARY_INTENT
+    source: user_prompt
+    quote: I need mctp tx assembler
+    summary: User wants an MCTP transmit-side assembler IP.
+    status: draft
+    normalized_meaning: >-
+      The IP accepts an outbound MCTP message and produces one or more MCTP
+      transport packets for transmission, applying MCTP packetization
+      (fragmentation into payload-bounded packets, SOM/EOM marking, packet
+      sequence numbering, and transport header construction). Exact interfaces,
+      MTU, header-field ownership, tagging, interleaving, and error policy are
+      undefined until intake resolves them.
+    affected_layers:
+      - requirements
+      - requirement_atoms
+      - contracts
+      - verification
+    requirement_refs:
+      - REQ_MCTP_TX_ASSEMBLER_001
+    decision_refs:
+      - DT003_FRAGMENTATION_POLICY
+    ambiguity_refs:
+      - AMB_TX_FRAGMENTATION
+  - id: CLAIM_TX_ASSEMBLY_INFERENCE
+    source: inference:domain_knowledge
+    quote: "(derived) 'TX assembler' for MCTP conventionally means message-to-packet assembly/fragmentation, not packet reassembly."
+    summary: Draft inference about what "assembler" means on the TX path.
+    status: draft
+    normalized_meaning: >-
+      Assembly on TX = take a logical MCTP message body plus addressing/tag
+      attributes and emit a packet stream where the first packet has SOM=1, the
+      last has EOM=1, packet sequence number increments mod 4, and each packet
+      body is bounded by the transport unit. This is a domain inference, NOT a
+      user statement; must be confirmed at lock.
+    affected_layers:
+      - requirements
+      - requirement_atoms
+      - contracts
+    requirement_refs:
+      - REQ_MCTP_TX_ASSEMBLER_001
+    decision_refs:
+      - DT004_HEADER_FIELD_OWNERSHIP
+    ambiguity_refs:
+      - AMB_TX_HEADER_OWNERSHIP
+      - AMB_TX_SPEC_SUBSET
+  - id: CLAIM_TX_RESET_PLACEHOLDER
+    source: req/locked_truth.md
+    quote: Define the primary externally visible behavior.
+    summary: Scaffold placeholder retained for reset/default-state intake.
+    status: draft
+    normalized_meaning: Reset signal, polarity, timing, and observable default state remain undefined.
+    affected_layers:
+      - requirement_atoms
+      - contracts
+    requirement_refs:
+      - REQ_MCTP_TX_ASSEMBLER_001
+    decision_refs:
+      - DEC_MCTP_TX_ASSEMBLER_RESET_BOUNDARY
+    ambiguity_refs:
+      - AMB_MCTP_TX_ASSEMBLER_RESET_BOUNDARY

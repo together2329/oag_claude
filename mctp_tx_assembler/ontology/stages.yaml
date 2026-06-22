@@ -1,0 +1,28 @@
+schema: oag_stage_contracts.v1
+ip: mctp_tx_assembler
+stages:
+  - id: req
+    owner: human-owner
+    inputs: [req/locked_truth.md, req/requirements.yaml, req/source_claims.yaml, req/ambiguity_register.yaml, req/evidence_plan.yaml]
+    outputs: [ontology/requirements.yaml, ontology/requirement_atoms.yaml, ontology/decision_matrix.yaml, ontology/obligations.yaml, ontology/contracts.yaml, ontology/modeling.yaml, ontology/domain_intent.yaml, ontology/verification_plan.yaml, ontology/tb_methodology.yaml]
+    gate: oag.compile
+  - id: rtl
+    owner: rtl
+    inputs: [ontology/generated/design_truth_graph.json, ontology/modeling.yaml, ontology/domain_intent.yaml, list/rtl.f]
+    outputs: [rtl/rtl_compile.json]
+    gate: rtl_compile
+  - id: tb
+    owner: tb
+    inputs: [ontology/generated/design_truth_graph.json, ontology/modeling.yaml, ontology/domain_intent.yaml, ontology/verification_plan.yaml, ontology/tb_methodology.yaml, rtl/rtl_compile.json]
+    outputs: [sim/scenario_mapping.json, sim/scoreboard_events.jsonl]
+    gate: scoreboard_rows.v1
+  - id: sim
+    owner: sim
+    inputs: [rtl/rtl_compile.json, sim/scenario_mapping.json, sim/scoreboard_events.jsonl]
+    outputs: [sim/results.xml]
+    gate: sim_results
+  - id: signoff
+    owner: signoff
+    inputs: [ontology/generated/design_truth_graph.json, ontology/evidence/stage_runs]
+    outputs: [signoff/release.yaml]
+    gate: oag.decide.signoff

@@ -1,0 +1,40 @@
+{
+  "schema_version": "oag_authoring_packet.v1",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "module": {
+    "id": "mctp_tx_assembler",
+    "name": "mctp_tx_assembler",
+    "role": "top",
+    "ownership": "current_ip",
+    "file": "rtl/mctp_tx_assembler.sv",
+    "edit_policy": "editable"
+  },
+  "structure_profile": "small_leaf_single_file",
+  "source_refs": [
+    "ontology/requirements.yaml",
+    "ontology/obligations.yaml",
+    "ontology/contracts.yaml"
+  ],
+  "structure_refs": [],
+  "obligations": [
+    {
+      "id": "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "missing": true
+    }
+  ],
+  "contracts": [
+    {
+      "id": "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+      "missing": true
+    }
+  ],
+  "requirements": [],
+  "execution_policy": {
+    "draft_allowed": true,
+    "pass_allowed": true,
+    "signoff_allowed": false,
+    "notes": "Signoff requires oag.check and oag.decide; authoring packets are work inputs, not closure decisions."
+  }
+}

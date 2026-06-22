@@ -1,0 +1,145 @@
+schema: ip_evidence_plan.v1
+ip: mctp_tx_assembler
+planned_scenarios:
+  - id: SCN_TX_INTAKE
+    obligations: [OBL_TX_INTAKE]
+    contracts: [CONTRACT_TX_INTAKE]
+    expected_scoreboard_rows: [EVT_TX_INTAKE]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.intake]}
+  - id: SCN_TX_FRAGMENT
+    obligations: [OBL_TX_FRAGMENT]
+    contracts: [CONTRACT_TX_FRAGMENT]
+    expected_scoreboard_rows: [EVT_TX_FRAGMENT]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.fragment]}
+  - id: SCN_TX_SOM_EOM
+    obligations: [OBL_TX_SOM_EOM]
+    contracts: [CONTRACT_TX_SOM_EOM]
+    expected_scoreboard_rows: [EVT_TX_SOM_EOM]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.som_eom]}
+  - id: SCN_TX_SEQNUM
+    obligations: [OBL_TX_SEQNUM]
+    contracts: [CONTRACT_TX_SEQNUM]
+    expected_scoreboard_rows: [EVT_TX_SEQNUM]
+    expected_source: {kind: cycle_rules, refs: [cycle_rules.tx.seqnum]}
+  - id: SCN_TX_HEADER
+    obligations: [OBL_TX_HEADER]
+    contracts: [CONTRACT_TX_HEADER]
+    expected_scoreboard_rows: [EVT_TX_HEADER]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.header]}
+  - id: SCN_TX_SINGLEMSG
+    obligations: [OBL_TX_SINGLEMSG]
+    contracts: [CONTRACT_TX_SINGLEMSG]
+    expected_scoreboard_rows: [EVT_TX_SINGLEMSG]
+    expected_source: {kind: cycle_rules, refs: [cycle_rules.tx.singlemsg]}
+  - id: SCN_TX_ERR_BACKPRESSURE
+    obligations: [OBL_TX_ERR]
+    contracts: [CONTRACT_TX_ERR]
+    expected_scoreboard_rows: [EVT_TX_ERR]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.err]}
+  - id: SCN_TX_ERR_UNDERRUN
+    obligations: [OBL_TX_ERR]
+    contracts: [CONTRACT_TX_ERR]
+    expected_scoreboard_rows: [EVT_TX_ERR]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.err]}
+  - id: SCN_TX_ERR_OVERSIZE
+    obligations: [OBL_TX_ERR]
+    contracts: [CONTRACT_TX_ERR]
+    expected_scoreboard_rows: [EVT_TX_ERR]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.err]}
+  - id: SCN_TX_ERR_ZEROLEN
+    obligations: [OBL_TX_ERR]
+    contracts: [CONTRACT_TX_ERR]
+    expected_scoreboard_rows: [EVT_TX_ERR]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.err]}
+  - id: SCN_TX_STATUS
+    obligations: [OBL_TX_STATUS]
+    contracts: [CONTRACT_TX_STATUS]
+    expected_scoreboard_rows: [EVT_TX_STATUS]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.status]}
+  - id: SCN_TX_RESET
+    obligations: [OBL_TX_RESET]
+    contracts: [CONTRACT_TX_RESET]
+    expected_scoreboard_rows: [EVT_TX_RESET]
+    expected_source: {kind: behavior_model, refs: [behavior_model.tx.reset]}
+contracts:
+  - id: CONTRACT_TX_INTAKE
+    obligation: OBL_TX_INTAKE
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_INTAKE
+    scenario_refs: [SCN_TX_INTAKE]
+    scoreboard_row_refs: [EVT_TX_INTAKE]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_FRAGMENT
+    obligation: OBL_TX_FRAGMENT
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_FRAGMENT
+    scenario_refs: [SCN_TX_FRAGMENT]
+    scoreboard_row_refs: [EVT_TX_FRAGMENT]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_SOM_EOM
+    obligation: OBL_TX_SOM_EOM
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_SOM_EOM
+    scenario_refs: [SCN_TX_SOM_EOM]
+    scoreboard_row_refs: [EVT_TX_SOM_EOM]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_SEQNUM
+    obligation: OBL_TX_SEQNUM
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_SEQNUM
+    scenario_refs: [SCN_TX_SEQNUM]
+    scoreboard_row_refs: [EVT_TX_SEQNUM]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_HEADER
+    obligation: OBL_TX_HEADER
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_HEADER
+    scenario_refs: [SCN_TX_HEADER]
+    scoreboard_row_refs: [EVT_TX_HEADER]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_SINGLEMSG
+    obligation: OBL_TX_SINGLEMSG
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_SINGLEMSG
+    scenario_refs: [SCN_TX_SINGLEMSG]
+    scoreboard_row_refs: [EVT_TX_SINGLEMSG]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_ERR
+    obligation: OBL_TX_ERR
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for all SCN_TX_ERR_* scenarios
+    scenario_refs: [SCN_TX_ERR_BACKPRESSURE, SCN_TX_ERR_UNDERRUN, SCN_TX_ERR_OVERSIZE, SCN_TX_ERR_ZEROLEN]
+    scoreboard_row_refs: [EVT_TX_ERR]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_STATUS
+    obligation: OBL_TX_STATUS
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_STATUS
+    scenario_refs: [SCN_TX_STATUS]
+    scoreboard_row_refs: [EVT_TX_STATUS]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]
+  - id: CONTRACT_TX_RESET
+    obligation: OBL_TX_RESET
+    method: scoreboard
+    pass_condition: scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows for SCN_TX_RESET
+    scenario_refs: [SCN_TX_RESET]
+    scoreboard_row_refs: [EVT_TX_RESET]
+    evidence:
+      files: [sim/results.xml, sim/scoreboard_events.jsonl]
+      schemas: [ontology/evidence/scoreboard_rows.v1.yaml]

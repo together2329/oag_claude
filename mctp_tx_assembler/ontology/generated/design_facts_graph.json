@@ -1,0 +1,26 @@
+{
+  "schema_version": "oag_design_facts_graph.v1",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "status": "pass",
+  "issues": [],
+  "extractor": {
+    "backend": "pyslang",
+    "backend_errors": []
+  },
+  "source_files": [],
+  "stats": {
+    "rtl_source_files": 0,
+    "modules": 0,
+    "ports": 0,
+    "parameters": 0,
+    "declarations": 0,
+    "registers": 0,
+    "memories": 0,
+    "instances": 0
+  },
+  "modules": [],
+  "nodes": [],
+  "edges": []
+}

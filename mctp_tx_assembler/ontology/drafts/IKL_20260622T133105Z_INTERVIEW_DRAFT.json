@@ -1,0 +1,16 @@
+{
+  "schema_version": "oag_interview_draft.v1",
+  "id": "IKL_20260622T133105Z_INTERVIEW_DRAFT",
+  "ip": "mctp_tx_assembler",
+  "stage": "intake",
+  "title": "Interview draft",
+  "summary": "4 lock-required decisions decided + 4 ambiguity rows resolved; scope still draft; remaining open: DT003/DT005/DT007/DT008/DT009 + reset + byte-order + generic-seed cleanup",
+  "facts": [],
+  "decisions": [],
+  "assumptions": [],
+  "open_questions": [],
+  "source": "chat_interview",
+  "promotion_state": "draft",
+  "created_at": "2026-06-22T13:31:05Z",
+  "record": "knowledge/records/IKL_20260622T133105Z_INTERVIEW_DRAFT.json"
+}

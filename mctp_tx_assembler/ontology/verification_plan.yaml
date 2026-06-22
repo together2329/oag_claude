@@ -1,0 +1,174 @@
+schema_version: oag_verification_plan.v1
+ip: mctp_tx_assembler
+strategy_policy:
+  owner_role: oag-verification-strategy-agent
+  tb_writer_may_define_strategy: false
+  canonical_tb_methodology_file: ontology/tb_methodology.yaml
+  coverage_model_split_pending: true
+verification_objectives:
+  - id: VOBJ_TX_INTAKE
+    status: ready
+    requirement: REQ_TX_INTAKE
+    obligation: OBL_TX_INTAKE
+    contract: CONTRACT_TX_INTAKE
+    intent: Prove message intake captures body-to-last-flag and latches the attribute word.
+    proof_methods: [directed_sim, scoreboard, assertion]
+    scenarios: [SCN_TX_INTAKE]
+    negative_scenarios: []
+    negative_rationale: Malformed intake (underrun) is covered by VOBJ_TX_ERR.
+    coverage_goals: [COV_TX_INTAKE]
+    assertion_candidates: [ASRT_TX_INTAKE_HANDSHAKE]
+    formal_candidates: []
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_INTAKE_ATTR_LAYOUT
+        risk: Sideband attribute word bit layout is not yet pinned to a CSR/IF spec.
+        status: accepted
+  - id: VOBJ_TX_FRAGMENT
+    status: ready
+    requirement: REQ_TX_FRAGMENT
+    obligation: OBL_TX_FRAGMENT
+    contract: CONTRACT_TX_FRAGMENT
+    intent: Prove fragmentation produces ceil(body/MTU) packets with a possibly-short final packet.
+    proof_methods: [directed_sim, scoreboard]
+    scenarios: [SCN_TX_FRAGMENT]
+    negative_scenarios: []
+    negative_rationale: Zero-length rejection is covered by VOBJ_TX_ERR.
+    coverage_goals: [COV_TX_FRAGMENT_BOUNDARIES]
+    assertion_candidates: []
+    formal_candidates: []
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_FRAGMENT_MTU_DEFAULT
+        risk: Default MTU value is an open sub-detail (DT002).
+        status: accepted
+  - id: VOBJ_TX_SOM_EOM
+    status: ready
+    requirement: REQ_TX_SOM_EOM
+    obligation: OBL_TX_SOM_EOM
+    contract: CONTRACT_TX_SOM_EOM
+    intent: Prove SOM/EOM marking including the single-packet case.
+    proof_methods: [directed_sim, scoreboard, assertion]
+    scenarios: [SCN_TX_SOM_EOM]
+    negative_scenarios: []
+    negative_rationale: SOM/EOM is a positive structural property; no negative stimulus needed.
+    coverage_goals: [COV_TX_SOM_EOM]
+    assertion_candidates: [ASRT_TX_SOM_FIRST, ASRT_TX_EOM_LAST]
+    formal_candidates: [FORM_TX_SOM_EOM_EXCLUSIVITY]
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_SOM_EOM_NONE
+        risk: None identified beyond draft status.
+        status: accepted
+  - id: VOBJ_TX_SEQNUM
+    status: ready
+    requirement: REQ_TX_SEQNUM
+    obligation: OBL_TX_SEQNUM
+    contract: CONTRACT_TX_SEQNUM
+    intent: Prove the 2-bit sequence number starts at 0 and increments mod 4.
+    proof_methods: [directed_sim, scoreboard, assertion]
+    scenarios: [SCN_TX_SEQNUM]
+    negative_scenarios: []
+    negative_rationale: Sequence numbering is a positive temporal property.
+    coverage_goals: [COV_TX_SEQNUM_WRAP]
+    assertion_candidates: [ASRT_TX_SEQ_INCREMENT]
+    formal_candidates: [FORM_TX_SEQ_MOD4]
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_SEQNUM_NONE
+        risk: None identified beyond draft status.
+        status: accepted
+  - id: VOBJ_TX_HEADER
+    status: ready
+    requirement: REQ_TX_HEADER
+    obligation: OBL_TX_HEADER
+    contract: CONTRACT_TX_HEADER
+    intent: Prove header field composition, ownership, byte layout, and body ordering.
+    proof_methods: [directed_sim, scoreboard]
+    scenarios: [SCN_TX_HEADER]
+    negative_scenarios: []
+    negative_rationale: Header composition is a positive structural property.
+    coverage_goals: [COV_TX_HEADER_FIELDS]
+    strong_proof_rationale: >-
+      Header correctness is byte-exact and fully decided by comparing the emitted
+      header byte vector and body ordering against behavior_model.tx.header in the
+      scoreboard; a separate assertion/formal path adds no proof strength.
+    assertion_candidates: [ASRT_TX_HEADER_VERSION_CONST]
+    formal_candidates: []
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_HEADER_VERSION_VALUE
+        risk: Concrete fixed header-version value is not yet pinned.
+        status: accepted
+  - id: VOBJ_TX_SINGLEMSG
+    status: ready
+    requirement: REQ_TX_SINGLEMSG
+    obligation: OBL_TX_SINGLEMSG
+    contract: CONTRACT_TX_SINGLEMSG
+    intent: Prove single-message-at-a-time processing with no packet interleaving.
+    proof_methods: [directed_sim, scoreboard, assertion]
+    scenarios: [SCN_TX_SINGLEMSG]
+    negative_scenarios: []
+    negative_rationale: Interleaving prevention is proven by an assertion that never fires.
+    coverage_goals: [COV_TX_SINGLEMSG]
+    assertion_candidates: [ASRT_TX_NO_INTERLEAVE, ASRT_TX_INTAKE_GATED]
+    formal_candidates: [FORM_TX_SINGLE_MSG_MUTEX]
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_SINGLEMSG_NONE
+        risk: None identified beyond draft status.
+        status: accepted
+  - id: VOBJ_TX_ERR
+    status: ready
+    requirement: REQ_TX_ERR
+    obligation: OBL_TX_ERR
+    contract: CONTRACT_TX_ERR
+    intent: Prove backpressure stall and error flagging/counting for underrun, oversize, and zero-length without partial emission.
+    proof_methods: [directed_sim, scoreboard, assertion]
+    scenarios: [SCN_TX_ERR_BACKPRESSURE]
+    negative_scenarios: [SCN_TX_ERR_UNDERRUN, SCN_TX_ERR_OVERSIZE, SCN_TX_ERR_ZEROLEN]
+    coverage_goals: [COV_TX_ERR_MATRIX]
+    assertion_candidates: [ASRT_TX_NO_PARTIAL_EMIT, ASRT_TX_BACKPRESSURE_NO_LOSS]
+    formal_candidates: [FORM_TX_NO_PARTIAL_EMIT]
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_ERR_OVERSIZE_THRESHOLD
+        risk: Oversize threshold (max message length) is not yet pinned.
+        status: accepted
+  - id: VOBJ_TX_STATUS
+    status: ready
+    requirement: REQ_TX_STATUS
+    obligation: OBL_TX_STATUS
+    contract: CONTRACT_TX_STATUS
+    intent: Prove done/error interrupts and sent/dropped counters track message outcomes.
+    proof_methods: [directed_sim, scoreboard, assertion]
+    scenarios: [SCN_TX_STATUS]
+    negative_scenarios: []
+    negative_rationale: Error-side counting is exercised within VOBJ_TX_ERR scenarios.
+    coverage_goals: [COV_TX_STATUS]
+    assertion_candidates: [ASRT_TX_DONE_ON_EOM]
+    formal_candidates: []
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_STATUS_CSR_MAP
+        risk: Concrete CSR address map and IRQ enable semantics not yet pinned.
+        status: accepted
+  - id: VOBJ_TX_RESET
+    status: ready
+    requirement: REQ_TX_RESET
+    obligation: OBL_TX_RESET
+    contract: CONTRACT_TX_RESET
+    intent: Prove reset/default observable state after synchronous deassertion.
+    proof_methods: [directed_sim, scoreboard]
+    scenarios: [SCN_TX_RESET]
+    negative_scenarios: []
+    negative_rationale: Reset is a positive default-state property.
+    coverage_goals: [COV_TX_RESET]
+    assertion_candidates: []
+    formal_candidates: []
+    fault_models: []
+    residual_risks:
+      - id: RISK_TX_RESET_CDC
+        risk: Reset deassertion synchronization details belong to a later CDC/RDC pass.
+        status: accepted
+open_strategy_blockers: []

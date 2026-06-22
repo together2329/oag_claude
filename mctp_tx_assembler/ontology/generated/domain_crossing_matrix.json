@@ -1,0 +1,28 @@
+{
+  "schema_version": "oag_domain_crossing_matrix.v1",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "source": "ontology/domain_intent.yaml",
+  "status": "present",
+  "clock_domains": [],
+  "reset_domains": [],
+  "async_inputs": [],
+  "cdc_crossings": [],
+  "rdc_crossings": [
+    {
+      "id": "RDC_UNCLASSIFIED",
+      "classification": "no_known_rdc",
+      "source_reset_domain": "",
+      "destination_reset_domain": "",
+      "mitigation": ""
+    }
+  ],
+  "stats": {
+    "clock_domains": 0,
+    "reset_domains": 0,
+    "async_inputs": 0,
+    "cdc_crossings": 0,
+    "rdc_crossings": 1
+  }
+}

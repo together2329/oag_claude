@@ -1,0 +1,71 @@
+schema_version: oag_modeling.v1
+ip: mctp_tx_assembler
+modeling_policy:
+  profile: simple_leaf_apb_peripheral
+  full_fl_model_required: false
+  full_cl_model_required: false
+  behavior_model_required_for_behavioral_closure: true
+  cycle_rules_required_for_temporal_closure: true
+  scoreboard_trace_required_for_closure: true
+behavior_model:
+  tx:
+    intake:
+      requirement: REQ_TX_INTAKE
+      obligation: OBL_TX_INTAKE
+      rule: >-
+        Expected captured message = body beats up to and including the last-flag beat,
+        with attribute word {dest_eid, msg_tag, to, msg_type} latched from the first beat.
+    fragment:
+      requirement: REQ_TX_FRAGMENT
+      obligation: OBL_TX_FRAGMENT
+      rule: >-
+        Expected packet count = ceil(body_len / MTU); packet i payload length =
+        min(MTU, body_len - i*MTU); only the final packet may be < MTU.
+    som_eom:
+      requirement: REQ_TX_SOM_EOM
+      obligation: OBL_TX_SOM_EOM
+      rule: SOM = (packet_index == 0); EOM = (packet_index == packet_count-1).
+    header:
+      requirement: REQ_TX_HEADER
+      obligation: OBL_TX_HEADER
+      rule: >-
+        Expected header bytes = DSP0236 layout of {version_fixed, dest_eid(caller),
+        source_eid(csr), som, eom, seq, to, msg_tag(caller)}; body bytes equal input order.
+    err:
+      requirement: REQ_TX_ERR
+      obligation: OBL_TX_ERR
+      rule: >-
+        backpressure -> stall (no byte lost); underrun|oversize|zero_length -> error_flag
+        set and error_counter += 1; egress emits no packet of an aborted message.
+    status:
+      requirement: REQ_TX_STATUS
+      obligation: OBL_TX_STATUS
+      rule: >-
+        done_irq pulses once per EOM emission; error_irq pulses once per error event;
+        sent_counter += 1 per completed message; dropped_counter += 1 per dropped message.
+    reset:
+      requirement: REQ_TX_RESET
+      obligation: OBL_TX_RESET
+      rule: >-
+        Post-reset observable state = {busy=0, seq=0, error_counter=0, sent=0, dropped=0,
+        CSR fields at defined reset values}.
+cycle_rules:
+  tx:
+    intake_handshake:
+      requirement: REQ_TX_INTAKE
+      rule: A beat transfers only when input_valid and input_ready are both high in the same cycle.
+    seqnum:
+      requirement: REQ_TX_SEQNUM
+      rule: seq[n] = 0 if SOM else (seq[n-1] + 1) mod 4, evaluated per packet header beat.
+    singlemsg:
+      requirement: REQ_TX_SINGLEMSG
+      rule: >-
+        input_ready for a new message stays low from first acceptance until the cycle
+        after the EOM packet of the in-flight message completes.
+    status_irq_timing:
+      requirement: REQ_TX_STATUS
+      rule: done_irq/error_irq assert in the cycle the EOM packet / error event completes.
+    reset_release:
+      requirement: REQ_TX_RESET
+      rule: Reset/default observations are sampled on the first clock edge after synchronous deassertion.
+approved_equivalent_oracles: []

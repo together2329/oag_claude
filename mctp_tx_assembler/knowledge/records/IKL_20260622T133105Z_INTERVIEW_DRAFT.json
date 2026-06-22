@@ -1,0 +1,72 @@
+{
+  "schema": "ip_knowledge_record.v1",
+  "id": "IKL_20260622T133105Z_INTERVIEW_DRAFT",
+  "scope": {
+    "ip": "mctp_tx_assembler",
+    "stage": "intake"
+  },
+  "type": "interview_draft",
+  "actor": {
+    "kind": "human",
+    "id": "happygrowth33",
+    "session": "",
+    "surface": "claude_code_question_ui"
+  },
+  "claim": "Interview draft",
+  "summary": "4 lock-required decisions decided + 4 ambiguity rows resolved; scope still draft; remaining open: DT003/DT005/DT007/DT008/DT009 + reset + byte-order + generic-seed cleanup",
+  "tags": [
+    "interview",
+    "draft"
+  ],
+  "rocev": {
+    "requirement": {
+      "id": "",
+      "source": "req/interview_draft.md",
+      "status": "draft"
+    },
+    "obligation": {
+      "id": "",
+      "status": "draft"
+    },
+    "contract": {
+      "id": "",
+      "method": "interview",
+      "status": "draft"
+    },
+    "evidence": {
+      "files": [
+        "req/interview_draft.md"
+      ],
+      "tests": [],
+      "commit": ""
+    },
+    "validation": {
+      "verdict": "draft",
+      "status": "draft",
+      "rationale": "Captured during requirement interview; not locked truth."
+    }
+  },
+  "evidence": {
+    "files": [
+      "req/interview_draft.md"
+    ],
+    "tests": [],
+    "commit": "",
+    "file_hashes": [
+      {
+        "path": "req/interview_draft.md",
+        "sha256": "8f0aeb1034966e5142df280f1e665761db8197dd619f658e188cca4e70f1cebd"
+      }
+    ]
+  },
+  "validation": {
+    "status": "draft",
+    "verdict": "draft",
+    "rationale": "Captured during requirement interview; not locked truth."
+  },
+  "supersedes": [],
+  "promotion": {
+    "state": "local"
+  },
+  "created_at": "2026-06-22T13:31:05Z"
+}

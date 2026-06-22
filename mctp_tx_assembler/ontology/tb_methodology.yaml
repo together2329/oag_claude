@@ -1,0 +1,52 @@
+schema_version: oag_tb_methodology.v1
+ip: mctp_tx_assembler
+methodology_policy:
+  profile: simple_leaf_apb_peripheral
+  framework_required: false
+  full_uvm_required: false
+  default_depth: directed_table_driven_micro_tb
+  random_requires_constraints: true
+  random_requires_coverage_goals: true
+  failed_tests_count_for_coverage: false
+  special_domain_sim_only_closure_allowed: false
+architecture_roles:
+  driver:
+    status: planned
+    responsibility: drive legal and negative stimulus from scenario intent
+  monitor:
+    status: planned
+    responsibility: observe DUT-facing signals or transactions
+  predictor:
+    status: planned
+    responsibility: compute expected from behavior_model, cycle_rules, or approved oracle
+  scoreboard:
+    status: planned
+    responsibility: emit scoreboard_rows.v1 compare rows
+  coverage:
+    status: planned
+    responsibility: record contract-linked coverage for passing checks
+  assertion_hooks:
+    status: optional
+    responsibility: capture local protocol, temporal, reset, or invariant rules
+  result_writer:
+    status: planned
+    responsibility: emit sim/results.xml, sim/scenario_mapping.json, sim/scoreboard_events.jsonl, and cov/coverage.json when in scope
+stimulus_strategy:
+  directed_smoke: true
+  table_driven_register_tests: true
+  constrained_random:
+    enabled: false
+    constraints: []
+    seed_strategy: TBD
+coverage_goals:
+  - id: COV_INC
+    requirement: REQ_MCTP_TX_ASSEMBLER_001
+    obligation: OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN
+    contract: CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD
+    description: Seed coverage goal for the scaffold reset/default scoreboard scenario.
+assertion_candidates: []
+formal_candidates: []
+notes:
+  - TB methodology is profile-scaled and framework-neutral.
+  - UVM, cocotb, SV, Verilog, OSVVM, UVVM, or simulator adapters are choices, not truth.
+  - Failed tests and failed scoreboard rows must not contribute to closure coverage.

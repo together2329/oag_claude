@@ -1,0 +1,130 @@
+schema: ip_requirements.v1
+ip: mctp_tx_assembler
+requirements:
+  - id: REQ_TX_INTAKE
+    status: locked
+    owner: happygrowth33
+    requirement_type: protocol
+    text: >-
+      Accept one outbound MCTP message on a streaming input bus with a last-flag and a
+      sideband attribute word (dest EID, message tag, TO, message type/IC); body opaque.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_PRIMARY_INTENT]
+    decision_refs: [DT001_MSG_SOURCE_IF, DT009_SPEC_SUBSET]
+    verification_method: [scoreboard, assertion]
+    ambiguity_status: clear
+    obligations: [OBL_TX_INTAKE]
+  - id: REQ_TX_FRAGMENT
+    status: locked
+    owner: happygrowth33
+    requirement_type: behavioral
+    text: >-
+      Fragment the message body into packets each within the configured MTU; final
+      packet may be short; single-packet message produces exactly one packet.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_PRIMARY_INTENT, CLAIM_TX_ASSEMBLY_INFERENCE]
+    decision_refs: [DT002_EGRESS_BINDING_MTU, DT003_FRAGMENTATION_POLICY]
+    verification_method: [scoreboard]
+    ambiguity_status: clear
+    obligations: [OBL_TX_FRAGMENT]
+  - id: REQ_TX_SOM_EOM
+    status: locked
+    owner: happygrowth33
+    requirement_type: behavioral
+    text: >-
+      SOM=1 on first packet, EOM=1 on last; single-packet message SOM=EOM=1; otherwise
+      SOM=0 and EOM=0.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_ASSEMBLY_INFERENCE]
+    decision_refs: [DT003_FRAGMENTATION_POLICY, DT004_HEADER_FIELD_OWNERSHIP]
+    verification_method: [scoreboard, assertion]
+    ambiguity_status: clear
+    obligations: [OBL_TX_SOM_EOM]
+  - id: REQ_TX_SEQNUM
+    status: locked
+    owner: happygrowth33
+    requirement_type: temporal
+    text: >-
+      2-bit packet sequence number = 0 on SOM packet, increments modulo 4 on each
+      subsequent packet of the same message.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_ASSEMBLY_INFERENCE]
+    decision_refs: [DT004_HEADER_FIELD_OWNERSHIP]
+    verification_method: [scoreboard, assertion]
+    ambiguity_status: clear
+    obligations: [OBL_TX_SEQNUM]
+  - id: REQ_TX_HEADER
+    status: locked
+    owner: happygrowth33
+    requirement_type: behavioral
+    text: >-
+      Packet header carries fixed version, caller dest EID/TO/tag, CSR source EID, and
+      IP-computed SOM/EOM/seq; header in DSP0236 byte layout, body order-preserving.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_ASSEMBLY_INFERENCE]
+    decision_refs: [DT004_HEADER_FIELD_OWNERSHIP, DT005_TAG_POLICY, DT009_SPEC_SUBSET, D003_BYTE_ORDERING]
+    verification_method: [scoreboard]
+    ambiguity_status: clear
+    obligations: [OBL_TX_HEADER]
+  - id: REQ_TX_SINGLEMSG
+    status: locked
+    owner: happygrowth33
+    requirement_type: protocol
+    text: >-
+      One message at a time; accept a new message only after the current message's EOM
+      packet is emitted; no interleaving.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_PRIMARY_INTENT]
+    decision_refs: [DT006_MESSAGE_INTERLEAVE]
+    verification_method: [scoreboard, assertion]
+    ambiguity_status: clear
+    obligations: [OBL_TX_SINGLEMSG]
+  - id: REQ_TX_ERR
+    status: locked
+    owner: happygrowth33
+    requirement_type: error_negative
+    text: >-
+      Egress backpressure stalls without data loss; source underrun, oversize, and
+      zero-length raise a status flag and increment the error counter; never emit a
+      partial message.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_PRIMARY_INTENT]
+    decision_refs: [DT003_FRAGMENTATION_POLICY, DT007_ERROR_ABORT_POLICY]
+    verification_method: [scoreboard, assertion]
+    ambiguity_status: clear
+    obligations: [OBL_TX_ERR]
+  - id: REQ_TX_STATUS
+    status: locked
+    owner: happygrowth33
+    requirement_type: interrupt_event
+    text: >-
+      Per-message done IRQ on EOM emission, error IRQ on error, sent/dropped counters,
+      over an APB-like CSR interface.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_PRIMARY_INTENT]
+    decision_refs: [DT008_STATUS_IRQ_CSR]
+    verification_method: [scoreboard, assertion]
+    ambiguity_status: clear
+    obligations: [OBL_TX_STATUS]
+  - id: REQ_TX_RESET
+    status: locked
+    owner: happygrowth33
+    requirement_type: reset
+    text: >-
+      Async-asserted, sync-deasserted active-low reset; on reset the IP is idle, no
+      in-flight message, seq=0, error counters cleared, CSR fields at reset defaults.
+    source: req/source_claims.yaml
+    source_refs: [req/source_claims.yaml]
+    source_claim_refs: [CLAIM_TX_RESET_PLACEHOLDER]
+    decision_refs: [DEC_MCTP_TX_ASSEMBLER_RESET_BOUNDARY]
+    verification_method: [scoreboard]
+    ambiguity_status: clear
+    obligations: [OBL_TX_RESET]

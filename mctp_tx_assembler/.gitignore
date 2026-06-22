@@ -1,0 +1,6 @@
+sim/waves/*
+lint/reports/*
+cov/reports/*
+syn/reports/*
+syn/netlist/*
+!*/.gitkeep

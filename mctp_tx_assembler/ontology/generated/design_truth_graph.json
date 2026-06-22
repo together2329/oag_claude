@@ -1,0 +1,1180 @@
+{
+  "schema_version": "oag_design_truth_graph.v1",
+  "compiled_by": "oag.compile",
+  "compiled_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "closure_profile": "development",
+  "structure_profile": "small_leaf_single_file",
+  "status": "fail",
+  "issues": [
+    "mctp_tx_assembler: owned obligation not found: OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+    "mctp_tx_assembler: owned contract not found: CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+    "OBL_TX_ERR: obligation has no owning decomposition module",
+    "OBL_TX_FRAGMENT: obligation has no owning decomposition module",
+    "OBL_TX_HEADER: obligation has no owning decomposition module",
+    "OBL_TX_INTAKE: obligation has no owning decomposition module",
+    "OBL_TX_RESET: obligation has no owning decomposition module",
+    "OBL_TX_SEQNUM: obligation has no owning decomposition module",
+    "OBL_TX_SINGLEMSG: obligation has no owning decomposition module",
+    "OBL_TX_SOM_EOM: obligation has no owning decomposition module",
+    "OBL_TX_STATUS: obligation has no owning decomposition module",
+    "CONTRACT_TX_ERR: contract has no owning decomposition module",
+    "CONTRACT_TX_FRAGMENT: contract has no owning decomposition module",
+    "CONTRACT_TX_HEADER: contract has no owning decomposition module",
+    "CONTRACT_TX_INTAKE: contract has no owning decomposition module",
+    "CONTRACT_TX_RESET: contract has no owning decomposition module",
+    "CONTRACT_TX_SEQNUM: contract has no owning decomposition module",
+    "CONTRACT_TX_SINGLEMSG: contract has no owning decomposition module",
+    "CONTRACT_TX_SOM_EOM: contract has no owning decomposition module",
+    "CONTRACT_TX_STATUS: contract has no owning decomposition module"
+  ],
+  "stats": {
+    "requirements": 9,
+    "obligations": 9,
+    "contracts": 9,
+    "structure_refs": 0,
+    "modules": 1,
+    "design_facts_modules": 0,
+    "design_facts_instances": 0,
+    "domain_clock_domains": 0,
+    "domain_reset_domains": 0,
+    "domain_cdc_crossings": 0,
+    "domain_rdc_crossings": 1,
+    "tb_methodology_roles": 7,
+    "tb_coverage_goals": 1,
+    "tb_assertion_candidates": 0,
+    "tb_formal_candidates": 0,
+    "stages": 5,
+    "design_rules": 22,
+    "design_rule_instances": 11,
+    "authoring_packets": 4,
+    "load_bearing_edges": 44
+  },
+  "generated": {
+    "design_spec": "mctp_tx_assembler/ontology/generated/design_spec.json",
+    "authoring_packets": [
+      {
+        "module": "mctp_tx_assembler",
+        "path": "ontology/generated/authoring_packets/module__mctp_tx_assembler.json",
+        "editable": true
+      },
+      {
+        "module": "",
+        "path": "ontology/generated/authoring_packets/rtl__mctp_tx_assembler.json",
+        "editable": false,
+        "packet_type": "rtl_authoring_packet"
+      },
+      {
+        "module": "",
+        "path": "ontology/generated/authoring_packets/tb__mctp_tx_assembler.json",
+        "editable": false,
+        "packet_type": "tb_authoring_packet"
+      },
+      {
+        "module": "",
+        "path": "ontology/generated/authoring_packets/evidence__mctp_tx_assembler.json",
+        "editable": false,
+        "packet_type": "evidence_authoring_packet"
+      }
+    ],
+    "authoring_packet_count": 4,
+    "design_facts_graph": "mctp_tx_assembler/ontology/generated/design_facts_graph.json",
+    "design_facts": {
+      "path": "mctp_tx_assembler/ontology/generated/design_facts_graph.json",
+      "status": "pass",
+      "stats": {
+        "rtl_source_files": 0,
+        "modules": 0,
+        "ports": 0,
+        "parameters": 0,
+        "declarations": 0,
+        "registers": 0,
+        "memories": 0,
+        "instances": 0
+      },
+      "extractor": {
+        "backend": "pyslang",
+        "backend_errors": []
+      }
+    },
+    "domain_crossing_matrix": {
+      "path": "mctp_tx_assembler/ontology/generated/domain_crossing_matrix.json",
+      "status": "present",
+      "stats": {
+        "clock_domains": 0,
+        "reset_domains": 0,
+        "async_inputs": 0,
+        "cdc_crossings": 0,
+        "rdc_crossings": 1
+      }
+    },
+    "tb_methodology_matrix": {
+      "path": "mctp_tx_assembler/ontology/generated/tb_methodology_matrix.json",
+      "status": "present",
+      "stats": {
+        "roles": 7,
+        "coverage_goals": 1,
+        "assertion_candidates": 0,
+        "formal_candidates": 0
+      }
+    }
+  },
+  "nodes": [
+    {
+      "id": "ip::mctp_tx_assembler",
+      "type": "ip",
+      "label": "mctp_tx_assembler",
+      "status": "present"
+    },
+    {
+      "id": "policy::closure_profile::development",
+      "type": "policy",
+      "label": "development",
+      "status": "active"
+    },
+    {
+      "id": "policy::structure_profile::small_leaf_single_file",
+      "type": "policy",
+      "label": "small_leaf_single_file",
+      "status": "active"
+    },
+    {
+      "id": "structure::mctp_tx_assembler",
+      "type": "structure",
+      "label": "structure namespace",
+      "status": "declared",
+      "stats": {
+        "signals": 0,
+        "interfaces": 0,
+        "registers": 0,
+        "state": 0,
+        "derived_signals": 0
+      }
+    },
+    {
+      "id": "module::mctp_tx_assembler",
+      "type": "module",
+      "label": "mctp_tx_assembler",
+      "status": "current_ip",
+      "file": "rtl/mctp_tx_assembler.sv",
+      "role": "top"
+    },
+    {
+      "id": "artifact::ontology/generated/design_facts_graph.json",
+      "type": "artifact",
+      "label": "design facts graph",
+      "status": "pass",
+      "path": "ontology/generated/design_facts_graph.json",
+      "stats": {
+        "rtl_source_files": 0,
+        "modules": 0,
+        "ports": 0,
+        "parameters": 0,
+        "declarations": 0,
+        "registers": 0,
+        "memories": 0,
+        "instances": 0
+      }
+    },
+    {
+      "id": "requirement::REQ_TX_INTAKE",
+      "type": "requirement",
+      "label": "REQ_TX_INTAKE",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_FRAGMENT",
+      "type": "requirement",
+      "label": "REQ_TX_FRAGMENT",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_SOM_EOM",
+      "type": "requirement",
+      "label": "REQ_TX_SOM_EOM",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_SEQNUM",
+      "type": "requirement",
+      "label": "REQ_TX_SEQNUM",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_HEADER",
+      "type": "requirement",
+      "label": "REQ_TX_HEADER",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_SINGLEMSG",
+      "type": "requirement",
+      "label": "REQ_TX_SINGLEMSG",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_ERR",
+      "type": "requirement",
+      "label": "REQ_TX_ERR",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_STATUS",
+      "type": "requirement",
+      "label": "REQ_TX_STATUS",
+      "status": "locked"
+    },
+    {
+      "id": "requirement::REQ_TX_RESET",
+      "type": "requirement",
+      "label": "REQ_TX_RESET",
+      "status": "locked"
+    },
+    {
+      "id": "obligation::OBL_TX_INTAKE",
+      "type": "obligation",
+      "label": "OBL_TX_INTAKE",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_FRAGMENT",
+      "type": "obligation",
+      "label": "OBL_TX_FRAGMENT",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_SOM_EOM",
+      "type": "obligation",
+      "label": "OBL_TX_SOM_EOM",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_SEQNUM",
+      "type": "obligation",
+      "label": "OBL_TX_SEQNUM",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_HEADER",
+      "type": "obligation",
+      "label": "OBL_TX_HEADER",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_SINGLEMSG",
+      "type": "obligation",
+      "label": "OBL_TX_SINGLEMSG",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_ERR",
+      "type": "obligation",
+      "label": "OBL_TX_ERR",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_STATUS",
+      "type": "obligation",
+      "label": "OBL_TX_STATUS",
+      "status": "open"
+    },
+    {
+      "id": "obligation::OBL_TX_RESET",
+      "type": "obligation",
+      "label": "OBL_TX_RESET",
+      "status": "open"
+    },
+    {
+      "id": "contract::CONTRACT_TX_INTAKE",
+      "type": "contract",
+      "label": "CONTRACT_TX_INTAKE",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_FRAGMENT",
+      "type": "contract",
+      "label": "CONTRACT_TX_FRAGMENT",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_SOM_EOM",
+      "type": "contract",
+      "label": "CONTRACT_TX_SOM_EOM",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_SEQNUM",
+      "type": "contract",
+      "label": "CONTRACT_TX_SEQNUM",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_HEADER",
+      "type": "contract",
+      "label": "CONTRACT_TX_HEADER",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_SINGLEMSG",
+      "type": "contract",
+      "label": "CONTRACT_TX_SINGLEMSG",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_ERR",
+      "type": "contract",
+      "label": "CONTRACT_TX_ERR",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_STATUS",
+      "type": "contract",
+      "label": "CONTRACT_TX_STATUS",
+      "status": "draft"
+    },
+    {
+      "id": "contract::CONTRACT_TX_RESET",
+      "type": "contract",
+      "label": "CONTRACT_TX_RESET",
+      "status": "draft"
+    },
+    {
+      "id": "rule::RULE_REQUIREMENT_SEMANTIC_ATOMS",
+      "type": "rule",
+      "label": "RULE_REQUIREMENT_SEMANTIC_ATOMS",
+      "status": "active",
+      "kind": "requirement_semantic_atoms"
+    },
+    {
+      "id": "rule::RULE_REQUIREMENT_QUALITY_GATE",
+      "type": "rule",
+      "label": "RULE_REQUIREMENT_QUALITY_GATE",
+      "status": "active",
+      "kind": "requirement_quality_gate"
+    },
+    {
+      "id": "rule::RULE_DECISION_MATRIX_LOCK_READINESS",
+      "type": "rule",
+      "label": "RULE_DECISION_MATRIX_LOCK_READINESS",
+      "status": "active",
+      "kind": "decision_matrix_lock_readiness"
+    },
+    {
+      "id": "rule::RULE_ASSUME_GUARANTEE_CONTRACT",
+      "type": "rule",
+      "label": "RULE_ASSUME_GUARANTEE_CONTRACT",
+      "status": "active",
+      "kind": "assume_guarantee_contract"
+    },
+    {
+      "id": "rule::RULE_EVENT_STATE_COMMIT_CONSISTENCY",
+      "type": "rule",
+      "label": "RULE_EVENT_STATE_COMMIT_CONSISTENCY",
+      "status": "active",
+      "kind": "event_state_commit_consistency"
+    },
+    {
+      "id": "rule::RULE_SAME_CYCLE_PRIORITY_DECLARED",
+      "type": "rule",
+      "label": "RULE_SAME_CYCLE_PRIORITY_DECLARED",
+      "status": "active",
+      "kind": "same_cycle_priority_declared"
+    },
+    {
+      "id": "rule::RULE_SCOREBOARD_ROWS_V1",
+      "type": "rule",
+      "label": "RULE_SCOREBOARD_ROWS_V1",
+      "status": "active",
+      "kind": "scoreboard_evidence_schema"
+    },
+    {
+      "id": "rule::RULE_CONTRACT_TO_PROOF_COVERAGE",
+      "type": "rule",
+      "label": "RULE_CONTRACT_TO_PROOF_COVERAGE",
+      "status": "active",
+      "kind": "contract_to_proof_coverage"
+    },
+    {
+      "id": "rule::RULE_FAULT_MODEL_COVERAGE",
+      "type": "rule",
+      "label": "RULE_FAULT_MODEL_COVERAGE",
+      "status": "active",
+      "kind": "fault_model_coverage"
+    },
+    {
+      "id": "rule::RULE_VERIFICATION_ROLE_DECOMPOSITION",
+      "type": "rule",
+      "label": "RULE_VERIFICATION_ROLE_DECOMPOSITION",
+      "status": "active",
+      "kind": "verification_role_decomposition"
+    },
+    {
+      "id": "rule::RULE_TB_METHODOLOGY_KERNEL",
+      "type": "rule",
+      "label": "RULE_TB_METHODOLOGY_KERNEL",
+      "status": "active",
+      "kind": "tb_methodology_kernel"
+    },
+    {
+      "id": "rule::RULE_VERIFICATION_STRATEGY_OWNS_PROOF",
+      "type": "rule",
+      "label": "RULE_VERIFICATION_STRATEGY_OWNS_PROOF",
+      "status": "active",
+      "kind": "verification_strategy_owns_proof"
+    },
+    {
+      "id": "rule::RULE_CONTRACT_STRENGTH",
+      "type": "rule",
+      "label": "RULE_CONTRACT_STRENGTH",
+      "status": "active",
+      "kind": "contract_strength"
+    },
+    {
+      "id": "rule::RULE_ROLE_SPECIFIC_AUTHORING_PACKETS",
+      "type": "rule",
+      "label": "RULE_ROLE_SPECIFIC_AUTHORING_PACKETS",
+      "status": "active",
+      "kind": "authoring_packet_role_projection"
+    },
+    {
+      "id": "rule::RULE_TRACE_GRAPH_ID_GOVERNANCE",
+      "type": "rule",
+      "label": "RULE_TRACE_GRAPH_ID_GOVERNANCE",
+      "status": "active",
+      "kind": "trace_graph_id_governance"
+    },
+    {
+      "id": "rule::RULE_CDC_CROSSING_COVERAGE",
+      "type": "rule",
+      "label": "RULE_CDC_CROSSING_COVERAGE",
+      "status": "active",
+      "kind": "cdc_crossing_coverage"
+    },
+    {
+      "id": "rule::RULE_PROTOCOL_COMPLIANCE",
+      "type": "rule",
+      "label": "RULE_PROTOCOL_COMPLIANCE",
+      "status": "active",
+      "kind": "protocol_compliance"
+    },
+    {
+      "id": "rule::RULE_TIMING_CLOSURE",
+      "type": "rule",
+      "label": "RULE_TIMING_CLOSURE",
+      "status": "active",
+      "kind": "timing_closure"
+    },
+    {
+      "id": "rule::RULE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "type": "rule",
+      "label": "RULE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "status": "active",
+      "kind": "functional_coverage_closure"
+    },
+    {
+      "id": "rule::RULE_RESET_XPROP_COVERAGE",
+      "type": "rule",
+      "label": "RULE_RESET_XPROP_COVERAGE",
+      "status": "active",
+      "kind": "reset_xprop_coverage"
+    },
+    {
+      "id": "rule::RULE_MODULE_FILE_BOUNDARY",
+      "type": "rule",
+      "label": "RULE_MODULE_FILE_BOUNDARY",
+      "status": "active",
+      "kind": "module_file_boundary"
+    },
+    {
+      "id": "rule::RULE_RTL_LANGUAGE_SUBSET",
+      "type": "rule",
+      "label": "RULE_RTL_LANGUAGE_SUBSET",
+      "status": "active",
+      "kind": "rtl_language_subset"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_EVENT_STATE_COMMIT",
+      "type": "rule_instance",
+      "label": "TEMPLATE_EVENT_STATE_COMMIT",
+      "status": "template",
+      "rule": "RULE_EVENT_STATE_COMMIT_CONSISTENCY"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_SAME_CYCLE_PRIORITY",
+      "type": "rule_instance",
+      "label": "TEMPLATE_SAME_CYCLE_PRIORITY",
+      "status": "template",
+      "rule": "RULE_SAME_CYCLE_PRIORITY_DECLARED"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_CONTRACT_PROOF_COVERAGE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_CONTRACT_PROOF_COVERAGE",
+      "status": "template",
+      "rule": "RULE_CONTRACT_TO_PROOF_COVERAGE"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_FAULT_MODEL_COVERAGE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_FAULT_MODEL_COVERAGE",
+      "status": "template",
+      "rule": "RULE_FAULT_MODEL_COVERAGE"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_VERIFICATION_ROLE_DECOMPOSITION",
+      "type": "rule_instance",
+      "label": "TEMPLATE_VERIFICATION_ROLE_DECOMPOSITION",
+      "status": "template",
+      "rule": "RULE_VERIFICATION_ROLE_DECOMPOSITION"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_TB_METHODOLOGY_KERNEL",
+      "type": "rule_instance",
+      "label": "TEMPLATE_TB_METHODOLOGY_KERNEL",
+      "status": "template",
+      "rule": "RULE_TB_METHODOLOGY_KERNEL"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_CDC_CROSSING_COVERAGE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_CDC_CROSSING_COVERAGE",
+      "status": "template",
+      "rule": "RULE_CDC_CROSSING_COVERAGE"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_PROTOCOL_COMPLIANCE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_PROTOCOL_COMPLIANCE",
+      "status": "template",
+      "rule": "RULE_PROTOCOL_COMPLIANCE"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_TIMING_CLOSURE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_TIMING_CLOSURE",
+      "status": "template",
+      "rule": "RULE_TIMING_CLOSURE"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "status": "template",
+      "rule": "RULE_FUNCTIONAL_COVERAGE_CLOSURE"
+    },
+    {
+      "id": "rule_instance::TEMPLATE_RESET_XPROP_COVERAGE",
+      "type": "rule_instance",
+      "label": "TEMPLATE_RESET_XPROP_COVERAGE",
+      "status": "template",
+      "rule": "RULE_RESET_XPROP_COVERAGE"
+    },
+    {
+      "id": "rdc_crossing::RDC_UNCLASSIFIED",
+      "type": "rdc_crossing",
+      "label": "RDC_UNCLASSIFIED",
+      "status": "declared"
+    },
+    {
+      "id": "stage::req",
+      "type": "stage",
+      "label": "req",
+      "status": "declared",
+      "owner": "human-owner"
+    },
+    {
+      "id": "gate::oag.compile",
+      "type": "gate",
+      "label": "oag.compile",
+      "status": "declared"
+    },
+    {
+      "id": "stage::rtl",
+      "type": "stage",
+      "label": "rtl",
+      "status": "declared",
+      "owner": "rtl"
+    },
+    {
+      "id": "gate::rtl_compile",
+      "type": "gate",
+      "label": "rtl_compile",
+      "status": "declared"
+    },
+    {
+      "id": "stage::tb",
+      "type": "stage",
+      "label": "tb",
+      "status": "declared",
+      "owner": "tb"
+    },
+    {
+      "id": "gate::scoreboard_rows.v1",
+      "type": "gate",
+      "label": "scoreboard_rows.v1",
+      "status": "declared"
+    },
+    {
+      "id": "stage::sim",
+      "type": "stage",
+      "label": "sim",
+      "status": "declared",
+      "owner": "sim"
+    },
+    {
+      "id": "gate::sim_results",
+      "type": "gate",
+      "label": "sim_results",
+      "status": "declared"
+    },
+    {
+      "id": "stage::signoff",
+      "type": "stage",
+      "label": "signoff",
+      "status": "declared",
+      "owner": "signoff"
+    },
+    {
+      "id": "gate::oag.decide.signoff",
+      "type": "gate",
+      "label": "oag.decide.signoff",
+      "status": "declared"
+    }
+  ],
+  "edges": [
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "policy::closure_profile::development",
+      "type": "uses_policy",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "policy::structure_profile::small_leaf_single_file",
+      "type": "uses_structure_profile",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "structure::mctp_tx_assembler",
+      "type": "has_structure",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "module::mctp_tx_assembler",
+      "type": "has_module",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "artifact::ontology/generated/design_facts_graph.json",
+      "type": "has_artifact",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_INTAKE",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_FRAGMENT",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_SOM_EOM",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_SEQNUM",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_HEADER",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_SINGLEMSG",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_ERR",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_STATUS",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "requirement::REQ_TX_RESET",
+      "type": "has_requirement",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_INTAKE",
+      "target": "obligation::OBL_TX_INTAKE",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_INTAKE",
+      "target": "contract::CONTRACT_TX_INTAKE",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_FRAGMENT",
+      "target": "obligation::OBL_TX_FRAGMENT",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_FRAGMENT",
+      "target": "contract::CONTRACT_TX_FRAGMENT",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_SOM_EOM",
+      "target": "obligation::OBL_TX_SOM_EOM",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_SOM_EOM",
+      "target": "contract::CONTRACT_TX_SOM_EOM",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_SEQNUM",
+      "target": "obligation::OBL_TX_SEQNUM",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_SEQNUM",
+      "target": "contract::CONTRACT_TX_SEQNUM",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_HEADER",
+      "target": "obligation::OBL_TX_HEADER",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_HEADER",
+      "target": "contract::CONTRACT_TX_HEADER",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_SINGLEMSG",
+      "target": "obligation::OBL_TX_SINGLEMSG",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_SINGLEMSG",
+      "target": "contract::CONTRACT_TX_SINGLEMSG",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_ERR",
+      "target": "obligation::OBL_TX_ERR",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_ERR",
+      "target": "contract::CONTRACT_TX_ERR",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_STATUS",
+      "target": "obligation::OBL_TX_STATUS",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_STATUS",
+      "target": "contract::CONTRACT_TX_STATUS",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "requirement::REQ_TX_RESET",
+      "target": "obligation::OBL_TX_RESET",
+      "type": "has_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "obligation::OBL_TX_RESET",
+      "target": "contract::CONTRACT_TX_RESET",
+      "type": "closed_by",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_REQUIREMENT_SEMANTIC_ATOMS",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_REQUIREMENT_QUALITY_GATE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_DECISION_MATRIX_LOCK_READINESS",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_ASSUME_GUARANTEE_CONTRACT",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_EVENT_STATE_COMMIT_CONSISTENCY",
+      "type": "uses_rule",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_SAME_CYCLE_PRIORITY_DECLARED",
+      "type": "uses_rule",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_SCOREBOARD_ROWS_V1",
+      "type": "uses_rule",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_CONTRACT_TO_PROOF_COVERAGE",
+      "type": "uses_rule",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_FAULT_MODEL_COVERAGE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_VERIFICATION_ROLE_DECOMPOSITION",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_TB_METHODOLOGY_KERNEL",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_VERIFICATION_STRATEGY_OWNS_PROOF",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_CONTRACT_STRENGTH",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_ROLE_SPECIFIC_AUTHORING_PACKETS",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_TRACE_GRAPH_ID_GOVERNANCE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_CDC_CROSSING_COVERAGE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_PROTOCOL_COMPLIANCE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_TIMING_CLOSURE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_RESET_XPROP_COVERAGE",
+      "type": "uses_rule",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_MODULE_FILE_BOUNDARY",
+      "type": "uses_rule",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule::RULE_RTL_LANGUAGE_SUBSET",
+      "type": "uses_rule",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_EVENT_STATE_COMMIT",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_EVENT_STATE_COMMIT_CONSISTENCY",
+      "target": "rule_instance::TEMPLATE_EVENT_STATE_COMMIT",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_SAME_CYCLE_PRIORITY",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_SAME_CYCLE_PRIORITY_DECLARED",
+      "target": "rule_instance::TEMPLATE_SAME_CYCLE_PRIORITY",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_CONTRACT_PROOF_COVERAGE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_CONTRACT_TO_PROOF_COVERAGE",
+      "target": "rule_instance::TEMPLATE_CONTRACT_PROOF_COVERAGE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_FAULT_MODEL_COVERAGE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_FAULT_MODEL_COVERAGE",
+      "target": "rule_instance::TEMPLATE_FAULT_MODEL_COVERAGE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_VERIFICATION_ROLE_DECOMPOSITION",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_VERIFICATION_ROLE_DECOMPOSITION",
+      "target": "rule_instance::TEMPLATE_VERIFICATION_ROLE_DECOMPOSITION",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_TB_METHODOLOGY_KERNEL",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_TB_METHODOLOGY_KERNEL",
+      "target": "rule_instance::TEMPLATE_TB_METHODOLOGY_KERNEL",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_CDC_CROSSING_COVERAGE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_CDC_CROSSING_COVERAGE",
+      "target": "rule_instance::TEMPLATE_CDC_CROSSING_COVERAGE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_PROTOCOL_COMPLIANCE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_PROTOCOL_COMPLIANCE",
+      "target": "rule_instance::TEMPLATE_PROTOCOL_COMPLIANCE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_TIMING_CLOSURE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_TIMING_CLOSURE",
+      "target": "rule_instance::TEMPLATE_TIMING_CLOSURE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "target": "rule_instance::TEMPLATE_FUNCTIONAL_COVERAGE_CLOSURE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rule_instance::TEMPLATE_RESET_XPROP_COVERAGE",
+      "type": "has_rule_instance",
+      "load_bearing": false
+    },
+    {
+      "source": "rule::RULE_RESET_XPROP_COVERAGE",
+      "target": "rule_instance::TEMPLATE_RESET_XPROP_COVERAGE",
+      "type": "instantiated_by",
+      "load_bearing": false
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "rdc_crossing::RDC_UNCLASSIFIED",
+      "type": "has_rdc_crossing",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "stage::req",
+      "type": "has_stage",
+      "load_bearing": false
+    },
+    {
+      "source": "stage::req",
+      "target": "gate::oag.compile",
+      "type": "gated_by",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "stage::rtl",
+      "type": "has_stage",
+      "load_bearing": false
+    },
+    {
+      "source": "stage::rtl",
+      "target": "gate::rtl_compile",
+      "type": "gated_by",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "stage::tb",
+      "type": "has_stage",
+      "load_bearing": false
+    },
+    {
+      "source": "stage::tb",
+      "target": "gate::scoreboard_rows.v1",
+      "type": "gated_by",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "stage::sim",
+      "type": "has_stage",
+      "load_bearing": false
+    },
+    {
+      "source": "stage::sim",
+      "target": "gate::sim_results",
+      "type": "gated_by",
+      "load_bearing": true
+    },
+    {
+      "source": "ip::mctp_tx_assembler",
+      "target": "stage::signoff",
+      "type": "has_stage",
+      "load_bearing": false
+    },
+    {
+      "source": "stage::signoff",
+      "target": "gate::oag.decide.signoff",
+      "type": "gated_by",
+      "load_bearing": true
+    }
+  ]
+}

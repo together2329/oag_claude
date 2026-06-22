@@ -1,0 +1,46 @@
+{
+  "schema_version": "oag_tb_methodology_matrix.v1",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "source": "ontology/tb_methodology.yaml",
+  "status": "present",
+  "profile": "simple_leaf_apb_peripheral",
+  "framework_required": false,
+  "full_uvm_required": false,
+  "default_depth": "directed_table_driven_micro_tb",
+  "roles": [
+    "assertion_hooks",
+    "coverage",
+    "driver",
+    "monitor",
+    "predictor",
+    "result_writer",
+    "scoreboard"
+  ],
+  "stimulus": {
+    "directed_smoke": true,
+    "table_driven_register_tests": true,
+    "constrained_random": {
+      "enabled": false,
+      "constraints": [],
+      "seed_strategy": "TBD"
+    }
+  },
+  "coverage_goals": [
+    {
+      "id": "COV_INC",
+      "requirement": "REQ_MCTP_TX_ASSEMBLER_001",
+      "obligation": "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "contract": "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD"
+    }
+  ],
+  "assertion_candidates": [],
+  "formal_candidates": [],
+  "stats": {
+    "roles": 7,
+    "coverage_goals": 1,
+    "assertion_candidates": 0,
+    "formal_candidates": 0
+  }
+}

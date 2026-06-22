@@ -1,0 +1,14 @@
+schema: action_schema.v1
+id: oag_readiness_handoff.v1
+artifact: handoff/readiness_handoff.json
+history: handoff/readiness_history.jsonl
+format: json
+scope: generic IP readiness handoff derived from OAG metrics and auto-research reports
+required_fields:
+  - schema_version
+  - numeric_summary
+  - readiness
+  - ranked_next_actions
+  - signoff_blockers
+  - evidence_refs
+rule: development_ready and signoff_ready must be numerically derived; development closure must not be presented as signoff readiness

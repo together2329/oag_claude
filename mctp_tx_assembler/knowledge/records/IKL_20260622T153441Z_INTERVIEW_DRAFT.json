@@ -1,0 +1,72 @@
+{
+  "schema": "ip_knowledge_record.v1",
+  "id": "IKL_20260622T153441Z_INTERVIEW_DRAFT",
+  "scope": {
+    "ip": "mctp_tx_assembler",
+    "stage": "intake"
+  },
+  "type": "interview_draft",
+  "actor": {
+    "kind": "human",
+    "id": "happygrowth33",
+    "session": "",
+    "surface": "claude_code_question_ui"
+  },
+  "claim": "Interview draft",
+  "summary": "Draft trace graph now clean (0 issues). Decision layer complete (14/14). Requirement atoms, obligations, assume/guarantee contracts, and verification plan still scaffold placeholders - next pre-lock authoring phase. Scope remains draft.",
+  "tags": [
+    "interview",
+    "draft"
+  ],
+  "rocev": {
+    "requirement": {
+      "id": "",
+      "source": "req/interview_draft.md",
+      "status": "draft"
+    },
+    "obligation": {
+      "id": "",
+      "status": "draft"
+    },
+    "contract": {
+      "id": "",
+      "method": "interview",
+      "status": "draft"
+    },
+    "evidence": {
+      "files": [
+        "req/interview_draft.md"
+      ],
+      "tests": [],
+      "commit": ""
+    },
+    "validation": {
+      "verdict": "draft",
+      "status": "draft",
+      "rationale": "Captured during requirement interview; not locked truth."
+    }
+  },
+  "evidence": {
+    "files": [
+      "req/interview_draft.md"
+    ],
+    "tests": [],
+    "commit": "",
+    "file_hashes": [
+      {
+        "path": "req/interview_draft.md",
+        "sha256": "07dc10137baac38b83ae7c9dafff62816e2ad187546e577b14de63397a83f770"
+      }
+    ]
+  },
+  "validation": {
+    "status": "draft",
+    "verdict": "draft",
+    "rationale": "Captured during requirement interview; not locked truth."
+  },
+  "supersedes": [],
+  "promotion": {
+    "state": "local"
+  },
+  "created_at": "2026-06-22T15:34:41Z"
+}

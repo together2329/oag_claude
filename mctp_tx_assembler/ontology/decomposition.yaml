@@ -1,0 +1,21 @@
+schema: oag_decomposition.v1
+ip: mctp_tx_assembler
+profile:
+  mode: small_leaf_single_file
+  rationale: Seed scaffold uses one leaf RTL file until complexity or reuse requires module decomposition.
+  source: ontology/policies.yaml#structure_policy
+modules:
+  - id: mctp_tx_assembler
+    name: mctp_tx_assembler
+    role: top
+    ownership: current_ip
+    file: rtl/mctp_tx_assembler.sv
+    implementation_style: small_leaf_single_file
+    owned_obligations: [OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN]
+    owned_contracts: [CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD]
+    structure_refs: []
+    source_refs: [ontology/requirements.yaml, ontology/obligations.yaml, ontology/contracts.yaml]
+    edit_policy: editable
+    notes: Replace this with greenfield_modular, legacy_preserve, or wrapper_adapter when the IP shape is known.
+interfaces: []
+legacy_sources: []

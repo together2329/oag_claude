@@ -1,0 +1,168 @@
+{
+  "schema_version": "ip_knowledge_index.v1",
+  "generated_at": "2026-06-22T15:34:41Z",
+  "ip": "mctp_tx_assembler",
+  "record_count": 5,
+  "records": [
+    {
+      "id": "IKL_20260622T132544Z_INTERVIEW_DRAFT",
+      "path": "knowledge/records/IKL_20260622T132544Z_INTERVIEW_DRAFT.json",
+      "ip": "mctp_tx_assembler",
+      "stage": "intake",
+      "type": "interview_draft",
+      "actor_kind": "ai",
+      "actor_id": "claude",
+      "actor_surface": "oag.draft",
+      "claim": "Interview draft",
+      "summary": "TX-assembly intake captured; scope draft, 14 unresolved lock-blockers; awaiting user decisions before lock",
+      "tags": [
+        "interview",
+        "draft"
+      ],
+      "requirement_id": "",
+      "requirement_text": "",
+      "obligation_id": "",
+      "obligation_text": "",
+      "contract_id": "",
+      "contract_method": "interview",
+      "contract_pass_condition": "",
+      "validation_status": "draft",
+      "validation_verdict": "draft",
+      "promotion_state": "local",
+      "evidence_files": [
+        "req/interview_draft.md"
+      ],
+      "evidence_tests": [],
+      "commit": "",
+      "created_at": "2026-06-22T13:25:44Z"
+    },
+    {
+      "id": "IKL_20260622T133105Z_INTERVIEW_DRAFT",
+      "path": "knowledge/records/IKL_20260622T133105Z_INTERVIEW_DRAFT.json",
+      "ip": "mctp_tx_assembler",
+      "stage": "intake",
+      "type": "interview_draft",
+      "actor_kind": "human",
+      "actor_id": "happygrowth33",
+      "actor_surface": "claude_code_question_ui",
+      "claim": "Interview draft",
+      "summary": "4 lock-required decisions decided + 4 ambiguity rows resolved; scope still draft; remaining open: DT003/DT005/DT007/DT008/DT009 + reset + byte-order + generic-seed cleanup",
+      "tags": [
+        "interview",
+        "draft"
+      ],
+      "requirement_id": "",
+      "requirement_text": "",
+      "obligation_id": "",
+      "obligation_text": "",
+      "contract_id": "",
+      "contract_method": "interview",
+      "contract_pass_condition": "",
+      "validation_status": "draft",
+      "validation_verdict": "draft",
+      "promotion_state": "local",
+      "evidence_files": [
+        "req/interview_draft.md"
+      ],
+      "evidence_tests": [],
+      "commit": "",
+      "created_at": "2026-06-22T13:31:05Z"
+    },
+    {
+      "id": "IKL_20260622T152958Z_INTERVIEW_DRAFT",
+      "path": "knowledge/records/IKL_20260622T152958Z_INTERVIEW_DRAFT.json",
+      "ip": "mctp_tx_assembler",
+      "stage": "intake",
+      "type": "interview_draft",
+      "actor_kind": "human",
+      "actor_id": "happygrowth33",
+      "actor_surface": "claude_code_question_ui",
+      "claim": "Interview draft",
+      "summary": "8 of 14 lock-required decided + 8 ambiguity rows resolved; scope still draft; remaining: reset boundary, DT008 status/IRQ/CSR, D003 byte order, D001/D002/D004 generic-seed cleanup",
+      "tags": [
+        "interview",
+        "draft"
+      ],
+      "requirement_id": "",
+      "requirement_text": "",
+      "obligation_id": "",
+      "obligation_text": "",
+      "contract_id": "",
+      "contract_method": "interview",
+      "contract_pass_condition": "",
+      "validation_status": "draft",
+      "validation_verdict": "draft",
+      "promotion_state": "local",
+      "evidence_files": [
+        "req/interview_draft.md"
+      ],
+      "evidence_tests": [],
+      "commit": "",
+      "created_at": "2026-06-22T15:29:58Z"
+    },
+    {
+      "id": "IKL_20260622T153244Z_INTERVIEW_DRAFT",
+      "path": "knowledge/records/IKL_20260622T153244Z_INTERVIEW_DRAFT.json",
+      "ip": "mctp_tx_assembler",
+      "stage": "intake",
+      "type": "interview_draft",
+      "actor_kind": "human",
+      "actor_id": "happygrowth33",
+      "actor_surface": "claude_code_question_ui",
+      "claim": "Interview draft",
+      "summary": "ALL 14 lock-required decisions now decided(11)/waived(3); all 10 ambiguity rows resolved; scope still draft pending requirement-atom + contract authoring then explicit user lock",
+      "tags": [
+        "interview",
+        "draft"
+      ],
+      "requirement_id": "",
+      "requirement_text": "",
+      "obligation_id": "",
+      "obligation_text": "",
+      "contract_id": "",
+      "contract_method": "interview",
+      "contract_pass_condition": "",
+      "validation_status": "draft",
+      "validation_verdict": "draft",
+      "promotion_state": "local",
+      "evidence_files": [
+        "req/interview_draft.md"
+      ],
+      "evidence_tests": [],
+      "commit": "",
+      "created_at": "2026-06-22T15:32:44Z"
+    },
+    {
+      "id": "IKL_20260622T153441Z_INTERVIEW_DRAFT",
+      "path": "knowledge/records/IKL_20260622T153441Z_INTERVIEW_DRAFT.json",
+      "ip": "mctp_tx_assembler",
+      "stage": "intake",
+      "type": "interview_draft",
+      "actor_kind": "human",
+      "actor_id": "happygrowth33",
+      "actor_surface": "claude_code_question_ui",
+      "claim": "Interview draft",
+      "summary": "Draft trace graph now clean (0 issues). Decision layer complete (14/14). Requirement atoms, obligations, assume/guarantee contracts, and verification plan still scaffold placeholders - next pre-lock authoring phase. Scope remains draft.",
+      "tags": [
+        "interview",
+        "draft"
+      ],
+      "requirement_id": "",
+      "requirement_text": "",
+      "obligation_id": "",
+      "obligation_text": "",
+      "contract_id": "",
+      "contract_method": "interview",
+      "contract_pass_condition": "",
+      "validation_status": "draft",
+      "validation_verdict": "draft",
+      "promotion_state": "local",
+      "evidence_files": [
+        "req/interview_draft.md"
+      ],
+      "evidence_tests": [],
+      "commit": "",
+      "created_at": "2026-06-22T15:34:41Z"
+    }
+  ]
+}

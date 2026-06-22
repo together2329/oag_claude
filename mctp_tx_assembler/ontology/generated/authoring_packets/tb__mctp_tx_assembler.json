@@ -1,0 +1,79 @@
+{
+  "schema_version": "oag_tb_authoring_packet.v1",
+  "packet_type": "tb_authoring_packet",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-22T15:52:43Z",
+  "ip": "mctp_tx_assembler",
+  "allowed_truth_sources": [
+    "ontology/contracts.yaml",
+    "ontology/modeling.yaml",
+    "ontology/tb_methodology.yaml",
+    "ontology/verification_plan.yaml",
+    "req/evidence_plan.yaml"
+  ],
+  "expected_source_policy": "contract_oracle_only",
+  "forbidden_expected_sources": [
+    "dut_output",
+    "rtl_expression",
+    "post_hoc_simulation",
+    "observed DUT behavior"
+  ],
+  "scenario_refs": [
+    "SCN_TX_ERR_BACKPRESSURE",
+    "SCN_TX_ERR_OVERSIZE",
+    "SCN_TX_ERR_UNDERRUN",
+    "SCN_TX_ERR_ZEROLEN",
+    "SCN_TX_FRAGMENT",
+    "SCN_TX_HEADER",
+    "SCN_TX_INTAKE",
+    "SCN_TX_RESET",
+    "SCN_TX_SEQNUM",
+    "SCN_TX_SINGLEMSG",
+    "SCN_TX_SOM_EOM",
+    "SCN_TX_STATUS"
+  ],
+  "scoreboard_row_refs": [
+    "EVT_TX_ERR",
+    "EVT_TX_FRAGMENT",
+    "EVT_TX_HEADER",
+    "EVT_TX_INTAKE",
+    "EVT_TX_RESET",
+    "EVT_TX_SEQNUM",
+    "EVT_TX_SINGLEMSG",
+    "EVT_TX_SOM_EOM",
+    "EVT_TX_STATUS"
+  ],
+  "coverage_goal_refs": [
+    "COV_INC"
+  ],
+  "assertion_candidates": [
+    "ASRT_TX_BACKPRESSURE_NO_LOSS",
+    "ASRT_TX_DONE_ON_EOM",
+    "ASRT_TX_EOM_LAST",
+    "ASRT_TX_HEADER_VERSION_CONST",
+    "ASRT_TX_INTAKE_GATED",
+    "ASRT_TX_INTAKE_HANDSHAKE",
+    "ASRT_TX_NO_INTERLEAVE",
+    "ASRT_TX_NO_PARTIAL_EMIT",
+    "ASRT_TX_SEQ_INCREMENT",
+    "ASRT_TX_SOM_FIRST"
+  ],
+  "formal_candidates": [
+    "FORM_TX_NO_PARTIAL_EMIT",
+    "FORM_TX_SEQ_MOD4",
+    "FORM_TX_SINGLE_MSG_MUTEX",
+    "FORM_TX_SOM_EOM_EXCLUSIVITY"
+  ],
+  "contract_refs": [
+    "CONTRACT_TX_ERR",
+    "CONTRACT_TX_FRAGMENT",
+    "CONTRACT_TX_HEADER",
+    "CONTRACT_TX_INTAKE",
+    "CONTRACT_TX_RESET",
+    "CONTRACT_TX_SEQNUM",
+    "CONTRACT_TX_SINGLEMSG",
+    "CONTRACT_TX_SOM_EOM",
+    "CONTRACT_TX_STATUS"
+  ],
+  "notes": "TB predicts from contracts and modeling truth; DUT output and RTL expressions are forbidden expected sources."
+}
