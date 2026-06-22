@@ -1,0 +1,37 @@
+schema_version: oag_wavefront_template.v1
+name: rtl_module_fanout
+description: Generic RTL module wavefront; replace task IDs and paths with generated authoring packet shards.
+tasks:
+  - task_id: RTL_READ_CONTEXT
+    kind: read_only
+    phase: rtl_explore
+    agent_type: oag-rtl-implementation-agent
+    depends_on: []
+    barrier_outputs:
+      - rtl_context_ready
+    allowed_write_paths: []
+    ownership_mode: none
+    may_claim_complete: false
+  - task_id: RTL_MODULE_A
+    kind: write
+    phase: rtl_module
+    agent_type: oag-rtl-implementation-agent
+    depends_on:
+      - RTL_READ_CONTEXT
+    barrier_inputs:
+      - rtl_context_ready
+    allowed_write_paths:
+      - rtl/module_a.sv
+    ownership_mode: exclusive_file
+    may_claim_complete: false
+  - task_id: RTL_STATIC_INTEGRATION
+    kind: integration
+    phase: rtl_integration
+    agent_type: oag-rtl-lint-static-agent
+    depends_on:
+      - RTL_MODULE_A
+    shared_artifacts:
+      - list/rtl.f
+      - lint/dut_lint.json
+    ownership_mode: integration_owner
+    may_claim_complete: false

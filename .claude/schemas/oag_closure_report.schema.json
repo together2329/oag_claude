@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_closure_report.schema.json",
+  "title": "OAG Closure Check Report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "product_name",
+    "internal_gateway",
+    "status",
+    "ip_dir",
+    "validation_report",
+    "gate_report",
+    "issues",
+    "catalog"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_closure_check.v1"
+    },
+    "product_name": {
+      "const": "IP Dev Agent"
+    },
+    "internal_gateway": {
+      "const": "Ontology Agent Gateway"
+    },
+    "status": {
+      "enum": ["pass", "fail"]
+    },
+    "ip_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validation_report": {
+      "type": ["string", "null"]
+    },
+    "gate_report": {
+      "type": ["string", "null"]
+    },
+    "issues": {
+      "type": "array"
+    },
+    "catalog": {
+      "type": "object"
+    }
+  }
+}

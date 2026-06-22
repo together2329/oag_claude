@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_dispatch.schema.json",
+  "title": "OAG Subagent Dispatch",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "product_name",
+    "internal_gateway",
+    "dispatch_id",
+    "agent_type",
+    "role_name",
+    "role_kind",
+    "ip_id",
+    "ip_dir",
+    "stage",
+    "allowed_write_paths",
+    "allowed_tool_side_effects",
+    "receipt_path",
+    "may_claim_complete",
+    "baseline",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_dispatch.v1"
+    },
+    "product_name": {
+      "const": "IP Dev Agent"
+    },
+    "internal_gateway": {
+      "const": "Ontology Agent Gateway"
+    },
+    "dispatch_id": {
+      "type": "string",
+      "pattern": "^DISPATCH_[A-Z0-9_]+_[0-9]{8}T[0-9]{6}Z(_[A-F0-9]{8})?$"
+    },
+    "agent_type": {
+      "type": "string",
+      "pattern": "^oag-[a-z0-9_-]+$"
+    },
+    "role_name": {
+      "type": "string",
+      "pattern": "^oag-[a-z0-9_-]+$"
+    },
+    "role_kind": {
+      "enum": ["core", "custom"]
+    },
+    "registered_id": {
+      "type": "string"
+    },
+    "ip_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ip_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owned_obligations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_write_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_tool_side_effects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "receipt_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "wavefront_run_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "ownership_mode": {
+      "type": "string"
+    },
+    "may_claim_complete": {
+      "const": false
+    },
+    "baseline": {
+      "type": "object"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

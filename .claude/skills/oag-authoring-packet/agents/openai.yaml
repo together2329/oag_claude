@@ -1,0 +1,4 @@
+interface:
+  display_name: "OAG Authoring Packet"
+  short_description: "Build role-specific RTL/TB packets"
+  default_prompt: "Use this skill to compile and verify OAG role-specific authoring packets."

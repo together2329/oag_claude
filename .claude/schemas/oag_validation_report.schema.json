@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_validation_report.schema.json",
+  "title": "OAG Validation Report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "product_name",
+    "internal_gateway",
+    "ip_id",
+    "role_name",
+    "status",
+    "closure_matrix",
+    "evidence",
+    "mutation_guard",
+    "coverage",
+    "issues",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_validation_report.v1"
+    },
+    "product_name": {
+      "const": "IP Dev Agent"
+    },
+    "internal_gateway": {
+      "const": "Ontology Agent Gateway"
+    },
+    "ip_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role_name": {
+      "const": "oag-evidence-validator"
+    },
+    "status": {
+      "enum": ["pass", "fail", "blocked", "waived"]
+    },
+    "closure_matrix": {
+      "type": "object"
+    },
+    "evidence": {
+      "type": "object"
+    },
+    "mutation_guard": {
+      "type": "object"
+    },
+    "coverage": {
+      "type": "object"
+    },
+    "issues": {
+      "type": "array"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

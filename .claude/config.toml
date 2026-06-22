@@ -1,0 +1,12 @@
+[features]
+multi_agent = true
+child_agents_md = true
+hooks = true
+
+[features.multi_agent_v2]
+enabled = false
+max_concurrent_threads_per_session = 10000
+
+[agents]
+max_depth = 1
+max_threads = 16

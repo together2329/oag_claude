@@ -1,0 +1,4 @@
+interface:
+  display_name: "OAG Evidence Closure"
+  short_description: "Validate OAG evidence closure"
+  default_prompt: "Use this skill to validate OAG scoreboard, coverage, trace, and gate readiness."

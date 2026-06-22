@@ -1,0 +1,58 @@
+schema_version: oag_wavefront_template.v1
+name: tb_common_then_scenario_fanout
+description: Generic TB wavefront with common helper/schema barrier before scenario fan-out.
+tasks:
+  - task_id: TB_COMMON_API
+    kind: write
+    phase: tb_common
+    agent_type: oag-tb-implementation-agent
+    depends_on: []
+    barrier_outputs:
+      - tb_common_import_clean
+      - helper_api_manifest
+    allowed_write_paths:
+      - tb/cocotb/tb_common.py
+    ownership_mode: exclusive_file
+    may_claim_complete: false
+  - task_id: TB_SCOREBOARD_SCHEMA
+    kind: write
+    phase: tb_common
+    agent_type: oag-tb-implementation-agent
+    depends_on: []
+    barrier_outputs:
+      - scoreboard_schema_frozen
+    allowed_write_paths:
+      - tb/cocotb/scoreboard.py
+    ownership_mode: exclusive_file
+    may_claim_complete: false
+  - task_id: TB_SCENARIO_A
+    kind: write
+    phase: tb_scenario
+    agent_type: oag-tb-implementation-agent
+    depends_on:
+      - TB_COMMON_API
+      - TB_SCOREBOARD_SCHEMA
+    barrier_inputs:
+      - tb_common_import_clean
+      - helper_api_manifest
+      - scoreboard_schema_frozen
+    barrier_outputs:
+      - scenario_import_clean
+    allowed_write_paths:
+      - tb/cocotb/test_scenario_a.py
+    ownership_mode: exclusive_file
+    may_claim_complete: false
+  - task_id: TB_RUNNER_OWNER
+    kind: integration
+    phase: sim_runner
+    agent_type: oag-sim-execution-agent
+    depends_on:
+      - TB_SCENARIO_A
+    shared_artifacts:
+      - tb/tb.f
+      - scripts/run_sim.sh
+      - sim/results.xml
+      - sim/scoreboard_events.jsonl
+      - cov/coverage.json
+    ownership_mode: integration_owner
+    may_claim_complete: false

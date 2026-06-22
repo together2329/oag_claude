@@ -1,0 +1,96 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_oag_session_start.py",
+            "timeout": 10,
+            "statusMessage": "OAG: enforcing Claude Code subagent config"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_oag_mode_trigger.py",
+            "timeout": 10,
+            "statusMessage": "OAG: checking explicit mode trigger"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_native_subagent_guard.py",
+            "timeout": 10,
+            "statusMessage": "OAG: enforcing native subagent guard"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_context_inject.py",
+            "timeout": 10,
+            "statusMessage": "OAG: injecting IP context"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_draft_pressure.py",
+            "timeout": 10,
+            "statusMessage": "OAG: checking interview draft pressure"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_stop_gate.py",
+            "timeout": 10,
+            "statusMessage": "OAG: checking active run completion"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^oag-",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_subagent_oag_start.py",
+            "timeout": 10,
+            "statusMessage": "OAG: injecting subagent start contract"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^oag-(ontology-curator-agent|custom-worker|rtl-implementation-agent|tb-implementation-agent|rtl-lint-static-agent|sim-execution-agent|coverage-agent|mutation-guard-agent|evidence-validator|gate-reviewer)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_subagent_oag_gate.py",
+            "timeout": 10,
+            "statusMessage": "OAG: verifying subagent evidence receipt"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/claude_context_inject.py",
+            "timeout": 10,
+            "statusMessage": "OAG: restoring IP context after compact"
+          }
+        ]
+      }
+    ]
+  }
+}

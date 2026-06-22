@@ -1,0 +1,184 @@
+{
+  "schema_version": "oag_answer_key_suite.v1",
+  "name": "oag_control_policy_seed",
+  "description": "Seed answer-key cases for conversational OAG run-limit control and graph compile freshness.",
+  "cases": [
+    {
+      "id": "run_limit_requirements_stops_before_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "requirement 까지만"
+      },
+      "expected": {
+        "configured_limit": "requirements",
+        "context_configured": true,
+        "stop_should_continue": false,
+        "stop_reason": "policy_limit_reached",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": false
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_rtl_stops_before_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "rtl까지만"
+      },
+      "expected": {
+        "configured_limit": "rtl",
+        "context_configured": true,
+        "stop_should_continue": false,
+        "stop_reason": "policy_limit_reached",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": false
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_lint_stops_before_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "lint까지만"
+      },
+      "expected": {
+        "configured_limit": "lint",
+        "context_configured": true,
+        "stop_should_continue": false,
+        "stop_reason": "policy_limit_reached",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": false
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_tb_stops_before_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "tb까지만"
+      },
+      "expected": {
+        "configured_limit": "tb",
+        "context_configured": true,
+        "stop_should_continue": false,
+        "stop_reason": "policy_limit_reached",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": false
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_sim_allows_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "sim까지만"
+      },
+      "expected": {
+        "configured_limit": "sim",
+        "context_configured": true,
+        "stop_should_continue": true,
+        "stop_reason": "run_incomplete",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": true
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_coverage_allows_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "coverage까지만"
+      },
+      "expected": {
+        "configured_limit": "coverage",
+        "context_configured": true,
+        "stop_should_continue": true,
+        "stop_reason": "run_incomplete",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": true
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_signoff_allows_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "signoff까지만"
+      },
+      "expected": {
+        "configured_limit": "signoff",
+        "context_configured": true,
+        "stop_should_continue": true,
+        "stop_reason": "run_incomplete",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": true
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_all_allows_sim",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "끝까지"
+      },
+      "expected": {
+        "configured_limit": "all",
+        "context_configured": true,
+        "stop_should_continue": true,
+        "stop_reason": "run_incomplete",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": true
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "run_limit_none_disables_autocontinue",
+      "kind": "run_limit_prompt",
+      "input": {
+        "prompt": "자동진행 꺼"
+      },
+      "expected": {
+        "configured_limit": "none",
+        "context_configured": true,
+        "stop_should_continue": false,
+        "stop_reason": "policy_limit_reached",
+        "next_action_stage": "sim",
+        "stop_hook_blocked": false
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    },
+    {
+      "id": "compile_fresh_inputs_skip_second_run",
+      "kind": "compile_fresh_skip",
+      "input": {},
+      "expected": {
+        "first_status": "pass",
+        "first_skipped": false,
+        "second_status": "pass",
+        "second_skipped": true,
+        "manifest_written": true
+      },
+      "speed": {
+        "max_duration_s": 4.0
+      }
+    }
+  ]
+}

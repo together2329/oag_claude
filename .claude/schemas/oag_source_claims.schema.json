@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OAG Source Claims",
+  "type": "object",
+  "required": ["schema_version", "ip", "claims"],
+  "properties": {
+    "schema_version": {
+      "const": "oag_source_claims.v1"
+    },
+    "ip": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_:-]+$"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quote": {
+            "type": ["string", "null"]
+          },
+          "summary": {
+            "type": ["string", "null"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "confirmed", "refuted", "superseded"]
+          },
+          "normalized_meaning": {
+            "type": ["string", "null"]
+          },
+          "affected_layers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requirement_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "decision_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ambiguity_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

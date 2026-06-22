@@ -1,0 +1,261 @@
+schema_version = "oag_agent_catalog.v2"
+product_name = "IP Dev Agent"
+internal_gateway = "Ontology Agent Gateway"
+gateway_short_name = "OAG"
+rocev_chain = ["Requirement", "Obligation", "Contract", "Evidence", "Validation", "Decision"]
+
+[[agents]]
+id = "oag-ontology-curator-agent"
+source_file = ".claude/agents/oag-ontology-curator-agent.md"
+kind = "core"
+responsibility = "Maintain OAG ontology vocabulary, schemas, protected concepts, and semantic consistency."
+may_modify_source = true
+may_write_evidence = true
+allowed_write_paths = ["ontology/", ".claude/agents/", ".claude/rules/", ".claude/skills/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["ontology validation report", "decision receipt for protected semantic changes"]
+forbidden_actions = ["implement RTL/TB for an IP", "silently weaken protected ontology or closure policy"]
+handoff_targets = ["oag-evidence-validator", "oag-gate-reviewer"]
+
+[[agents]]
+id = "oag-requirement-contract-agent"
+source_file = ".claude/agents/oag-requirement-contract-agent.md"
+kind = "core"
+responsibility = "Translate specs and user intent into requirements, obligations, and structural/behavioral contracts."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["ontology/requirements.yaml", "ontology/obligations.yaml", "ontology/contracts.yaml", "knowledge/requirements/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["requirement ledger", "obligation ledger", "contract ledger"]
+forbidden_actions = ["implement RTL/TB", "invent fixed-format IP requirements without evidence"]
+handoff_targets = ["oag-ip-contract-agent", "oag-legacy-ip-analyzer", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-legacy-ip-analyzer"
+source_file = ".claude/agents/oag-legacy-ip-analyzer.md"
+kind = "core"
+responsibility = "Analyze reference RTL, specs, tests, and patterns as evidence for gap matrices and implementation targets."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["knowledge/reference/", "knowledge/gap_matrix/", "knowledge/extraction/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["reference findings", "gap matrix", "leakage guard when reference RTL is used"]
+forbidden_actions = ["copy protected RTL as generated output", "treat reference behavior as authority without a contract"]
+handoff_targets = ["oag-requirement-contract-agent", "oag-ip-contract-agent", "oag-rtl-implementation-agent"]
+
+[[agents]]
+id = "oag-ip-contract-agent"
+source_file = ".claude/agents/oag-ip-contract-agent.md"
+kind = "core"
+responsibility = "Derive per-IP evidence contracts, observables, monitor obligations, and owner routing without static profiles."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["ontology/contracts.yaml", "knowledge/contracts/", "knowledge/observables/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["per-IP evidence contract", "observable list", "owner routing map"]
+forbidden_actions = ["implement RTL/TB", "select a fixed UART/DMA/SPI template as authority"]
+handoff_targets = ["oag-rtl-implementation-agent", "oag-verification-strategy-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-verification-strategy-agent"
+source_file = ".claude/agents/oag-verification-strategy-agent.md"
+kind = "core"
+responsibility = "Define verification objectives, proof method depth, scenarios, coverage intent, assertion/formal candidates, and residual risk before TB implementation."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["ontology/verification_plan.yaml", "knowledge/verification_strategy/", "reports/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["verification plan", "strategy blockers", "residual risk notes"]
+forbidden_actions = ["implement RTL/TB", "define strategy by copying easy TB cases", "claim closure from strategy alone"]
+handoff_targets = ["oag-tb-implementation-agent", "oag-coverage-agent", "oag-mutation-guard-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-rtl-implementation-agent"
+source_file = ".claude/agents/oag-rtl-implementation-agent.md"
+kind = "core"
+responsibility = "Implement RTL from OAG contracts, structure, decomposition, and authoring packets."
+may_modify_source = true
+may_write_evidence = true
+allowed_write_paths = ["rtl/", "filelists/", "knowledge/authoring/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["RTL files", "filelist", "compile evidence or routed blocker"]
+forbidden_actions = ["change expected behavior to match broken RTL", "claim lint/sim/signoff completion"]
+handoff_targets = ["oag-rtl-lint-static-agent", "oag-tb-implementation-agent", "oag-sim-execution-agent"]
+
+[[agents]]
+id = "oag-rtl-lint-static-agent"
+source_file = ".claude/agents/oag-rtl-lint-static-agent.md"
+kind = "core"
+responsibility = "Run and interpret DUT compile, lint, static structure, and RTL facts checks."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["reports/", "knowledge/rtl_facts/", "knowledge/lint/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["rtl_compile report", "dut_lint report", "design facts graph"]
+forbidden_actions = ["waive diagnostics without contract authority", "claim behavioral correctness from static checks alone"]
+handoff_targets = ["oag-rtl-implementation-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-tb-implementation-agent"
+source_file = ".claude/agents/oag-tb-implementation-agent.md"
+kind = "core"
+responsibility = "Implement TB, scenarios, monitors, reference prediction, scoreboard rows, and coverage collection from verification strategy."
+may_modify_source = true
+may_write_evidence = true
+allowed_write_paths = ["tb/", "sim/", "tests/", "knowledge/scoreboards/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["TB artifacts", "scoreboard row schema", "test scenario mapping"]
+forbidden_actions = ["rewrite expected values to match observed DUT output", "require one fixed TB framework"]
+handoff_targets = ["oag-sim-execution-agent", "oag-sim-debug-agent", "oag-coverage-agent"]
+
+[[agents]]
+id = "oag-sim-execution-agent"
+source_file = ".claude/agents/oag-sim-execution-agent.md"
+kind = "core"
+responsibility = "Run bounded simulations and collect fresh executable evidence."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["runs/", "sim/", "reports/", "knowledge/sim/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["sim report", "results XML or equivalent", "scoreboard events", "waveform when required"]
+forbidden_actions = ["claim pass without a real command and artifact", "hide failed scoreboard rows"]
+handoff_targets = ["oag-sim-debug-agent", "oag-coverage-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-sim-debug-agent"
+source_file = ".claude/agents/oag-sim-debug-agent.md"
+kind = "core"
+responsibility = "Analyze failing sim evidence, VCD/FST waveforms, scoreboard rows, and owner routing."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["knowledge/debug/", "reports/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["debug report", "waveform signal references", "owner classification"]
+forbidden_actions = ["patch unrelated RTL/TB while acting as read-only debugger", "approve failed simulations"]
+handoff_targets = ["oag-rtl-implementation-agent", "oag-tb-implementation-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-coverage-agent"
+source_file = ".claude/agents/oag-coverage-agent.md"
+kind = "core"
+responsibility = "Check functional, scoreboard, protocol, fault-model, and coverage goal closure against evidence."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["coverage/", "knowledge/coverage/", "reports/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["coverage JSON", "coverage refs", "gap report"]
+forbidden_actions = ["treat hit count as proof without fault relevance", "lower coverage targets without decision authority"]
+handoff_targets = ["oag-tb-implementation-agent", "oag-mutation-guard-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-mutation-guard-agent"
+source_file = ".claude/agents/oag-mutation-guard-agent.md"
+kind = "core"
+responsibility = "Run or review mutation evidence to estimate whether tests catch requirement-relevant faults."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["mutation/", "knowledge/mutation/", "reports/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["mutation report", "killed mutant summary", "surviving mutant owner routing"]
+forbidden_actions = ["mutate source IP in place", "claim signoff from advisory mutation evidence alone"]
+handoff_targets = ["oag-tb-implementation-agent", "oag-coverage-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-evidence-validator"
+source_file = ".claude/agents/oag-evidence-validator.md"
+kind = "core"
+responsibility = "Validate ROCEV records, evidence freshness, artifact paths, scoreboard rows, and closure matrix rows."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["ontology/validations/", "knowledge/validations/", "reports/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["validation report", "freshness check", "closure matrix result"]
+forbidden_actions = ["implement production RTL/TB", "approve missing or stale evidence"]
+handoff_targets = ["oag-gate-reviewer"]
+
+[[agents]]
+id = "oag-gate-reviewer"
+source_file = ".claude/agents/oag-gate-reviewer.md"
+kind = "core"
+responsibility = "Read-only final gate reviewer that re-audits claims, evidence, user outcome, and OAG decisions."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["ontology/decisions/", "knowledge/gate_reviews/", "reports/"]
+may_claim_complete = true
+final_decision_authority = true
+decision_types = ["PASS", "FAIL", "BLOCKED", "WAIVED_WITH_RISK"]
+requires_oag_context = true
+required_evidence = ["gate review receipt", "checked artifact paths", "checked artifact hashes", "approve or reject recommendation"]
+forbidden_actions = ["modify implementation while reviewing", "approve unsupported claims"]
+handoff_targets = []
+
+[[agents]]
+id = "oag-custom-researcher"
+source_file = ".claude/agents/oag-custom-researcher.md"
+kind = "custom"
+responsibility = "Temporary research shard for specs, reference IP, RTL patterns, logs, or local evidence discovery."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["knowledge/subagents/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["research notes", "source paths", "handoff summary"]
+forbidden_actions = ["claim final closure", "edit protected ontology"]
+handoff_targets = ["oag-requirement-contract-agent", "oag-legacy-ip-analyzer", "oag-ip-contract-agent"]
+
+[[agents]]
+id = "oag-custom-worker"
+source_file = ".claude/agents/oag-custom-worker.md"
+kind = "custom"
+responsibility = "Temporary implementation shard for a specific file, module, testcase, script, or repair scope."
+may_modify_source = true
+may_write_evidence = true
+allowed_write_paths = ["assigned shard only", "knowledge/subagents/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["changed artifact paths", "local verification evidence", "handoff summary"]
+forbidden_actions = ["claim final closure", "work outside assigned shard or allowed paths"]
+handoff_targets = ["oag-rtl-lint-static-agent", "oag-sim-execution-agent", "oag-evidence-validator"]
+
+[[agents]]
+id = "oag-custom-reviewer"
+source_file = ".claude/agents/oag-custom-reviewer.md"
+kind = "custom"
+responsibility = "Temporary review shard for a focused artifact, evidence set, waveform slice, or gap matrix."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["knowledge/subagents/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["review report", "checked artifact paths", "gap list"]
+forbidden_actions = ["claim final closure", "silently fix the artifact under review"]
+handoff_targets = ["oag-evidence-validator", "oag-gate-reviewer"]

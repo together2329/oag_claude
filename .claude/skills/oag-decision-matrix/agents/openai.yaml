@@ -1,0 +1,4 @@
+interface:
+  display_name: "OAG Decision Matrix"
+  short_description: "Manage lock-blocking OAG decisions"
+  default_prompt: "Use this skill to seed and audit OAG decision matrix rows before lock."

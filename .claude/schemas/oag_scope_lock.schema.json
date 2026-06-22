@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OAG Scope Lock",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "ip",
+    "state",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_scope_lock.v1"
+    },
+    "ip": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "locked"
+      ]
+    },
+    "lock_id": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "confirmed_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_draft": {
+      "type": "string"
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "locked_by": {
+      "type": "object"
+    },
+    "locked_at": {
+      "type": "string"
+    },
+    "previous_state": {
+      "type": "string"
+    },
+    "previous_lock_id": {
+      "type": "string"
+    },
+    "unlock_reason": {
+      "type": "string"
+    },
+    "stale_reason": {
+      "type": "string"
+    },
+    "stale_source_draft": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

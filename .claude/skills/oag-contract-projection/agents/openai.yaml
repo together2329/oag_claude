@@ -1,0 +1,4 @@
+interface:
+  display_name: "OAG Contract Projection"
+  short_description: "Project requirements into OAG contracts"
+  default_prompt: "Use this skill to project requirements and obligations into assume/guarantee contracts."

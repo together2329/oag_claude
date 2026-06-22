@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_contract_v2.schema.json",
+  "title": "OAG Contract V2",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "contract_type",
+    "variables",
+    "assume",
+    "guarantee",
+    "oracle"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "obligation": {
+      "type": "string"
+    },
+    "obligation_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contract_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "assume": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "guarantee": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "behavior_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cycle_rule_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "protocol_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "approved_equivalent_oracle_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "verification_projection": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "closure_rule": {
+      "type": "object"
+    }
+  }
+}

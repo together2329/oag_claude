@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+.claude/.cache/
+.claude/.tmp/
+.claude/tmp/
+.claude/runs/
+.claude/sessions/
+.claude/shell_snapshots/
+.claude/*.sqlite
+.claude/*.sqlite-*
+.omc/
+.omo/ulw-loop/evidence/
+oag_workflow_whole_db.md

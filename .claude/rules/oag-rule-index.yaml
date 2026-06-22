@@ -1,0 +1,94 @@
+schema_version: oag_rule_index.v1
+purpose: Stable rule IDs mapped to policy docs and executable checks.
+rules:
+  - id: RULE-OAG-INV-001
+    text: RTL is implementation, not design truth.
+    policy_refs:
+      - oag/principles.md
+      - oag/rtl-implementation.md
+    checker_refs:
+      - scripts/oag_lock_readiness_check.py
+      - scripts/oag_closure_check.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block
+  - id: RULE-LOCK-003
+    text: lock_required decisions must be decided or waived before implementation.
+    policy_refs:
+      - oag/decision-matrix-policy.md
+    checker_refs:
+      - scripts/oag_lock_readiness_check.py
+      - scripts/oag_decision_matrix_generate.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block
+  - id: RULE-CONTRACT-AG-001
+    text: Closure-grade contracts require explicit assume and guarantee fields.
+    policy_refs:
+      - oag/assume-guarantee-contracts.md
+      - oag/contract-strength-policy.md
+    checker_refs:
+      - scripts/oag_contract_strength_check.py
+      - scripts/oag_lock_readiness_check.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block
+  - id: RULE-PACKET-ROLE-001
+    text: Locked RTL/TB implementation must use role-specific generated authoring packets.
+    policy_refs:
+      - oag/authoring-packet-policy.md
+    checker_refs:
+      - scripts/oag_authoring_packet_check.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block
+  - id: RULE-TRACE-001
+    text: Load-bearing source, requirement, atom, obligation, contract, scenario, scoreboard, and coverage IDs must form an unbroken trace graph.
+    policy_refs:
+      - oag/traceability-policy.md
+    checker_refs:
+      - scripts/oag_trace_graph_check.py
+      - scripts/oag_lock_readiness_check.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block
+  - id: RULE-TB-ORACLE-001
+    text: TB expected values must come from an independent contract or oracle, not DUT behavior.
+    policy_refs:
+      - oag/scoreboard-evidence.md
+      - oag/tb-methodology-policy.md
+    checker_refs:
+      - scripts/oag_closure_check.py
+      - scripts/oag_trace_graph_check.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block
+  - id: RULE-EVIDENCE-FRESH-001
+    text: Evidence added or changed after a gate decision makes the gate stale.
+    policy_refs:
+      - oag/coverage-closure-policy.md
+      - oag/recovery-playbook.md
+    checker_refs:
+      - scripts/oag_cli.py
+      - scripts/oag_closure_check.py
+    severity:
+      draft: warn
+      post_lock: warn
+      closure: block
+  - id: RULE-WAVE-001
+    text: Wavefront parallelism may only open dependency-satisfied tasks with safe ownership boundaries.
+    policy_refs:
+      - oag/wavefront-policy.md
+      - oag/wavefront-task-graph.md
+    checker_refs:
+      - scripts/oag_wavefront.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block

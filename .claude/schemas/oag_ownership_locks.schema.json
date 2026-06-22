@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_ownership_locks.schema.json",
+  "title": "OAG Wavefront Ownership Locks",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "product_name",
+    "internal_gateway",
+    "run_id",
+    "ip_id",
+    "locks",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_ownership_locks.v1"
+    },
+    "product_name": {
+      "const": "IP Dev Agent"
+    },
+    "internal_gateway": {
+      "const": "Ontology Agent Gateway"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ip_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "locks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["task_id", "path", "mode", "claimed_at"],
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "enum": ["exclusive_file", "integration_owner"]
+          },
+          "dispatch_id": {
+            "type": "string"
+          },
+          "claimed_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  }
+}

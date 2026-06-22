@@ -1,0 +1,90 @@
+schema_version: oag_profile.v1
+profile_id: mctp-rx
+extends: protocol-packet-ip
+description: Draft seed for MCTP PCIe VDM RX assembler style IP. This profile proposes questions, not locked truth.
+required_decisions:
+  - id: D001_AXI_PROFILE
+    question: Is the ingress/FW interface AXI4-MM, AXI4-Stream, or another AXI profile?
+    recommended: AXI4-MM slave with separate ingress and FW-readable regions.
+    lock_required: true
+    affects: [interfaces, requirements, rtl, tb]
+  - id: D002_AXI_DATA_ADDRESS_WIDTH
+    question: What AXI data width, address width, ID behavior, and outstanding write behavior are supported?
+    recommended: Parameterized data width with serialized ingress writes for v0.
+    lock_required: true
+    affects: [interfaces, storage, parser, tb]
+  - id: D003_TLP_BOUNDARY
+    question: How is one PCIe TLP boundary represented on AXI ingress?
+    recommended: One AXI write burst equals one TLP, and WLAST marks TLP end.
+    lock_required: true
+    affects: [interfaces, parser, contracts, verification]
+  - id: D004_WDATA_BYTE_LANE_MAPPING
+    question: How do AXI WDATA byte lanes map to PCIe TLP byte offsets?
+    recommended: Byte lane 0 maps to increasing TLP byte offset 0 unless overridden.
+    lock_required: true
+    affects: [interfaces, parser, scoreboard]
+  - id: D005_WSTRB_ALIGNMENT_POLICY
+    question: What WSTRB, alignment, and incomplete last-beat patterns are legal?
+    recommended: Dword-aligned ingress only; unsupported WSTRB/alignment drops and counts an ingress error.
+    lock_required: true
+    affects: [interfaces, parser, error_drop_matrix, verification]
+  - id: D006_DSP0238_SUPPORT_PROFILE
+    question: Which MCTP PCIe VDM transport binding features are in v0 scope?
+    recommended: Non-Flit Mode MCTP PCIe VDM RX only; unsupported variants drop and count.
+    lock_required: true
+    affects: [requirements, parser, contracts, verification]
+  - id: D007_CONTEXT_KEY
+    question: What fields key an MCTP assembly context?
+    recommended: Source EID + TO + Msg Tag after destination acceptance.
+    lock_required: true
+    affects: [assembly, requirements, contracts, scoreboard]
+  - id: D008_15Q_OVERFLOW_POLICY
+    question: What happens when all 15 assembly contexts are active and a new valid SOM arrives?
+    recommended: Drop the new context, count queue_overflow, preserve existing contexts.
+    lock_required: true
+    affects: [assembly, storage, status, verification]
+  - id: D009_TIMEOUT_POLICY
+    question: Is incomplete multi-packet assembly timeout implemented, and how is it configured?
+    recommended: CSR-programmable timeout or explicit out-of-v0 decision.
+    lock_required: true
+    affects: [assembly, csr, status, verification]
+  - id: D010_SRAM_LAYOUT
+    question: What SRAM descriptor and payload layout is FW-visible?
+    recommended: Descriptor ring plus payload buffer with descriptor valid set last.
+    lock_required: true
+    affects: [storage, firmware, irq, contracts]
+  - id: D011_DESCRIPTOR_OWNERSHIP
+    question: How does FW consume descriptors and protect unconsumed payload space?
+    recommended: Producer/consumer index or valid+FW-clear ownership.
+    lock_required: true
+    affects: [firmware, storage, status, verification]
+  - id: D012_IRQ_POLICY
+    question: Is IRQ level or pulse, maskable or unmasked, and how are status bits cleared?
+    recommended: Level IRQ, maskable, W1C status.
+    lock_required: true
+    affects: [irq, csr, firmware, contracts]
+  - id: D013_ERROR_DROP_MATRIX
+    question: What exact malformed TLP, unsupported VDM, bad MCTP header, sequence, overflow, and timeout policies apply?
+    recommended: Drop invalid packets, count precise error bits, never expose partial completed descriptors.
+    lock_required: true
+    affects: [parser, assembly, storage, status, verification]
+contract_seed:
+  - CONTRACT_INGRESS_TLP_BOUNDARY
+  - CONTRACT_TLP_LENGTH_CHECK
+  - CONTRACT_MCTP_PACKET_SEQUENCE
+  - CONTRACT_CONTEXT_ASSEMBLY
+  - CONTRACT_15Q_OVERFLOW
+  - CONTRACT_SRAM_PAYLOAD_BEFORE_DESCRIPTOR_VALID
+  - CONTRACT_IRQ_AFTER_DESCRIPTOR_VISIBLE
+  - CONTRACT_DROP_NO_PARTIAL_VISIBILITY
+scenario_seed:
+  - SCN_SINGLE_PACKET
+  - SCN_MULTI_PACKET_NORMAL
+  - SCN_INTERLEAVED_3_CONTEXTS
+  - SCN_15_CONTEXT_INTERLEAVING
+  - SCN_16TH_CONTEXT_OVERFLOW
+  - SCN_UNEXPECTED_MIDDLE
+  - SCN_OUT_OF_SEQUENCE
+  - SCN_NEW_SOM_SAME_CONTEXT
+  - SCN_DESCRIPTOR_VALID_LAST
+  - SCN_IRQ_W1C

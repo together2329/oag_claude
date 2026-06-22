@@ -1,0 +1,7 @@
+interface:
+  display_name: "OAG IP Workflow"
+  short_description: "Ontology-first IP closure gates"
+  default_prompt: "Use $oag-ip-workflow to inspect this IP, draft interview facts before context loss, compile the truth graph, check structure/decomposition profiles, read generated design spec and authoring packets as projections, check protected fields, validate the append-only ledger, monotonic closure, closure matrix, explicit validation status, and evidence freshness hashes, check common design rules, validate TB-agnostic evidence, route failures, record ROCEV-backed findings, and write a decision receipt before claiming completion."
+
+policy:
+  allow_implicit_invocation: true

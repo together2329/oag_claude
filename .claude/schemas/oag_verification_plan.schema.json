@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_verification_plan.schema.json",
+  "title": "OAG Verification Plan",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "ip",
+    "verification_objectives"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_verification_plan.v1"
+    },
+    "ip": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_policy": {
+      "type": "object"
+    },
+    "verification_objectives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "status",
+          "requirement",
+          "obligation",
+          "contract",
+          "intent",
+          "proof_methods",
+          "scenarios",
+          "coverage_goals",
+          "residual_risks"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^VOBJ_[A-Z0-9_]+$"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "planned",
+              "ready",
+              "blocked",
+              "closed",
+              "waived"
+            ]
+          },
+          "requirement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "obligation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contract": {
+            "type": "string",
+            "minLength": 1
+          },
+          "intent": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proof_methods": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "scenarios": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "negative_scenarios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverage_goals": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "assertion_candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "formal_candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fault_models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "residual_risks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "id",
+                "risk",
+                "status"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "risk": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": [
+                    "open",
+                    "accepted",
+                    "mitigated",
+                    "waived",
+                    "closed"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "open_strategy_blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

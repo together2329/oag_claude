@@ -1,0 +1,255 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_subagent_receipt.schema.json",
+  "title": "OAG Subagent Receipt",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "product_name",
+    "internal_gateway",
+    "role_name",
+    "dispatch_id",
+    "dispatch_path",
+    "shard_scope",
+    "stage",
+    "status",
+    "owned_obligations",
+    "contracts",
+    "allowed_write_paths",
+    "changed_paths",
+    "generated_side_effects",
+    "evidence_outputs",
+    "may_claim_complete",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_subagent_receipt.v1"
+    },
+    "product_name": {
+      "const": "IP Dev Agent"
+    },
+    "internal_gateway": {
+      "const": "Ontology Agent Gateway"
+    },
+    "ip_id": {
+      "type": "string"
+    },
+    "role_name": {
+      "type": "string",
+      "pattern": "^oag-[a-z0-9_-]+$"
+    },
+    "registered_id": {
+      "type": "string"
+    },
+    "dispatch_id": {
+      "type": "string",
+      "pattern": "^DISPATCH_[A-Z0-9_]+_[0-9]{8}T[0-9]{6}Z(_[A-F0-9]{8})?$"
+    },
+    "dispatch_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "wavefront_run_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "ownership_mode": {
+      "type": "string"
+    },
+    "shard_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": ["HANDOFF_PASS", "STATIC_HANDOFF_PASS", "RTL_HANDOFF_PASS", "FAIL", "BLOCKED", "INCONCLUSIVE"]
+    },
+    "owned_obligations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_write_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changed_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generated_side_effects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks_run": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rtl_dialect": {
+      "type": "string"
+    },
+    "implemented_contracts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "behavior_refs_implemented": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cycle_rule_refs_implemented": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ppa_notes": {
+      "type": "object",
+      "properties": {
+        "performance": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "power": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "area": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tradeoffs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "domain_crossing_notes": {
+      "type": "object",
+      "properties": {
+        "clock_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reset_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cdc_structures_implemented": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "rdc_structures_implemented": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "open_domain_crossing_blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tb_methodology_notes": {
+      "type": "object",
+      "properties": {
+        "methodology_profile": {
+          "type": "string"
+        },
+        "framework": {
+          "type": "string"
+        },
+        "architecture": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stimulus_strategy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coverage_strategy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assertion_hooks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "formal_candidates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "open_methodology_blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "may_claim_complete": {
+      "const": false
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

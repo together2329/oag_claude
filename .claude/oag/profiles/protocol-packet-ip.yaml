@@ -1,0 +1,24 @@
+schema_version: oag_profile.v1
+profile_id: protocol-packet-ip
+description: Generic packet/protocol IP decision seed. Seeds questions, not locked truth.
+required_decisions:
+  - id: D001_INTERFACE_PROFILE
+    question: What ingress and egress interface profiles are in scope?
+    recommended: Keep ingress, egress, CSR, and debug/control paths separate.
+    lock_required: true
+    affects: [interfaces, requirements, contracts, rtl, tb]
+  - id: D002_PACKET_BOUNDARY
+    question: How does the IP know packet start/end boundaries?
+    recommended: Define one explicit framing rule and malformed framing policy.
+    lock_required: true
+    affects: [interfaces, parser, contracts, verification]
+  - id: D003_BYTE_ORDERING
+    question: What byte-lane and multi-byte field ordering applies at each boundary?
+    recommended: Define ingress lane-to-byte mapping before parser RTL.
+    lock_required: true
+    affects: [interfaces, parser, scoreboard]
+  - id: D004_ERROR_DROP_MATRIX
+    question: Which malformed or unsupported packets are dropped, counted, surfaced, or stalled?
+    recommended: Use drop-and-count for unsupported v0 formats unless backpressure is explicitly required.
+    lock_required: true
+    affects: [requirements, contracts, verification, firmware]
