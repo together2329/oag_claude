@@ -1,7 +1,7 @@
 {
   "schema_version": "oag_generated_design_spec.v1",
   "generated_by": "oag.compile",
-  "generated_at": "2026-06-22T15:52:43Z",
+  "generated_at": "2026-06-22T17:16:03Z",
   "ip": "mctp_tx_assembler",
   "source_files": [
     "ontology/structure.yaml",
@@ -16,29 +16,8 @@
     "ontology/verification_plan.yaml"
   ],
   "structure_profile": "small_leaf_single_file",
-  "status": "fail",
-  "issues": [
-    "mctp_tx_assembler: owned obligation not found: OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
-    "mctp_tx_assembler: owned contract not found: CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
-    "OBL_TX_ERR: obligation has no owning decomposition module",
-    "OBL_TX_FRAGMENT: obligation has no owning decomposition module",
-    "OBL_TX_HEADER: obligation has no owning decomposition module",
-    "OBL_TX_INTAKE: obligation has no owning decomposition module",
-    "OBL_TX_RESET: obligation has no owning decomposition module",
-    "OBL_TX_SEQNUM: obligation has no owning decomposition module",
-    "OBL_TX_SINGLEMSG: obligation has no owning decomposition module",
-    "OBL_TX_SOM_EOM: obligation has no owning decomposition module",
-    "OBL_TX_STATUS: obligation has no owning decomposition module",
-    "CONTRACT_TX_ERR: contract has no owning decomposition module",
-    "CONTRACT_TX_FRAGMENT: contract has no owning decomposition module",
-    "CONTRACT_TX_HEADER: contract has no owning decomposition module",
-    "CONTRACT_TX_INTAKE: contract has no owning decomposition module",
-    "CONTRACT_TX_RESET: contract has no owning decomposition module",
-    "CONTRACT_TX_SEQNUM: contract has no owning decomposition module",
-    "CONTRACT_TX_SINGLEMSG: contract has no owning decomposition module",
-    "CONTRACT_TX_SOM_EOM: contract has no owning decomposition module",
-    "CONTRACT_TX_STATUS: contract has no owning decomposition module"
-  ],
+  "status": "pass",
+  "issues": [],
   "structure": {
     "clock_domains": [],
     "reset_domains": [],
@@ -54,13 +33,29 @@
       "name": "mctp_tx_assembler",
       "role": "top",
       "ownership": "current_ip",
-      "file": "rtl/mctp_tx_assembler.sv",
+      "file": "rtl/mctp_tx_assembler.v",
       "implementation_style": "small_leaf_single_file",
       "owned_obligations": [
-        "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN"
+        "OBL_TX_INTAKE",
+        "OBL_TX_FRAGMENT",
+        "OBL_TX_SOM_EOM",
+        "OBL_TX_SEQNUM",
+        "OBL_TX_HEADER",
+        "OBL_TX_SINGLEMSG",
+        "OBL_TX_ERR",
+        "OBL_TX_STATUS",
+        "OBL_TX_RESET"
       ],
       "owned_contracts": [
-        "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD"
+        "CONTRACT_TX_INTAKE",
+        "CONTRACT_TX_FRAGMENT",
+        "CONTRACT_TX_SOM_EOM",
+        "CONTRACT_TX_SEQNUM",
+        "CONTRACT_TX_HEADER",
+        "CONTRACT_TX_SINGLEMSG",
+        "CONTRACT_TX_ERR",
+        "CONTRACT_TX_STATUS",
+        "CONTRACT_TX_RESET"
       ],
       "structure_refs": [],
       "source_refs": [

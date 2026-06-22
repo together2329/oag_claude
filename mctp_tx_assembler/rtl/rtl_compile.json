@@ -1,0 +1,31 @@
+{
+  "schema": "oag_rtl_compile.v1",
+  "ip": "mctp_tx_assembler",
+  "top": "mctp_tx_assembler",
+  "files": ["rtl/mctp_tx_assembler.v"],
+  "filelist": "list/rtl.f",
+  "rtl_sha256": "262ab964bafa5d7ce2098c20c8ac2d2950ef585b5daf060decb9a9993393f3c8",
+  "tools": [
+    {
+      "tool": "iverilog",
+      "args": "-g2012 -t null -Wall",
+      "command": "iverilog -g2012 -t null -Wall rtl/mctp_tx_assembler.v",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 0,
+      "log": "(no output) elaboration clean"
+    },
+    {
+      "tool": "verilator",
+      "args": "--lint-only -Wall",
+      "command": "verilator --lint-only -Wall rtl/mctp_tx_assembler.v",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 0,
+      "log": "clean; 0 warnings under -Wall (prior UNUSEDSIGNAL/UNUSEDPARAM warnings resolved: MSG_CAP_LEN removed, pwdata[31:16] unused-bits waived with lint_off/lint_on UNUSEDSIGNAL + rationale, rst_sync_n now drives all sequential logic)"
+    }
+  ],
+  "status": "pass",
+  "status_rationale": "iverilog -g2012 elaborates clean (0/0) and verilator --lint-only -Wall is clean (0 errors, 0 warnings). The 3 prior style warnings are all resolved on the updated DUT. No functional compile errors.",
+  "generated_at": "2026-06-23T00:00:00Z"
+}

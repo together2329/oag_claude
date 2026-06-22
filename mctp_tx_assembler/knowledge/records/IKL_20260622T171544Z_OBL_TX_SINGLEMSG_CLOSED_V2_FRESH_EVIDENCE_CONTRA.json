@@ -1,0 +1,88 @@
+{
+  "schema": "ip_knowledge_record.v1",
+  "id": "IKL_20260622T171544Z_OBL_TX_SINGLEMSG_CLOSED_V2_FRESH_EVIDENCE_CONTRA",
+  "scope": {
+    "ip": "mctp_tx_assembler",
+    "stage": "validation"
+  },
+  "type": "validation",
+  "actor": {
+    "kind": "human",
+    "id": "happygrowth33",
+    "session": "",
+    "surface": "claude_code"
+  },
+  "claim": "OBL_TX_SINGLEMSG closed (v2 fresh evidence): CONTRACT_TX_SINGLEMSG proven by sim scoreboard EVT_TX_SINGLEMSG",
+  "summary": "One message at a time, no packet interleaving. Final evidence: 12/12 cocotb pass, 19/19 scoreboard rows, scenario_mapping(12)+coverage(9/9). RTL reset sync-deassert fixed; lint clean (verilator -Wall 0, pyslang 0). Independently re-validated by oag-evidence-validator (VALIDATION_PASS). Development-grade behavioral/temporal closure; not signoff. Supersedes ['IKL_20260622T165640Z_OBL_TX_SINGLEMSG_CLOSED_CONTRACT_TX_SINGLEMSG_PR'].",
+  "tags": [
+    "closure",
+    "development_grade",
+    "mctp_tx",
+    "fresh_evidence"
+  ],
+  "rocev": {
+    "requirement": {
+      "id": "REQ_TX_SINGLEMSG"
+    },
+    "obligation": {
+      "id": "OBL_TX_SINGLEMSG"
+    },
+    "contract": {
+      "id": "CONTRACT_TX_SINGLEMSG"
+    },
+    "evidence": {
+      "files": [
+        "sim/scoreboard_events.jsonl",
+        "sim/results.xml",
+        "sim/scenario_mapping.json",
+        "cov/coverage.json"
+      ],
+      "scoreboard_row_ref": "EVT_TX_SINGLEMSG"
+    },
+    "validation": {
+      "status": "closed",
+      "verdict": "pass",
+      "rationale": "EVT_TX_SINGLEMSG passing rows in scoreboard_rows.v1; expected_source=contract oracle, observed_source=DUT-facing; coverage COV_TX_* covered; hashes fresh; oag-evidence-validator VALIDATION_PASS."
+    }
+  },
+  "evidence": {
+    "files": [
+      "sim/scoreboard_events.jsonl",
+      "sim/results.xml",
+      "sim/scenario_mapping.json",
+      "cov/coverage.json"
+    ],
+    "tests": [],
+    "commit": "",
+    "file_hashes": [
+      {
+        "path": "sim/scoreboard_events.jsonl",
+        "sha256": "78200437e7eefc7dd42cc429da07b98ad39f4a669587588af905e58ac0a988ca"
+      },
+      {
+        "path": "sim/results.xml",
+        "sha256": "f325bf89338d2a01577d7444de1fd0a73744c6fadc08a354569aa66748f327fc"
+      },
+      {
+        "path": "sim/scenario_mapping.json",
+        "sha256": "53b21abe3299409422189f2bbeff6442c196e1cb2fe3415c7d496ec5e1677b4f"
+      },
+      {
+        "path": "cov/coverage.json",
+        "sha256": "1956caa65351af815409b00d73f88fa6097f0933f2cccdbf1b05f6292d9ca210"
+      }
+    ]
+  },
+  "validation": {
+    "status": "closed",
+    "verdict": "pass",
+    "rationale": "EVT_TX_SINGLEMSG passing rows in scoreboard_rows.v1; expected_source=contract oracle, observed_source=DUT-facing; coverage COV_TX_* covered; hashes fresh; oag-evidence-validator VALIDATION_PASS."
+  },
+  "supersedes": [
+    "IKL_20260622T165640Z_OBL_TX_SINGLEMSG_CLOSED_CONTRACT_TX_SINGLEMSG_PR"
+  ],
+  "promotion": {
+    "state": "local"
+  },
+  "created_at": "2026-06-22T17:15:44Z"
+}

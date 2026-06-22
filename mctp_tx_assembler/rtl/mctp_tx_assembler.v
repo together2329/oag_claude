@@ -57,7 +57,12 @@ module mctp_tx_assembler (
     input  wire        penable,
     input  wire        pwrite,
     input  wire [7:0]  paddr,
+    // pwdata is a 32-bit APB bus (frozen interface); the widest CSR field is
+    // MAX_MSG[15:0], so pwdata[31:16] is intentionally unused. Waive only this
+    // signal's unused-bits warning (not a real issue; the port width is fixed).
+    /* verilator lint_off UNUSEDSIGNAL */
     input  wire [31:0] pwdata,
+    /* verilator lint_on UNUSEDSIGNAL */
     output reg  [31:0] prdata,
     output wire        pready,       // tie high
 
@@ -71,7 +76,6 @@ module mctp_tx_assembler (
     // ------------------------------------------------------------------
     localparam [3:0]  HDR_VERSION    = 4'h1;   // DSP0236 header version
     localparam        MSG_CAP        = 256;    // internal buffer depth (bytes)
-    localparam [8:0]  MSG_CAP_LEN    = 9'd256; // length representation capacity
 
     // CSR byte addresses (APB-lite). paddr is byte address; decode on [7:2].
     localparam [7:0]  ADDR_CTRL      = 8'h00;
@@ -90,12 +94,18 @@ module mctp_tx_assembler (
     localparam [2:0]  ST_VALIDATE = 3'd2;
     localparam [2:0]  ST_EMIT_HDR = 3'd3;
     localparam [2:0]  ST_EMIT_PAY = 3'd4;
-    localparam [2:0]  ST_ERR      = 3'd5;
+    localparam [2:0]  ST_DISCARD  = 3'd5; // swallow the tail of a rejected (non-abort) stream
     localparam [2:0]  ST_DONE     = 3'd6;
 
     // ------------------------------------------------------------------
-    // Reset deassertion synchronizer (async assert, sync deassert).
-    // rst_n is asynchronous; rst_sync_n deasserts synchronously to clk.
+    // Reset deassertion synchronizer (CONTRACT_TX_RESET: async assert,
+    // SYNC deassert). The external pin rst_n feeds ONLY this 2-FF
+    // synchronizer; rst_sync_n is the single internal active-low reset that
+    // drives all functional sequential logic below. When rst_n drops,
+    // rst_sync_n asserts immediately (async assert via negedge rst_n in the
+    // sensitivity list of every reset-keyed block). When rst_n rises,
+    // rst_sync_n deasserts only after the 2-FF pipeline fills, i.e. aligned
+    // to clk (synchronous deassert).
     // ------------------------------------------------------------------
     reg rst_meta, rst_sync_n;
     always @(posedge clk or negedge rst_n) begin
@@ -154,8 +164,13 @@ module mctp_tx_assembler (
     // Stays low while emitting or finishing a message (CONTRACT_TX_SINGLEMSG):
     // a new message cannot start until the cycle after the EOM m_eop completes,
     // which is the cycle the FSM returns to ST_IDLE.
+    // s_ready is also held high in ST_DISCARD so the source can drain the
+    // remaining bytes of a rejected (oversize) message; those bytes are
+    // consumed but neither buffered nor emitted (CONTRACT_TX_ERR: no partial
+    // message emission). New-message intake stays gated until ST_IDLE.
     assign s_ready = ctrl_enable &&
-                     ((state == ST_IDLE) || (state == ST_INTAKE));
+                     ((state == ST_IDLE) || (state == ST_INTAKE) ||
+                      (state == ST_DISCARD));
 
     // Effective MTU payload bytes for the current packet.
     // mtu_eff is csr_mtu (1..255); guarded to a minimum of 1 to avoid a zero MTU
@@ -233,10 +248,12 @@ module mctp_tx_assembler (
     wire        cur_exceeds  = ({7'b0, wr_ptr}   > max_msg_full); // already over
 
     // ------------------------------------------------------------------
-    // Main sequential process (single clock, async-assert reset).
+    // Main sequential process. Driven by the synchronized reset rst_sync_n
+    // (async assert / sync deassert) per CONTRACT_TX_RESET; the raw pin rst_n
+    // only feeds the synchronizer above.
     // ------------------------------------------------------------------
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge rst_sync_n) begin
+        if (!rst_sync_n) begin
             // CONTRACT_TX_RESET: post-reset defaults.
             ctrl_enable         <= 1'b0;
             csr_src_eid         <= 8'h00;
@@ -345,12 +362,17 @@ module mctp_tx_assembler (
                             mem[wr_ptr[7:0]] <= s_data;
                             wr_ptr <= 9'd1;
                             if (len_exceeds) begin
-                                // length already exceeds MAX_MSG after 1 byte
+                                // Length already exceeds MAX_MSG after 1 byte
+                                // (only when MAX_MSG=0). Flag oversize, drop,
+                                // and swallow the remaining tail until s_last
+                                // (Bug 2 quiesce), so the rest is not mistaken
+                                // for a new message.
                                 err_oversize <= 1'b1;
                                 err_event    <= 1'b1;
                                 status_err_latched <= 1'b1;
                                 drop_cnt     <= drop_cnt + 32'd1;
-                                state        <= ST_IDLE;
+                                wr_ptr       <= 9'd0;
+                                state        <= ST_DISCARD;
                             end else begin
                                 state <= ST_INTAKE;
                             end
@@ -360,20 +382,30 @@ module mctp_tx_assembler (
 
                 // ------------------------------------------------------
                 ST_INTAKE: begin
-                    if (s_beat) begin
-                        if (s_abort) begin
-                            // Mid-message abort -> underrun, drop buffered data.
-                            err_underrun <= 1'b1;
-                            err_event    <= 1'b1;
-                            status_err_latched <= 1'b1;
-                            drop_cnt     <= drop_cnt + 32'd1;
-                            wr_ptr       <= 9'd0;
-                            state        <= ST_IDLE;
-                        end else if (s_empty && s_last) begin
+                    // Bug 1: s_abort is an independent sideband (doc: "caller
+                    // aborts the in-flight message"), NOT gated by the
+                    // s_valid/s_ready handshake. Sample it first, regardless of
+                    // s_beat. An abort terminates the message immediately, so
+                    // we drop the buffer and re-arm intake without waiting for
+                    // s_last (none is expected for an aborted message).
+                    if (s_abort) begin
+                        // Mid-message abort -> underrun, drop buffered data.
+                        err_underrun <= 1'b1;
+                        err_event    <= 1'b1;
+                        status_err_latched <= 1'b1;
+                        drop_cnt     <= drop_cnt + 32'd1;
+                        wr_ptr       <= 9'd0;
+                        state        <= ST_IDLE;
+                    end else if (s_beat) begin
+                        if (s_empty && s_last) begin
                             // Trailing empty/last with body already buffered:
                             // finalize at current length (no new byte).
                             msg_len <= wr_ptr;
                             if (cur_exceeds) begin
+                                // Bug 2: oversize at final beat -> drop and
+                                // swallow tail (none here, s_last is now) then
+                                // re-arm. s_last already terminates the stream,
+                                // so go straight to IDLE.
                                 err_oversize <= 1'b1;
                                 err_event    <= 1'b1;
                                 status_err_latched <= 1'b1;
@@ -388,19 +420,49 @@ module mctp_tx_assembler (
                             mem[wr_ptr[7:0]] <= s_data;
                             wr_ptr <= next_len;
                             if (len_exceeds) begin
-                                // Accepting this byte exceeds MAX_MSG -> oversize.
+                                // Bug 2: accepting this byte exceeds MAX_MSG.
+                                // Flag oversize, drop, then QUIESCE: swallow the
+                                // remaining bytes of this same stream without
+                                // buffering or emitting until s_last, so the
+                                // tail cannot be mistaken for a new message
+                                // (CONTRACT_TX_ERR: no partial emission).
                                 err_oversize <= 1'b1;
                                 err_event    <= 1'b1;
                                 status_err_latched <= 1'b1;
                                 drop_cnt     <= drop_cnt + 32'd1;
                                 wr_ptr       <= 9'd0;
-                                state        <= ST_IDLE;
+                                if (s_last) begin
+                                    // This oversize beat is also the last beat.
+                                    state <= ST_IDLE;
+                                end else begin
+                                    state <= ST_DISCARD;
+                                end
                             end else if (s_last) begin
                                 msg_len <= next_len;
                                 state   <= ST_VALIDATE;
                             end
                         end
                     end
+                end
+
+                // ------------------------------------------------------
+                // ST_DISCARD: a message was rejected mid-stream (oversize).
+                // Keep consuming and discarding its remaining bytes until
+                // s_last, then re-arm for the next message. No buffering, no
+                // emission. s_abort still terminates immediately (re-arm).
+                // The error was already flagged/counted on entry; do not
+                // re-flag or re-count here.
+                ST_DISCARD: begin
+                    if (s_abort) begin
+                        // Abort during the discarded tail: just re-arm.
+                        // (No additional underrun flag/count: this stream was
+                        // already counted as a dropped oversize message.)
+                        state <= ST_IDLE;
+                    end else if (s_beat && s_last) begin
+                        // End of the offending stream reached -> re-arm.
+                        state <= ST_IDLE;
+                    end
+                    // else: keep swallowing bytes (s_ready stays high).
                 end
 
                 // ------------------------------------------------------

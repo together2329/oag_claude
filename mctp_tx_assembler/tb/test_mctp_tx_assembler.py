@@ -96,6 +96,48 @@ EXP_SRC = {
     "SCN_TX_RESET": {"kind": "behavior_model", "refs": ["behavior_model.tx.reset"]},
 }
 
+# scoreboard_row_ref (EVT_TX_*) per scenario, matching req/evidence_plan.yaml
+# and contracts.yaml scoreboard_row_refs. Emitted as row "event_id" so the
+# closure check can resolve a contract's scoreboard_row_ref. All four error
+# scenarios share EVT_TX_ERR (CONTRACT_TX_ERR scoreboard_row_refs: [EVT_TX_ERR]).
+EVT = {
+    "SCN_TX_INTAKE": "EVT_TX_INTAKE",
+    "SCN_TX_FRAGMENT": "EVT_TX_FRAGMENT",
+    "SCN_TX_SOM_EOM": "EVT_TX_SOM_EOM",
+    "SCN_TX_SEQNUM": "EVT_TX_SEQNUM",
+    "SCN_TX_HEADER": "EVT_TX_HEADER",
+    "SCN_TX_SINGLEMSG": "EVT_TX_SINGLEMSG",
+    "SCN_TX_ERR_BACKPRESSURE": "EVT_TX_ERR",
+    "SCN_TX_ERR_UNDERRUN": "EVT_TX_ERR",
+    "SCN_TX_ERR_OVERSIZE": "EVT_TX_ERR",
+    "SCN_TX_ERR_ZEROLEN": "EVT_TX_ERR",
+    "SCN_TX_STATUS": "EVT_TX_STATUS",
+    "SCN_TX_RESET": "EVT_TX_RESET",
+}
+
+# Top-level (contract_id, obligation_id) per scenario. The closure check
+# (TB_CHECK_SCOREBOARD_ROWS_HAVE_CONTRACT_AND_OBLIGATION) reads these directly;
+# goal_id is not used for that check. All four error scenarios map to
+# CONTRACT_TX_ERR / OBL_TX_ERR.
+CONTRACT_OBL = {
+    "SCN_TX_INTAKE": ("CONTRACT_TX_INTAKE", "OBL_TX_INTAKE"),
+    "SCN_TX_FRAGMENT": ("CONTRACT_TX_FRAGMENT", "OBL_TX_FRAGMENT"),
+    "SCN_TX_SOM_EOM": ("CONTRACT_TX_SOM_EOM", "OBL_TX_SOM_EOM"),
+    "SCN_TX_SEQNUM": ("CONTRACT_TX_SEQNUM", "OBL_TX_SEQNUM"),
+    "SCN_TX_HEADER": ("CONTRACT_TX_HEADER", "OBL_TX_HEADER"),
+    "SCN_TX_SINGLEMSG": ("CONTRACT_TX_SINGLEMSG", "OBL_TX_SINGLEMSG"),
+    "SCN_TX_ERR_BACKPRESSURE": ("CONTRACT_TX_ERR", "OBL_TX_ERR"),
+    "SCN_TX_ERR_UNDERRUN": ("CONTRACT_TX_ERR", "OBL_TX_ERR"),
+    "SCN_TX_ERR_OVERSIZE": ("CONTRACT_TX_ERR", "OBL_TX_ERR"),
+    "SCN_TX_ERR_ZEROLEN": ("CONTRACT_TX_ERR", "OBL_TX_ERR"),
+    "SCN_TX_STATUS": ("CONTRACT_TX_STATUS", "OBL_TX_STATUS"),
+    "SCN_TX_RESET": ("CONTRACT_TX_RESET", "OBL_TX_RESET"),
+}
+
+# Default DUT-facing observed-source locator for egress/packet rows: the
+# monitor samples exactly these signals on m_valid&m_ready.
+EGRESS_OBS_SRC = {"kind": "monitor", "signal": "m_valid,m_ready,m_data,m_sop,m_eop"}
+
 
 # ---------------------------------------------------------------------------
 # Independent reference model (PREDICTOR)
@@ -208,15 +250,36 @@ class Scoreboard:
                passed, mismatch="", observed_source=None,
                coverage_refs=None):
         if observed_source is None:
-            observed_source = {"kind": "monitor"}
+            # default: egress monitor with its DUT-facing signal locator
+            observed_source = dict(EGRESS_OBS_SRC)
+        else:
+            # ensure every observed_source carries a DUT-facing signal locator;
+            # a bare {"kind": ...} without a locator fails the closure check.
+            _locator_keys = ("path", "signal", "signals", "monitor", "wave",
+                             "transaction", "assertion")
+            if not any(k in observed_source for k in _locator_keys):
+                if observed_source.get("kind") == "monitor":
+                    observed_source = dict(EGRESS_OBS_SRC)
+                else:
+                    observed_source = dict(observed_source)
+                    observed_source["signal"] = "m_valid,m_ready,m_data,m_sop,m_eop"
         if coverage_refs is None:
             coverage_refs = COV.get(scenario_id, [])
         if not passed and not mismatch:
             mismatch = "expected != observed"
         if passed:
             mismatch = ""  # a passing row must not carry a mismatch (schema rule)
+        else:
+            # failed rows must not contribute coverage (closure policy); drop
+            # any coverage_refs so a failing check cannot count toward closure.
+            coverage_refs = []
+        contract_id, obligation_id = CONTRACT_OBL.get(
+            scenario_id, (GOAL.get(scenario_id, scenario_id), scenario_id))
         row = {
             "goal_id": GOAL.get(scenario_id, scenario_id),
+            "event_id": EVT.get(scenario_id, scenario_id),
+            "contract_id": contract_id,
+            "obligation_id": obligation_id,
             "scenario_id": scenario_id,
             "cycle": int(cycle),
             "stimulus": stimulus,
@@ -541,7 +604,9 @@ async def test_scn_tx_reset(dut):
     sb.record("SCN_TX_RESET", now_cycle(dut),
               stimulus={"action": "async_assert_sync_deassert_reset"},
               expected=expected, observed=observed, passed=passed,
-              observed_source={"kind": "dut_signal"},
+              observed_source={"kind": "dut_signal",
+                               "signal": "prdata(STATUS.busy,SENT_CNT,DROP_CNT,"
+                                         "ERR_FLAGS,MTU,MAX_MSG,CTRL)"},
               mismatch="" if passed else "post-reset CSR/state != reset defaults")
     assert passed, f"reset defaults mismatch: exp={expected} obs={observed}"
 
@@ -860,7 +925,8 @@ async def test_scn_tx_status(dut):
     sb.record("SCN_TX_STATUS", now_cycle(dut),
               stimulus={"body_len": len(body), "messages": 1},
               expected=expected, observed=observed, passed=passed,
-              observed_source={"kind": "dut_signal"},
+              observed_source={"kind": "dut_signal",
+                               "signal": "irq_done,prdata(SENT_CNT)"},
               mismatch="" if passed else "SENT_CNT / irq_done mismatch")
     assert passed, f"status mismatch exp={expected} obs={observed}"
 
@@ -969,7 +1035,9 @@ async def test_scn_tx_err_underrun(dut):
     sb.record("SCN_TX_ERR_UNDERRUN", now_cycle(dut),
               stimulus={"body_len": len(body), "abort_at_beat": 10},
               expected=expected, observed=observed, passed=passed,
-              observed_source={"kind": "dut_signal"},
+              observed_source={"kind": "dut_signal",
+                               "signal": "irq_err,prdata(DROP_CNT,ERR_FLAGS.underrun),"
+                                         "m_valid,m_sop,m_eop"},
               mismatch="" if passed else "underrun flag/drop/no-emit mismatch")
     assert passed, f"underrun mismatch exp={expected} obs={observed}"
 
@@ -1024,7 +1092,9 @@ async def test_scn_tx_err_oversize(dut):
     sb.record("SCN_TX_ERR_OVERSIZE", now_cycle(dut),
               stimulus={"body_len": len(body), "max_msg": max_msg},
               expected=expected, observed=observed, passed=passed,
-              observed_source={"kind": "dut_signal"},
+              observed_source={"kind": "dut_signal",
+                               "signal": "irq_err,prdata(DROP_CNT,ERR_FLAGS.oversize),"
+                                         "m_valid,m_sop,m_eop"},
               mismatch="" if passed else "oversize flag/drop/no-emit mismatch")
     assert passed, f"oversize mismatch exp={expected} obs={observed}"
 
@@ -1076,6 +1146,8 @@ async def test_scn_tx_err_zerolen(dut):
     sb.record("SCN_TX_ERR_ZEROLEN", now_cycle(dut),
               stimulus={"zero_len": True},
               expected=expected, observed=observed, passed=passed,
-              observed_source={"kind": "dut_signal"},
+              observed_source={"kind": "dut_signal",
+                               "signal": "irq_err,prdata(DROP_CNT,ERR_FLAGS.zero_len),"
+                                         "m_valid,m_sop,m_eop"},
               mismatch="" if passed else "zero_len flag/drop/no-emit mismatch")
     assert passed, f"zero_len mismatch exp={expected} obs={observed}"

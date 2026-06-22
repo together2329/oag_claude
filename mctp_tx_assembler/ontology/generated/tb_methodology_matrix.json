@@ -1,7 +1,7 @@
 {
   "schema_version": "oag_tb_methodology_matrix.v1",
   "generated_by": "oag.compile",
-  "generated_at": "2026-06-22T15:52:43Z",
+  "generated_at": "2026-06-22T17:00:21Z",
   "ip": "mctp_tx_assembler",
   "source": "ontology/tb_methodology.yaml",
   "status": "present",
@@ -29,17 +29,65 @@
   },
   "coverage_goals": [
     {
-      "id": "COV_INC",
-      "requirement": "REQ_MCTP_TX_ASSEMBLER_001",
-      "obligation": "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
-      "contract": "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD"
+      "id": "COV_TX_INTAKE",
+      "requirement": "REQ_TX_INTAKE",
+      "obligation": "OBL_TX_INTAKE",
+      "contract": "CONTRACT_TX_INTAKE"
+    },
+    {
+      "id": "COV_TX_FRAGMENT_BOUNDARIES",
+      "requirement": "REQ_TX_FRAGMENT",
+      "obligation": "OBL_TX_FRAGMENT",
+      "contract": "CONTRACT_TX_FRAGMENT"
+    },
+    {
+      "id": "COV_TX_SOM_EOM",
+      "requirement": "REQ_TX_SOM_EOM",
+      "obligation": "OBL_TX_SOM_EOM",
+      "contract": "CONTRACT_TX_SOM_EOM"
+    },
+    {
+      "id": "COV_TX_SEQNUM_WRAP",
+      "requirement": "REQ_TX_SEQNUM",
+      "obligation": "OBL_TX_SEQNUM",
+      "contract": "CONTRACT_TX_SEQNUM"
+    },
+    {
+      "id": "COV_TX_HEADER_FIELDS",
+      "requirement": "REQ_TX_HEADER",
+      "obligation": "OBL_TX_HEADER",
+      "contract": "CONTRACT_TX_HEADER"
+    },
+    {
+      "id": "COV_TX_SINGLEMSG",
+      "requirement": "REQ_TX_SINGLEMSG",
+      "obligation": "OBL_TX_SINGLEMSG",
+      "contract": "CONTRACT_TX_SINGLEMSG"
+    },
+    {
+      "id": "COV_TX_ERR_MATRIX",
+      "requirement": "REQ_TX_ERR",
+      "obligation": "OBL_TX_ERR",
+      "contract": "CONTRACT_TX_ERR"
+    },
+    {
+      "id": "COV_TX_STATUS",
+      "requirement": "REQ_TX_STATUS",
+      "obligation": "OBL_TX_STATUS",
+      "contract": "CONTRACT_TX_STATUS"
+    },
+    {
+      "id": "COV_TX_RESET",
+      "requirement": "REQ_TX_RESET",
+      "obligation": "OBL_TX_RESET",
+      "contract": "CONTRACT_TX_RESET"
     }
   ],
   "assertion_candidates": [],
   "formal_candidates": [],
   "stats": {
     "roles": 7,
-    "coverage_goals": 1,
+    "coverage_goals": 9,
     "assertion_candidates": 0,
     "formal_candidates": 0
   }

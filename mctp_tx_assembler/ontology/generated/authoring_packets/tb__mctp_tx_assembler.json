@@ -2,7 +2,7 @@
   "schema_version": "oag_tb_authoring_packet.v1",
   "packet_type": "tb_authoring_packet",
   "generated_by": "oag.compile",
-  "generated_at": "2026-06-22T15:52:43Z",
+  "generated_at": "2026-06-22T17:00:21Z",
   "ip": "mctp_tx_assembler",
   "allowed_truth_sources": [
     "ontology/contracts.yaml",
@@ -44,7 +44,15 @@
     "EVT_TX_STATUS"
   ],
   "coverage_goal_refs": [
-    "COV_INC"
+    "COV_TX_INTAKE",
+    "COV_TX_FRAGMENT_BOUNDARIES",
+    "COV_TX_SOM_EOM",
+    "COV_TX_SEQNUM_WRAP",
+    "COV_TX_HEADER_FIELDS",
+    "COV_TX_SINGLEMSG",
+    "COV_TX_ERR_MATRIX",
+    "COV_TX_STATUS",
+    "COV_TX_RESET"
   ],
   "assertion_candidates": [
     "ASRT_TX_BACKPRESSURE_NO_LOSS",

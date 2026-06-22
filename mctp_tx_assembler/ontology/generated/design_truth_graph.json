@@ -1,54 +1,33 @@
 {
   "schema_version": "oag_design_truth_graph.v1",
   "compiled_by": "oag.compile",
-  "compiled_at": "2026-06-22T15:52:43Z",
+  "compiled_at": "2026-06-22T17:16:03Z",
   "ip": "mctp_tx_assembler",
   "closure_profile": "development",
   "structure_profile": "small_leaf_single_file",
-  "status": "fail",
-  "issues": [
-    "mctp_tx_assembler: owned obligation not found: OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
-    "mctp_tx_assembler: owned contract not found: CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
-    "OBL_TX_ERR: obligation has no owning decomposition module",
-    "OBL_TX_FRAGMENT: obligation has no owning decomposition module",
-    "OBL_TX_HEADER: obligation has no owning decomposition module",
-    "OBL_TX_INTAKE: obligation has no owning decomposition module",
-    "OBL_TX_RESET: obligation has no owning decomposition module",
-    "OBL_TX_SEQNUM: obligation has no owning decomposition module",
-    "OBL_TX_SINGLEMSG: obligation has no owning decomposition module",
-    "OBL_TX_SOM_EOM: obligation has no owning decomposition module",
-    "OBL_TX_STATUS: obligation has no owning decomposition module",
-    "CONTRACT_TX_ERR: contract has no owning decomposition module",
-    "CONTRACT_TX_FRAGMENT: contract has no owning decomposition module",
-    "CONTRACT_TX_HEADER: contract has no owning decomposition module",
-    "CONTRACT_TX_INTAKE: contract has no owning decomposition module",
-    "CONTRACT_TX_RESET: contract has no owning decomposition module",
-    "CONTRACT_TX_SEQNUM: contract has no owning decomposition module",
-    "CONTRACT_TX_SINGLEMSG: contract has no owning decomposition module",
-    "CONTRACT_TX_SOM_EOM: contract has no owning decomposition module",
-    "CONTRACT_TX_STATUS: contract has no owning decomposition module"
-  ],
+  "status": "pass",
+  "issues": [],
   "stats": {
     "requirements": 9,
     "obligations": 9,
     "contracts": 9,
     "structure_refs": 0,
     "modules": 1,
-    "design_facts_modules": 0,
+    "design_facts_modules": 1,
     "design_facts_instances": 0,
     "domain_clock_domains": 0,
     "domain_reset_domains": 0,
     "domain_cdc_crossings": 0,
     "domain_rdc_crossings": 1,
     "tb_methodology_roles": 7,
-    "tb_coverage_goals": 1,
+    "tb_coverage_goals": 9,
     "tb_assertion_candidates": 0,
     "tb_formal_candidates": 0,
     "stages": 5,
     "design_rules": 22,
     "design_rule_instances": 11,
     "authoring_packets": 4,
-    "load_bearing_edges": 44
+    "load_bearing_edges": 61
   },
   "generated": {
     "design_spec": "mctp_tx_assembler/ontology/generated/design_spec.json",
@@ -83,13 +62,13 @@
       "path": "mctp_tx_assembler/ontology/generated/design_facts_graph.json",
       "status": "pass",
       "stats": {
-        "rtl_source_files": 0,
-        "modules": 0,
-        "ports": 0,
-        "parameters": 0,
-        "declarations": 0,
-        "registers": 0,
-        "memories": 0,
+        "rtl_source_files": 1,
+        "modules": 1,
+        "ports": 25,
+        "parameters": 18,
+        "declarations": 32,
+        "registers": 31,
+        "memories": 1,
         "instances": 0
       },
       "extractor": {
@@ -113,7 +92,7 @@
       "status": "present",
       "stats": {
         "roles": 7,
-        "coverage_goals": 1,
+        "coverage_goals": 9,
         "assertion_candidates": 0,
         "formal_candidates": 0
       }
@@ -156,7 +135,7 @@
       "type": "module",
       "label": "mctp_tx_assembler",
       "status": "current_ip",
-      "file": "rtl/mctp_tx_assembler.sv",
+      "file": "rtl/mctp_tx_assembler.v",
       "role": "top"
     },
     {
@@ -166,15 +145,334 @@
       "status": "pass",
       "path": "ontology/generated/design_facts_graph.json",
       "stats": {
-        "rtl_source_files": 0,
-        "modules": 0,
-        "ports": 0,
-        "parameters": 0,
-        "declarations": 0,
-        "registers": 0,
-        "memories": 0,
+        "rtl_source_files": 1,
+        "modules": 1,
+        "ports": 25,
+        "parameters": 18,
+        "declarations": 32,
+        "registers": 31,
+        "memories": 1,
         "instances": 0
       }
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler",
+      "type": "design_fact_module",
+      "label": "mctp_tx_assembler",
+      "source": {
+        "file": "rtl/mctp_tx_assembler.v",
+        "line": 32
+      }
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::clk",
+      "type": "design_fact_port",
+      "label": "clk",
+      "direction": "input // Clock / reset (CONTRACT_TX_RESET)"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::rst_n",
+      "type": "design_fact_port",
+      "label": "rst_n",
+      "direction": "input"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_valid",
+      "type": "design_fact_port",
+      "label": "s_valid",
+      "direction": "input // active-low, async assert / sync deassert // Ingress - message body stream (CONTRACT_TX_INTAKE)"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_data",
+      "type": "design_fact_port",
+      "label": "s_data",
+      "direction": "input"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_last",
+      "type": "design_fact_port",
+      "label": "s_last",
+      "direction": "input // body byte; first body byte is MCTP type/IC byte (opaque)"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_empty",
+      "type": "design_fact_port",
+      "label": "s_empty",
+      "direction": "input // final body byte of the message"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_abort",
+      "type": "design_fact_port",
+      "label": "s_abort",
+      "direction": "input // with s_last -> zero-length message"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_dest_eid",
+      "type": "design_fact_port",
+      "label": "s_dest_eid",
+      "direction": "input // caller aborts in-flight message -> underrun"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_msg_tag",
+      "type": "design_fact_port",
+      "label": "s_msg_tag",
+      "direction": "input // latched at message start"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_to",
+      "type": "design_fact_port",
+      "label": "s_to",
+      "direction": "input // latched at message start"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::s_ready",
+      "type": "design_fact_port",
+      "label": "s_ready",
+      "direction": "output // tag owner bit, latched at message start"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::m_valid",
+      "type": "design_fact_port",
+      "label": "m_valid",
+      "direction": "output // DUT accepts a body beat // Egress - MCTP packet stream (CONTRACT_TX_HEADER / FRAGMENT / SOM_EOM / SEQNUM)"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::m_data",
+      "type": "design_fact_port",
+      "label": "m_data",
+      "direction": "output"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::m_sop",
+      "type": "design_fact_port",
+      "label": "m_sop",
+      "direction": "output // 4 header bytes then payload bytes"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::m_eop",
+      "type": "design_fact_port",
+      "label": "m_eop",
+      "direction": "output // header byte 0 of each packet"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::m_ready",
+      "type": "design_fact_port",
+      "label": "m_ready",
+      "direction": "input // final byte of each packet"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::psel",
+      "type": "design_fact_port",
+      "label": "psel",
+      "direction": "input // sink ready; low -> stall without losing data // CSR - APB-lite, single clock, zero-wait (CONTRACT_TX_STATUS)"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::penable",
+      "type": "design_fact_port",
+      "label": "penable",
+      "direction": "input"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::pwrite",
+      "type": "design_fact_port",
+      "label": "pwrite",
+      "direction": "input"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::paddr",
+      "type": "design_fact_port",
+      "label": "paddr",
+      "direction": "input"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::pwdata",
+      "type": "design_fact_port",
+      "label": "pwdata",
+      "direction": "input // pwdata is a 32-bit APB bus (frozen interface); the widest CSR field is // MAX_MSG[15:0], so pwdata[31:16] is intentionally unused. Waive only this // signal's unused-bits warning (not a real issue; the port width is fixed). /* verilator lint_off UNUSEDSIGNAL */"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::prdata",
+      "type": "design_fact_port",
+      "label": "prdata",
+      "direction": "output /* verilator lint_on UNUSEDSIGNAL */"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::pready",
+      "type": "design_fact_port",
+      "label": "pready",
+      "direction": "output"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::irq_done",
+      "type": "design_fact_port",
+      "label": "irq_done",
+      "direction": "output // tie high // Interrupts (CONTRACT_TX_STATUS)"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::port::irq_err",
+      "type": "design_fact_port",
+      "label": "irq_err",
+      "direction": "output // 1-cycle pulse on EOM packet egress completion"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::rst_meta",
+      "type": "design_fact_register",
+      "label": "rst_meta"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::rst_sync_n",
+      "type": "design_fact_register",
+      "label": "rst_sync_n"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::ctrl_enable",
+      "type": "design_fact_register",
+      "label": "ctrl_enable"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::csr_src_eid",
+      "type": "design_fact_register",
+      "label": "csr_src_eid"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::csr_mtu",
+      "type": "design_fact_register",
+      "label": "csr_mtu"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::csr_max_msg",
+      "type": "design_fact_register",
+      "label": "csr_max_msg"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::status_done_latched",
+      "type": "design_fact_register",
+      "label": "status_done_latched"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::status_err_latched",
+      "type": "design_fact_register",
+      "label": "status_err_latched"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::irq_en_done",
+      "type": "design_fact_register",
+      "label": "irq_en_done"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::irq_en_err",
+      "type": "design_fact_register",
+      "label": "irq_en_err"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::err_underrun",
+      "type": "design_fact_register",
+      "label": "err_underrun"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::err_oversize",
+      "type": "design_fact_register",
+      "label": "err_oversize"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::err_zero_len",
+      "type": "design_fact_register",
+      "label": "err_zero_len"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::sent_cnt",
+      "type": "design_fact_register",
+      "label": "sent_cnt"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::drop_cnt",
+      "type": "design_fact_register",
+      "label": "drop_cnt"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::wr_ptr",
+      "type": "design_fact_register",
+      "label": "wr_ptr"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::msg_len",
+      "type": "design_fact_register",
+      "label": "msg_len"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::rd_ptr",
+      "type": "design_fact_register",
+      "label": "rd_ptr"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::lat_dest_eid",
+      "type": "design_fact_register",
+      "label": "lat_dest_eid"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::lat_msg_tag",
+      "type": "design_fact_register",
+      "label": "lat_msg_tag"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::lat_to",
+      "type": "design_fact_register",
+      "label": "lat_to"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::state",
+      "type": "design_fact_register",
+      "label": "state"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::seq",
+      "type": "design_fact_register",
+      "label": "seq"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::som",
+      "type": "design_fact_register",
+      "label": "som"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::eom",
+      "type": "design_fact_register",
+      "label": "eom"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::bytes_remaining",
+      "type": "design_fact_register",
+      "label": "bytes_remaining"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::pay_left",
+      "type": "design_fact_register",
+      "label": "pay_left"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::hdr_idx",
+      "type": "design_fact_register",
+      "label": "hdr_idx"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::hdr_byte",
+      "type": "design_fact_register",
+      "label": "hdr_byte"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::done_event",
+      "type": "design_fact_register",
+      "label": "done_event"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::register::err_event",
+      "type": "design_fact_register",
+      "label": "err_event"
+    },
+    {
+      "id": "fact::module::mctp_tx_assembler::memory::mem",
+      "type": "design_fact_memory",
+      "label": "mem"
     },
     {
       "id": "requirement::REQ_TX_INTAKE",
@@ -668,13 +966,109 @@
     },
     {
       "source": "module::mctp_tx_assembler",
-      "target": "obligation::OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
+      "target": "obligation::OBL_TX_INTAKE",
       "type": "owns_obligation",
       "load_bearing": true
     },
     {
       "source": "module::mctp_tx_assembler",
-      "target": "contract::CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
+      "target": "obligation::OBL_TX_FRAGMENT",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_SOM_EOM",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_SEQNUM",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_HEADER",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_SINGLEMSG",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_ERR",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_STATUS",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "obligation::OBL_TX_RESET",
+      "type": "owns_obligation",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_INTAKE",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_FRAGMENT",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_SOM_EOM",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_SEQNUM",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_HEADER",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_SINGLEMSG",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_ERR",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_STATUS",
+      "type": "owns_contract",
+      "load_bearing": true
+    },
+    {
+      "source": "module::mctp_tx_assembler",
+      "target": "contract::CONTRACT_TX_RESET",
       "type": "owns_contract",
       "load_bearing": true
     },
@@ -683,6 +1077,702 @@
       "target": "artifact::ontology/generated/design_facts_graph.json",
       "type": "has_artifact",
       "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::clk",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::rst_n",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_valid",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_data",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_last",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_empty",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_abort",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_dest_eid",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_msg_tag",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_to",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::s_ready",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::m_valid",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::m_data",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::m_sop",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::m_eop",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::m_ready",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::psel",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::penable",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::pwrite",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::paddr",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::pwdata",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::prdata",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::pready",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::irq_done",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::port::irq_err",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::rst_meta",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::rst_sync_n",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::ctrl_enable",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::csr_src_eid",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::csr_mtu",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::csr_max_msg",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::status_done_latched",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::status_err_latched",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::irq_en_done",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::irq_en_err",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::err_underrun",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::err_oversize",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::err_zero_len",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::sent_cnt",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::drop_cnt",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::wr_ptr",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::msg_len",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::rd_ptr",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::lat_dest_eid",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::lat_msg_tag",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::lat_to",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::state",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::seq",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::som",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::eom",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::bytes_remaining",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::pay_left",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::hdr_idx",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::hdr_byte",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::done_event",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::register::err_event",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "artifact::ontology/generated/design_facts_graph.json",
+      "target": "fact::module::mctp_tx_assembler::memory::mem",
+      "type": "contains_fact",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::clk",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::rst_n",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_valid",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_data",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_last",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_empty",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_abort",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_dest_eid",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_msg_tag",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_to",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::s_ready",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::m_valid",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::m_data",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::m_sop",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::m_eop",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::m_ready",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::psel",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::penable",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::pwrite",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::paddr",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::pwdata",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::prdata",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::pready",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::irq_done",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::port::irq_err",
+      "type": "has_port",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::rst_meta",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::rst_sync_n",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::ctrl_enable",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::csr_src_eid",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::csr_mtu",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::csr_max_msg",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::status_done_latched",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::status_err_latched",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::irq_en_done",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::irq_en_err",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::err_underrun",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::err_oversize",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::err_zero_len",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::sent_cnt",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::drop_cnt",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::wr_ptr",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::msg_len",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::rd_ptr",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::lat_dest_eid",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::lat_msg_tag",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::lat_to",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::state",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::seq",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::som",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::eom",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::bytes_remaining",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::pay_left",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::hdr_idx",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::hdr_byte",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::done_event",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::register::err_event",
+      "type": "has_register",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "fact::module::mctp_tx_assembler::memory::mem",
+      "type": "has_memory",
+      "load_bearing": false
+    },
+    {
+      "source": "fact::module::mctp_tx_assembler",
+      "target": "module::mctp_tx_assembler",
+      "type": "implements_module",
+      "load_bearing": true
     },
     {
       "source": "ip::mctp_tx_assembler",

@@ -1,0 +1,116 @@
+{
+  "schema_version": "oag_improvement_metrics.v1",
+  "id": "MET_20260622T172236Z_METRICS",
+  "ip": "mctp_tx_assembler",
+  "stage": "metrics",
+  "intent": "",
+  "generated_at": "2026-06-22T17:22:36Z",
+  "closure_profile": "development",
+  "requirements": {
+    "total": 9
+  },
+  "obligations": {
+    "total": 9
+  },
+  "contracts": {
+    "total": 9
+  },
+  "closure": {
+    "status": "pass",
+    "total": 9,
+    "closed": 9,
+    "open": 0,
+    "closed_percent": 100.0,
+    "issue_count": 0
+  },
+  "check": {
+    "ok": true,
+    "issue_count": 0,
+    "stale_issue_count": 0
+  },
+  "evidence": {
+    "records_total": 23,
+    "json_records_total": 23,
+    "active_json_records": 14,
+    "record_status_counts": {
+      "closed": 18,
+      "draft": 5
+    },
+    "closed_records_total": 18,
+    "draft_records_total": 5,
+    "refuted_records_total": 0,
+    "referenced_file_count": 5,
+    "unique_evidence_file_count": 5,
+    "files_present_count": 5,
+    "files_missing_count": 0,
+    "file_hash_count": 41,
+    "stale_record_issue_count": 0
+  },
+  "stage_receipts": {
+    "count": 0,
+    "issue_count": 0
+  },
+  "ledger": {
+    "events": 31,
+    "issue_count": 0
+  },
+  "protection": {
+    "issue_count": 0
+  },
+  "monotonic_closure": {
+    "issue_count": 0
+  },
+  "design": {
+    "rules": 22,
+    "rule_instances": 11,
+    "truth_graph_status": "pass",
+    "truth_graph_nodes": 135,
+    "truth_graph_edges": 221,
+    "load_bearing_edges": 61,
+    "design_facts_modules": 1,
+    "design_facts_rtl_source_files": 1
+  },
+  "auto_research": {
+    "reports": 0,
+    "evidence_strengths": 0,
+    "actions": 0,
+    "status_counts": {},
+    "blocked_actions": 0,
+    "partially_closed_actions": 0,
+    "closed_actions": 0,
+    "signoff_blockers": 0
+  },
+  "decisions": {
+    "receipts": 1,
+    "allowed": 1,
+    "blocked": 0,
+    "reviewer_receipts": 0,
+    "independent_passing_reviewers": 0
+  },
+  "runs": {
+    "total": 0,
+    "active_run_id": "",
+    "status_counts": {},
+    "in_progress": 0,
+    "complete": 0,
+    "needs_human": 0
+  },
+  "delta": {
+    "baseline": true,
+    "previous_id": "",
+    "closed_obligations_delta": 0,
+    "closed_percent_delta": 0.0,
+    "check_issue_count_delta": 0,
+    "evidence_files_present_delta": 0,
+    "stage_receipt_count_delta": 0,
+    "ledger_events_delta": 0,
+    "decision_receipts_delta": 0,
+    "blocked_next_actions_delta": 0,
+    "partially_closed_next_actions_delta": 0
+  },
+  "artifacts": {
+    "latest": "ontology/metrics/improvement_metrics.json",
+    "history": "ontology/metrics/improvement_history.jsonl"
+  },
+  "ledger_event": "1b362a04a656b0d7214a301173a5423e06f84584b5865bd289c9fca9b97c6259"
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": "oag_subagent_receipt.v1",
+  "role_name": "oag-rtl-lint-static-agent",
+  "dispatch_id": "DISPATCH_MCTP_TX_ASSEMBLER_RTL_LINT_STATIC_20260622T170024Z_60068B84",
+  "dispatch_path": "mctp_tx_assembler/knowledge/dispatches/DISPATCH_MCTP_TX_ASSEMBLER_RTL_LINT_STATIC_20260622T170024Z_60068B84.json",
+  "status": "STATIC_HANDOFF_PASS",
+  "may_claim_complete": false,
+  "changed_paths": [
+    "mctp_tx_assembler/rtl/rtl_compile.json",
+    "mctp_tx_assembler/lint/dut_lint.json",
+    "mctp_tx_assembler/knowledge/subagents/lint_receipt.json"
+  ],
+  "generated_side_effects": [],
+  "evidence_outputs": [
+    "mctp_tx_assembler/rtl/rtl_compile.json",
+    "mctp_tx_assembler/lint/dut_lint.json"
+  ],
+  "tools": "iverilog/verilator/pyslang",
+  "iverilog_exit": 0,
+  "verilator_warnings": 0,
+  "lint_status": "pass",
+  "rtl_sha256": "262ab964bafa5d7ce2098c20c8ac2d2950ef585b5daf060decb9a9993393f3c8",
+  "rerun": true,
+  "checks_run": "RE-RUN against updated DUT (545 lines, SHA-256 262ab964...). iverilog -g2012 -t null -Wall rtl/mctp_tx_assembler.v -> exit 0, no output, 0 errors, 0 warnings (clean elaboration). verilator --lint-only -Wall rtl/mctp_tx_assembler.v -> exit 0, 0 errors, 0 warnings (clean; prior 3 -Wall style warnings all resolved). python3 .claude/scripts/oag_pyslang_lint.py --ip-dir . --filelist list/rtl.f -> available=true, 0 diagnostics over 1 file, status pass, exit 0.",
+  "summary": "RE-RUN DUT-only compile + lint evidence for mctp_tx_assembler after the reset-path fix. Structure verified: rtl/mctp_tx_assembler.v exists (545 lines, SHA 262ab964..., changed from prior ff7407cd...), list/rtl.f includes it, module name mctp_tx_assembler matches, profile small_leaf_single_file. Reset fix confirmed by inspection: external pin rst_n feeds ONLY the 2-FF reset synchronizer (always @(posedge clk or negedge rst_n) -> rst_meta -> rst_sync_n); the main sequential process is now keyed on rst_sync_n (always @(posedge clk or negedge rst_sync_n)), so rst_sync_n is no longer dead and async-assert/sync-deassert (CONTRACT_TX_RESET) is structurally realized. MSG_CAP_LEN localparam removed. pwdata[31:16] unused-upper-bits warning waived with scoped /* verilator lint_off/lint_on UNUSEDSIGNAL */ and frozen-bus-width rationale. ALL THREE TOOLS CLEAN: iverilog 0/0 (exit 0), verilator -Wall 0 errors / 0 warnings (exit 0), pyslang 0 diagnostics (pass). status=pass for both rtl_compile.json and dut_lint.json. No RTL source, tb/, or sim/ files modified by me; only evidence files overwritten within allowed_write_paths. Static checks do not prove behavior; behavioral and reset/X-prop closure route to sim/evidence-validation owners.",
+  "OAG": {
+    "requirement": "REQ_TX_* (MCTP TX assembler v0 DSP0236 packetizer)",
+    "obligation": "RTL static handoff plausibly tied to locked contracts CONTRACT_TX_*",
+    "contract": "CONTRACT_TX_* (9 locked); CONTRACT_TX_RESET reset-deassertion intent now structurally realized via rst_sync_n. Compile/lint are structural/static plausibility, not behavioral proof",
+    "evidence": "mctp_tx_assembler/rtl/rtl_compile.json (pass), mctp_tx_assembler/lint/dut_lint.json (pass)",
+    "validation": "static_handoff_pass_clean; behavioral and reset/X-prop validation owned by sim/evidence-validation",
+    "decision": "STATIC_HANDOFF_PASS; may_claim_complete=false; closure remains gate-owned"
+  }
+}

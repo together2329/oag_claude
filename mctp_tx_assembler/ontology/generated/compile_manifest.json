@@ -1,9 +1,13 @@
 {
   "schema_version": "oag_compile_manifest.v1",
   "ip": "mctp_tx_assembler",
-  "compiled_at": "2026-06-22T15:52:43Z",
-  "status": "fail",
+  "compiled_at": "2026-06-22T17:16:03Z",
+  "status": "pass",
   "input_fingerprints": [
+    {
+      "path": "cov/coverage.json",
+      "sha256": "1956caa65351af815409b00d73f88fa6097f0933f2cccdbf1b05f6292d9ca210"
+    },
     {
       "path": "knowledge/records/IKL_20260622T133105Z_INTERVIEW_DRAFT.json",
       "sha256": "7642c20a6cee19dffaae1deef9ff47075dff52bb8cb74d1b4546c91fd71f37ed"
@@ -21,8 +25,84 @@
       "sha256": "7cb5dbbd1bb473de9b1b9efcd616ce492e1655b7c5b4afaf6141c98a6276c732"
     },
     {
+      "path": "knowledge/records/IKL_20260622T165638Z_OBL_TX_FRAGMENT_CLOSED_CONTRACT_TX_FRAGMENT_PROV.json",
+      "sha256": "d8ac0f5588310919a82677559e71221104e2fd2ef0172bf80d57bca87992980e"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165638Z_OBL_TX_INTAKE_CLOSED_CONTRACT_TX_INTAKE_PROVEN_B.json",
+      "sha256": "13008be27b63a556adccaec496ce2f5d93e53067021eed1e85ddad72c299e516"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165639Z_OBL_TX_HEADER_CLOSED_CONTRACT_TX_HEADER_PROVEN_B.json",
+      "sha256": "932ec433396a8cca1e9cb060be0289a6a90e1a3901c52d8fabca737e42b0ac2d"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165639Z_OBL_TX_SEQNUM_CLOSED_CONTRACT_TX_SEQNUM_PROVEN_B.json",
+      "sha256": "ae66b3763f8d7c934ceb4edb60101725ac5862d6ca3263b7e973a75bd21eaf5c"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165639Z_OBL_TX_SOM_EOM_CLOSED_CONTRACT_TX_SOM_EOM_PROVEN.json",
+      "sha256": "85b39ada661b49114db90db2f64ca3fb9ef97f2d08a3105c181c89ada5992bcd"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165640Z_OBL_TX_ERR_CLOSED_CONTRACT_TX_ERR_PROVEN_BY_SIM.json",
+      "sha256": "af3a17f4fbba3543c07ff184dc15cb2db1793246fc4c9aef67832b0978cc70bd"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165640Z_OBL_TX_SINGLEMSG_CLOSED_CONTRACT_TX_SINGLEMSG_PR.json",
+      "sha256": "c8248fd5d10a09e9820c8b812d448fef9b8ff0e3263647c64dbf74108523d0cf"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165641Z_OBL_TX_RESET_CLOSED_CONTRACT_TX_RESET_PROVEN_BY.json",
+      "sha256": "4cfb6369c9b02e55f8f6e87eb93ad33cf2c7f59740f6a633ca7d590ed2cb5994"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T165641Z_OBL_TX_STATUS_CLOSED_CONTRACT_TX_STATUS_PROVEN_B.json",
+      "sha256": "3b682f28d2f9fc9e641ab699a44bb414715e0591bd77d63b1169672d86290e55"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171542Z_OBL_TX_FRAGMENT_CLOSED_V2_FRESH_EVIDENCE_CONTRAC.json",
+      "sha256": "2abf8aa916ba9145bd0b48c57c41bddffda5a69cc56fb1c6a4d2bfc31cd72926"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171542Z_OBL_TX_INTAKE_CLOSED_V2_FRESH_EVIDENCE_CONTRACT.json",
+      "sha256": "5320be92092e0ce51ff34cc5c5629f73eb32e7650aa6f50f76d1744da6e692c9"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171543Z_OBL_TX_SEQNUM_CLOSED_V2_FRESH_EVIDENCE_CONTRACT.json",
+      "sha256": "35c19144ded4f0b6d984c19a698dfa64f9d9531386614aec6420904438f684fa"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171543Z_OBL_TX_SOM_EOM_CLOSED_V2_FRESH_EVIDENCE_CONTRACT.json",
+      "sha256": "3dac2493eea8d4cf99190bfc6f579a0cad0861d574cbaa08fbdbc08e52b6de9f"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171544Z_OBL_TX_HEADER_CLOSED_V2_FRESH_EVIDENCE_CONTRACT.json",
+      "sha256": "ad0ee8d57bebd913d03354d486403189c5098062b674159a228e4501a0d6a0e4"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171544Z_OBL_TX_SINGLEMSG_CLOSED_V2_FRESH_EVIDENCE_CONTRA.json",
+      "sha256": "3b98e8238efbcf810ded90807651d741d4807f9dcbde9ca0bd8360e44f1fa892"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171545Z_OBL_TX_ERR_CLOSED_V2_FRESH_EVIDENCE_CONTRACT_TX.json",
+      "sha256": "1031be7c0a1b8873692fac7d896e970f30f1396894fe5398a26f3c1738d9b94f"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171545Z_OBL_TX_STATUS_CLOSED_V2_FRESH_EVIDENCE_CONTRACT.json",
+      "sha256": "db5492da2344f829acc0dee32f45844de309254243664ecd3a06f92a1ccbf5bf"
+    },
+    {
+      "path": "knowledge/records/IKL_20260622T171546Z_OBL_TX_RESET_CLOSED_V2_FRESH_EVIDENCE_CONTRACT_T.json",
+      "sha256": "ed3e268f5b9fdd448a761be59d10bd49f2027d7b00d63a3f9fffc953d83027ee"
+    },
+    {
+      "path": "lint/dut_lint.json",
+      "sha256": "e17a5b4ae86bad4a26318b705edbbbb7c81e46cf160e91a9551c62a59bc7ed18"
+    },
+    {
       "path": "list/rtl.f",
-      "sha256": "705625d0ca57a3a7f4fb694c57a146f8e7ba27a0bd27146668909cf98c7a5ef1"
+      "sha256": "85fdc2bd3facaaadd2e0d2d55d708f3525f132827a78925850be9356c60154df"
     },
     {
       "path": "ontology/contracts.yaml",
@@ -30,7 +110,7 @@
     },
     {
       "path": "ontology/decomposition.yaml",
-      "sha256": "ee493130f0d69a004e5c147164f61d9748f206b08a90130f5da09b181fef1a61"
+      "sha256": "bf85e0502403f8f5ddda9436510546eb790e7f41f62fbbac00d06e8d93f96b22"
     },
     {
       "path": "ontology/design_rules.yaml",
@@ -70,29 +150,45 @@
     },
     {
       "path": "ontology/tb_methodology.yaml",
-      "sha256": "c8f904add4ad0e9a5a4cfa94fce83262945849cd460b2e6778709a9c42819aeb"
+      "sha256": "fd9eee72febf50985cdbeaff51e66d233b6e66ccf6a860bcc567fa251fe50f70"
     },
     {
       "path": "ontology/verification_plan.yaml",
       "sha256": "aeeade5346fe18fee12d21c647293b29a0a19eff5be051d40c1733ff89ade9ad"
     },
     {
+      "path": "rtl/mctp_tx_assembler.v",
+      "sha256": "262ab964bafa5d7ce2098c20c8ac2d2950ef585b5daf060decb9a9993393f3c8"
+    },
+    {
       "path": "signoff/release.yaml",
       "sha256": "c71f9aaaf3a15c6e7f3817f323043e3c0af0e2befad2a9207174621e66bb5076"
+    },
+    {
+      "path": "sim/results.xml",
+      "sha256": "f325bf89338d2a01577d7444de1fd0a73744c6fadc08a354569aa66748f327fc"
+    },
+    {
+      "path": "sim/scenario_mapping.json",
+      "sha256": "53b21abe3299409422189f2bbeff6442c196e1cb2fe3415c7d496ec5e1677b4f"
+    },
+    {
+      "path": "sim/scoreboard_events.jsonl",
+      "sha256": "78200437e7eefc7dd42cc429da07b98ad39f4a669587588af905e58ac0a988ca"
     }
   ],
   "output_fingerprints": [
     {
       "path": "ontology/generated/design_truth_graph.json",
-      "sha256": "88519f9c58740e012fe888356ff68b4b03638196619f90af3c0489acfbb72d8f"
+      "sha256": "bd85266c7ca18b483cc5fffe46a42f90da09d1006dd0dc9f1b35cfd7ad42a329"
     },
     {
       "path": "ontology/generated/design_spec.json",
-      "sha256": "2bba2385f4bc671fbeb56bb8c26b80be1fe434911cb3bafedfa25ee7b97d042b"
+      "sha256": "84fd271849ee35d0b45817702712e5f1d89b781e271728f8974d111c93a687ab"
     },
     {
       "path": "ontology/generated/design_facts_graph.json",
-      "sha256": "73da9057830ae9dbf794b4483bf1f1a8f7f3221487188b098d61c2f782ae318b"
+      "sha256": "c2ebcd9046dfce1be8d971f75d0d3bca1cce3af4fef095734c298db0c073671d"
     },
     {
       "path": "ontology/generated/domain_crossing_matrix.json",
@@ -100,7 +196,7 @@
     },
     {
       "path": "ontology/generated/tb_methodology_matrix.json",
-      "sha256": "3d345838787a5e846fef8c77a533629ca758e8721bf214b8c9bb678312cab7ac"
+      "sha256": "d7638c214e5536cc8a8d197a9c698c43fa586d6d206171b2a8a4106a195db20f"
     },
     {
       "path": "ontology/generated/authoring_packets/evidence__mctp_tx_assembler.json",
@@ -108,7 +204,7 @@
     },
     {
       "path": "ontology/generated/authoring_packets/module__mctp_tx_assembler.json",
-      "sha256": "88ffa93c56b171e05aa90c4ba5e9de6225521e4cb4892b883f39e94b65d948d9"
+      "sha256": "05d78b5fc50979a0c499f098292d16bf7ac648848a036b1d2360b73ccf108e72"
     },
     {
       "path": "ontology/generated/authoring_packets/rtl__mctp_tx_assembler.json",
@@ -116,7 +212,7 @@
     },
     {
       "path": "ontology/generated/authoring_packets/tb__mctp_tx_assembler.json",
-      "sha256": "361e2e92bc600427ce3b4176179e24ea4b78521dac11fb7e73f7b2a045864b17"
+      "sha256": "0c1294771320e91054618a3a15cbd4ddfba30d10f1539e9a079009909413f53d"
     }
   ],
   "stats": {
@@ -125,21 +221,21 @@
     "contracts": 9,
     "structure_refs": 0,
     "modules": 1,
-    "design_facts_modules": 0,
+    "design_facts_modules": 1,
     "design_facts_instances": 0,
     "domain_clock_domains": 0,
     "domain_reset_domains": 0,
     "domain_cdc_crossings": 0,
     "domain_rdc_crossings": 1,
     "tb_methodology_roles": 7,
-    "tb_coverage_goals": 1,
+    "tb_coverage_goals": 9,
     "tb_assertion_candidates": 0,
     "tb_formal_candidates": 0,
     "stages": 5,
     "design_rules": 22,
     "design_rule_instances": 11,
     "authoring_packets": 4,
-    "load_bearing_edges": 44
+    "load_bearing_edges": 61
   },
   "generated": {
     "design_spec": "mctp_tx_assembler/ontology/generated/design_spec.json",
@@ -174,13 +270,13 @@
       "path": "mctp_tx_assembler/ontology/generated/design_facts_graph.json",
       "status": "pass",
       "stats": {
-        "rtl_source_files": 0,
-        "modules": 0,
-        "ports": 0,
-        "parameters": 0,
-        "declarations": 0,
-        "registers": 0,
-        "memories": 0,
+        "rtl_source_files": 1,
+        "modules": 1,
+        "ports": 25,
+        "parameters": 18,
+        "declarations": 32,
+        "registers": 31,
+        "memories": 1,
         "instances": 0
       },
       "extractor": {
@@ -204,7 +300,7 @@
       "status": "present",
       "stats": {
         "roles": 7,
-        "coverage_goals": 1,
+        "coverage_goals": 9,
         "assertion_candidates": 0,
         "formal_candidates": 0
       }

@@ -1,14 +1,14 @@
 {
   "schema_version": "oag_authoring_packet.v1",
   "generated_by": "oag.compile",
-  "generated_at": "2026-06-22T15:52:43Z",
+  "generated_at": "2026-06-22T16:39:33Z",
   "ip": "mctp_tx_assembler",
   "module": {
     "id": "mctp_tx_assembler",
     "name": "mctp_tx_assembler",
     "role": "top",
     "ownership": "current_ip",
-    "file": "rtl/mctp_tx_assembler.sv",
+    "file": "rtl/mctp_tx_assembler.v",
     "edit_policy": "editable"
   },
   "structure_profile": "small_leaf_single_file",
@@ -20,17 +20,676 @@
   "structure_refs": [],
   "obligations": [
     {
-      "id": "OBL_MCTP_TX_ASSEMBLER_RESET_KNOWN",
-      "missing": true
+      "id": "OBL_TX_INTAKE",
+      "requirement": "REQ_TX_INTAKE",
+      "status": "open",
+      "text": "Message intake captures body-to-last-flag and latches the attribute word.",
+      "trigger": "input stream offers a new message while IP is idle",
+      "guarantee": "all body beats to last-flag captured; dest EID/tag/TO/msg-type latched",
+      "observable": "input_ready handshake and latched message context",
+      "oracle_projection": "behavior_model.tx.intake",
+      "contracts": [
+        "CONTRACT_TX_INTAKE"
+      ]
+    },
+    {
+      "id": "OBL_TX_FRAGMENT",
+      "requirement": "REQ_TX_FRAGMENT",
+      "status": "open",
+      "text": "Body is fragmented into MTU-bounded packets with a possibly-short final packet.",
+      "trigger": "a non-empty captured message is ready to emit",
+      "guarantee": "packet count = ceil(body_len/MTU); each payload <= MTU; only last may be short",
+      "observable": "egress packet payload lengths and packet count",
+      "oracle_projection": "behavior_model.tx.fragment",
+      "contracts": [
+        "CONTRACT_TX_FRAGMENT"
+      ]
+    },
+    {
+      "id": "OBL_TX_SOM_EOM",
+      "requirement": "REQ_TX_SOM_EOM",
+      "status": "open",
+      "text": "SOM/EOM mark message boundaries correctly including single-packet case.",
+      "trigger": "a packet header is emitted",
+      "guarantee": "SOM only on first packet, EOM only on last; single packet sets both",
+      "observable": "egress header SOM/EOM bits",
+      "oracle_projection": "behavior_model.tx.som_eom",
+      "contracts": [
+        "CONTRACT_TX_SOM_EOM"
+      ]
+    },
+    {
+      "id": "OBL_TX_SEQNUM",
+      "requirement": "REQ_TX_SEQNUM",
+      "status": "open",
+      "text": "Packet sequence number starts at 0 and increments mod 4 across a message.",
+      "trigger": "a packet header is emitted",
+      "guarantee": "seq = 0 on SOM else (prev+1) mod 4",
+      "observable": "egress header sequence number",
+      "oracle_projection": "cycle_rules.tx.seqnum",
+      "contracts": [
+        "CONTRACT_TX_SEQNUM"
+      ]
+    },
+    {
+      "id": "OBL_TX_HEADER",
+      "requirement": "REQ_TX_HEADER",
+      "status": "open",
+      "text": "Header field composition, ownership, and byte ordering are correct.",
+      "trigger": "a packet header is emitted",
+      "guarantee": "header fields per ownership rules in DSP0236 byte layout; body order preserved",
+      "observable": "egress header bytes and body bytes",
+      "oracle_projection": "behavior_model.tx.header",
+      "contracts": [
+        "CONTRACT_TX_HEADER"
+      ]
+    },
+    {
+      "id": "OBL_TX_SINGLEMSG",
+      "requirement": "REQ_TX_SINGLEMSG",
+      "status": "open",
+      "text": "Exactly one message is processed at a time with no packet interleaving.",
+      "trigger": "input stream offers a new message while one is in flight",
+      "guarantee": "new message not accepted until in-flight message emits EOM",
+      "observable": "input_ready gating and per-packet message identity",
+      "oracle_projection": "cycle_rules.tx.singlemsg",
+      "contracts": [
+        "CONTRACT_TX_SINGLEMSG"
+      ]
+    },
+    {
+      "id": "OBL_TX_ERR",
+      "requirement": "REQ_TX_ERR",
+      "status": "open",
+      "text": "Backpressure stalls; underrun/oversize/zero-length flagged and counted; no partial emit.",
+      "trigger": "backpressure, underrun, oversize, or zero-length condition",
+      "guarantee": "stall without loss; error flag+counter on abort conditions; no partial message emitted",
+      "observable": "error flag, error counter, suppressed egress",
+      "oracle_projection": "behavior_model.tx.err",
+      "contracts": [
+        "CONTRACT_TX_ERR"
+      ]
+    },
+    {
+      "id": "OBL_TX_STATUS",
+      "requirement": "REQ_TX_STATUS",
+      "status": "open",
+      "text": "Done/error interrupts and sent/dropped counters reflect message outcomes.",
+      "trigger": "EOM emission or error event",
+      "guarantee": "done IRQ on EOM, error IRQ on error, counters updated, CSR-visible",
+      "observable": "done_irq, error_irq, sent/dropped counters via CSR",
+      "oracle_projection": "behavior_model.tx.status",
+      "contracts": [
+        "CONTRACT_TX_STATUS"
+      ]
+    },
+    {
+      "id": "OBL_TX_RESET",
+      "requirement": "REQ_TX_RESET",
+      "status": "open",
+      "text": "Reset/default observable state is known and mechanically checkable.",
+      "trigger": "async reset assert then synchronous deassert",
+      "guarantee": "idle, seq=0, counters cleared, CSR fields at reset defaults",
+      "observable": "busy flag, seq, counters, CSR reset values",
+      "oracle_projection": "behavior_model.tx.reset",
+      "contracts": [
+        "CONTRACT_TX_RESET"
+      ]
     }
   ],
   "contracts": [
     {
-      "id": "CONTRACT_MCTP_TX_ASSEMBLER_SIM_SCOREBOARD",
-      "missing": true
+      "id": "CONTRACT_TX_INTAKE",
+      "obligation": "OBL_TX_INTAKE",
+      "contract_type": "interface_protocol",
+      "status": "draft",
+      "variables": {
+        "input_valid": "source asserts a body beat is valid",
+        "input_ready": "DUT accepts a body beat",
+        "input_last": "final body beat marker",
+        "attribute_word": {
+          "dest_eid": null,
+          "msg_tag": null,
+          "to": null,
+          "msg_type": null
+        }
+      },
+      "assume": {
+        "env": "Source presents attribute_word on the first beat and input_last on the final beat."
+      },
+      "guarantee": {
+        "dut": "Every beat with input_valid and input_ready is captured; context latched from the first beat."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.intake"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.tx.intake_handshake"
+      ],
+      "scenario_refs": [
+        "SCN_TX_INTAKE"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_INTAKE"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show captured context equals behavior_model.tx.intake for every scenario row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_FRAGMENT",
+      "obligation": "OBL_TX_FRAGMENT",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "body_len": "captured message body length in bytes",
+        "mtu_cfg": "configured maximum packet payload in bytes",
+        "packet_count": "number of emitted packets",
+        "packet_payload_len": "per-packet payload length"
+      },
+      "assume": {
+        "env": "mtu_cfg is stable while a message is in flight; body_len > 0."
+      },
+      "guarantee": {
+        "dut": "packet_count == ceil(body_len/mtu_cfg) and each payload <= mtu_cfg with only the final packet short."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.fragment"
+      ],
+      "scenario_refs": [
+        "SCN_TX_FRAGMENT"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_FRAGMENT"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show packet count and payload lengths equal behavior_model.tx.fragment, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_SOM_EOM",
+      "obligation": "OBL_TX_SOM_EOM",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "packet_index": "index of packet within message",
+        "packet_count": "total packets in message",
+        "som_flag": "start-of-message bit",
+        "eom_flag": "end-of-message bit"
+      },
+      "assume": {
+        "env": "packet_count derives from the fragmentation contract."
+      },
+      "guarantee": {
+        "dut": "som_flag == (packet_index==0) and eom_flag == (packet_index==packet_count-1)."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.som_eom"
+      ],
+      "scenario_refs": [
+        "SCN_TX_SOM_EOM"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_SOM_EOM"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show SOM/EOM equal behavior_model.tx.som_eom for every packet, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_SEQNUM",
+      "obligation": "OBL_TX_SEQNUM",
+      "contract_type": "temporal",
+      "status": "draft",
+      "variables": {
+        "packet_seq_num": "2-bit packet sequence number",
+        "som_flag": "start-of-message bit",
+        "prev_seq": "previous packet sequence number in this message"
+      },
+      "assume": {
+        "env": "packets of one message are emitted in order."
+      },
+      "guarantee": {
+        "dut": "packet_seq_num == 0 if som_flag else (prev_seq + 1) mod 4."
+      },
+      "cycle_rule_refs": [
+        "cycle_rules.tx.seqnum"
+      ],
+      "scenario_refs": [
+        "SCN_TX_SEQNUM"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_SEQNUM"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show sequence numbers equal cycle_rules.tx.seqnum across a multi-packet message, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_HEADER",
+      "obligation": "OBL_TX_HEADER",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "header_version": "fixed header version constant",
+        "dest_eid": "caller-supplied destination EID",
+        "source_eid": "CSR-programmed source EID",
+        "to_bit": "caller-supplied tag owner bit",
+        "msg_tag": "caller-supplied message tag",
+        "header_bytes": "serialized header byte vector"
+      },
+      "assume": {
+        "env": "caller dest_eid/to/tag/msg_type stable for the message; source_eid CSR programmed before intake."
+      },
+      "guarantee": {
+        "dut": "header_bytes equal the DSP0236 layout of the composed fields and body bytes preserve input order."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.header"
+      ],
+      "scenario_refs": [
+        "SCN_TX_HEADER"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_HEADER"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show header byte vector and body order equal behavior_model.tx.header, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_SINGLEMSG",
+      "obligation": "OBL_TX_SINGLEMSG",
+      "contract_type": "protocol",
+      "status": "draft",
+      "variables": {
+        "busy_flag": "a message is in flight",
+        "input_ready": "DUT accepts a new message",
+        "eom_emitted": "in-flight message EOM packet completed"
+      },
+      "assume": {
+        "env": "source may offer a second message at any time."
+      },
+      "guarantee": {
+        "dut": "input_ready for a new message stays low until the cycle after eom_emitted; packets never interleave."
+      },
+      "cycle_rule_refs": [
+        "cycle_rules.tx.singlemsg"
+      ],
+      "behavior_refs": [
+        "behavior_model.tx.intake"
+      ],
+      "scenario_refs": [
+        "SCN_TX_SINGLEMSG"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_SINGLEMSG"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show no interleaving and intake gating equal cycle_rules.tx.singlemsg, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_ERR",
+      "obligation": "OBL_TX_ERR",
+      "contract_type": "error_negative",
+      "status": "draft",
+      "variables": {
+        "egress_ready": "egress sink accepts a beat",
+        "error_flag": "error condition indicator",
+        "error_counter": "cumulative error count",
+        "egress_valid": "DUT drives a valid egress beat"
+      },
+      "assume": {
+        "env": "egress_ready may deassert at any time; malformed inputs (underrun/oversize/zero-length) may occur."
+      },
+      "guarantee": {
+        "dut": "backpressure stalls with no byte lost; underrun/oversize/zero-length set error_flag and increment error_counter; no partial message is emitted."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.err"
+      ],
+      "scenario_refs": [
+        "SCN_TX_ERR_BACKPRESSURE",
+        "SCN_TX_ERR_UNDERRUN",
+        "SCN_TX_ERR_OVERSIZE",
+        "SCN_TX_ERR_ZEROLEN"
+      ],
+      "negative_scenario_refs": [
+        "SCN_TX_ERR_UNDERRUN",
+        "SCN_TX_ERR_OVERSIZE",
+        "SCN_TX_ERR_ZEROLEN"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_ERR"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show stall-without-loss and error flag/counter equal behavior_model.tx.err for each negative scenario, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_STATUS",
+      "obligation": "OBL_TX_STATUS",
+      "contract_type": "interrupt_event",
+      "status": "draft",
+      "variables": {
+        "done_irq": "per-message completion interrupt",
+        "error_irq": "error interrupt",
+        "sent_counter": "completed message count",
+        "dropped_counter": "dropped message count"
+      },
+      "assume": {
+        "env": "host reads/clears status via CSR."
+      },
+      "guarantee": {
+        "dut": "done_irq pulses on EOM emission, error_irq pulses on error, and sent/dropped counters track outcomes."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.status"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.tx.status_irq_timing"
+      ],
+      "scenario_refs": [
+        "SCN_TX_STATUS"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_STATUS"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show IRQ pulses and counter values equal behavior_model.tx.status, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
+    },
+    {
+      "id": "CONTRACT_TX_RESET",
+      "obligation": "OBL_TX_RESET",
+      "contract_type": "reset",
+      "status": "draft",
+      "variables": {
+        "reset_n": "active-low reset",
+        "busy_flag": "in-flight message indicator",
+        "packet_seq_num": "packet sequence number",
+        "error_counter": "error count"
+      },
+      "assume": {
+        "env": "reset asserted asynchronously and deasserted synchronously to the clock."
+      },
+      "guarantee": {
+        "dut": "after synchronous deassertion busy_flag=0, packet_seq_num=0, error_counter=0, CSR fields at reset defaults."
+      },
+      "behavior_refs": [
+        "behavior_model.tx.reset"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.tx.reset_release"
+      ],
+      "scenario_refs": [
+        "SCN_TX_RESET"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_TX_RESET"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show post-reset observable state equals behavior_model.tx.reset, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract"
     }
   ],
-  "requirements": [],
+  "requirements": [
+    {
+      "id": "REQ_TX_INTAKE",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_PRIMARY_INTENT"
+      ],
+      "decision_refs": [
+        "DT001_MSG_SOURCE_IF",
+        "DT009_SPEC_SUBSET"
+      ],
+      "status": "locked",
+      "requirement_type": "protocol",
+      "verification_method": [
+        "scoreboard",
+        "assertion"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall accept one outbound MCTP message on a streaming input bus where a last-flag marks the final body beat, accompanied by a sideband attribute word carrying destination EID, message tag, TO bit, and message type/IC; the message body is treated as opaque payload."
+    },
+    {
+      "id": "REQ_TX_FRAGMENT",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_PRIMARY_INTENT",
+        "CLAIM_TX_ASSEMBLY_INFERENCE"
+      ],
+      "decision_refs": [
+        "DT002_EGRESS_BINDING_MTU",
+        "DT003_FRAGMENTATION_POLICY"
+      ],
+      "status": "locked",
+      "requirement_type": "behavioral",
+      "verification_method": [
+        "scoreboard"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall fragment the accepted message body into a sequence of MCTP packets whose per-packet payload never exceeds the configured MTU; the final packet may be shorter than the MTU; a message that fits in one packet shall produce exactly one packet."
+    },
+    {
+      "id": "REQ_TX_SOM_EOM",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_ASSEMBLY_INFERENCE"
+      ],
+      "decision_refs": [
+        "DT003_FRAGMENTATION_POLICY",
+        "DT004_HEADER_FIELD_OWNERSHIP"
+      ],
+      "status": "locked",
+      "requirement_type": "behavioral",
+      "verification_method": [
+        "scoreboard",
+        "assertion"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall set SOM=1 on the first packet of a message and EOM=1 on the last packet; a single-packet message shall have both SOM=1 and EOM=1; all other packets shall have SOM=0 and EOM=0."
+    },
+    {
+      "id": "REQ_TX_SEQNUM",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_ASSEMBLY_INFERENCE"
+      ],
+      "decision_refs": [
+        "DT004_HEADER_FIELD_OWNERSHIP"
+      ],
+      "status": "locked",
+      "requirement_type": "temporal",
+      "verification_method": [
+        "scoreboard",
+        "assertion"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall set the 2-bit packet sequence number to 0 on the SOM packet and increment it modulo 4 on each subsequent packet of the same message."
+    },
+    {
+      "id": "REQ_TX_HEADER",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_ASSEMBLY_INFERENCE"
+      ],
+      "decision_refs": [
+        "DT004_HEADER_FIELD_OWNERSHIP",
+        "DT005_TAG_POLICY",
+        "DT009_SPEC_SUBSET",
+        "D003_BYTE_ORDERING"
+      ],
+      "status": "locked",
+      "requirement_type": "behavioral",
+      "verification_method": [
+        "scoreboard"
+      ],
+      "ambiguity_status": "clear",
+      "text": "Each emitted packet shall carry a transport header with a fixed header version, destination EID, TO, and message tag passed through from the caller, source EID from a CSR, and IP-computed SOM/EOM/sequence number; the header shall be emitted in DSP0236-defined byte layout and the body bytes in the order received."
+    },
+    {
+      "id": "REQ_TX_SINGLEMSG",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_PRIMARY_INTENT"
+      ],
+      "decision_refs": [
+        "DT006_MESSAGE_INTERLEAVE"
+      ],
+      "status": "locked",
+      "requirement_type": "protocol",
+      "verification_method": [
+        "scoreboard",
+        "assertion"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall process one message at a time; it shall accept a new message only after the current message has fully emitted its EOM packet, with no interleaving of packets from different messages."
+    },
+    {
+      "id": "REQ_TX_ERR",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_PRIMARY_INTENT"
+      ],
+      "decision_refs": [
+        "DT003_FRAGMENTATION_POLICY",
+        "DT007_ERROR_ABORT_POLICY"
+      ],
+      "status": "locked",
+      "requirement_type": "error_negative",
+      "verification_method": [
+        "scoreboard",
+        "assertion"
+      ],
+      "ambiguity_status": "clear",
+      "text": "On egress backpressure the IP shall stall emission without dropping data; on source underrun (premature termination), oversize message, or a zero-length message it shall raise the corresponding status flag and increment the error counter; the IP shall never emit a partial message to egress."
+    },
+    {
+      "id": "REQ_TX_STATUS",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_PRIMARY_INTENT"
+      ],
+      "decision_refs": [
+        "DT008_STATUS_IRQ_CSR"
+      ],
+      "status": "locked",
+      "requirement_type": "interrupt_event",
+      "verification_method": [
+        "scoreboard",
+        "assertion"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall raise a per-message done interrupt when a message's EOM packet has been emitted, raise an error interrupt on any error condition, and maintain sent-message and dropped-message counters, all accessible over an APB-like CSR interface."
+    },
+    {
+      "id": "REQ_TX_RESET",
+      "source": "req/source_claims.yaml",
+      "source_refs": [
+        "req/source_claims.yaml",
+        "ontology/decision_matrix.yaml"
+      ],
+      "source_claim_refs": [
+        "CLAIM_TX_RESET_PLACEHOLDER"
+      ],
+      "decision_refs": [
+        "DEC_MCTP_TX_ASSEMBLER_RESET_BOUNDARY"
+      ],
+      "status": "locked",
+      "requirement_type": "reset",
+      "verification_method": [
+        "scoreboard"
+      ],
+      "ambiguity_status": "clear",
+      "text": "The IP shall use an asynchronously-asserted, synchronously-deasserted active-low reset; while reset is asserted and immediately after deassertion the IP shall be idle with no in-flight message, packet sequence number 0, error counters cleared, and all CSR fields at their defined reset values."
+    }
+  ],
   "execution_policy": {
     "draft_allowed": true,
     "pass_allowed": true,
