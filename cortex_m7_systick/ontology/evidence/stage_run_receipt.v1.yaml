@@ -1,0 +1,15 @@
+schema: evidence_schema.v1
+id: stage_run_receipt.v1
+artifact: ontology/evidence/stage_runs/<stage>.json
+format: json
+required_fields:
+  - stage
+  - owner
+  - status
+  - command
+  - actor
+  - started_at
+  - completed_at
+  - input_fingerprints
+  - output_fingerprints
+freshness_rule: every fingerprint path must exist on disk and sha256 must match current file content

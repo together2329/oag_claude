@@ -1,0 +1,13 @@
+schema: action_schema.v1
+id: oag_decision_receipt.v1
+artifact: ontology/validations/<decision_id>.json
+format: json
+required_fields:
+  - id
+  - action
+  - allowed
+  - reason
+  - actor
+  - evidence
+  - ledger_event
+rule: completion decisions must be recorded after oag.check/oag.inspect and hash-chained into knowledge/ledger.jsonl

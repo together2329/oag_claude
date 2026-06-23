@@ -1,0 +1,12 @@
+schema: oag_structure_namespace.v1
+ip: cortex_m7_systick
+clock_domains: []
+reset_domains: []
+signals: []
+interfaces: []
+registers: []
+state: []
+derived_signals: []
+notes:
+  - Structure is the single namespace for ports, registers, state, events, and derived signals.
+  - Contracts and modules reference structure ids instead of redeclaring names and widths.

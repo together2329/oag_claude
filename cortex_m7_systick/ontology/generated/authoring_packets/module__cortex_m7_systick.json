@@ -1,0 +1,705 @@
+{
+  "schema_version": "oag_authoring_packet.v1",
+  "generated_by": "oag.compile",
+  "generated_at": "2026-06-23T17:39:51Z",
+  "ip": "cortex_m7_systick",
+  "module": {
+    "id": "cortex_m7_systick",
+    "name": "cortex_m7_systick",
+    "role": "top",
+    "ownership": "current_ip",
+    "file": "rtl/cortex_m7_systick.v",
+    "edit_policy": "editable"
+  },
+  "structure_profile": "small_leaf_single_file",
+  "source_refs": [
+    "ontology/requirements.yaml",
+    "ontology/obligations.yaml",
+    "ontology/contracts.yaml"
+  ],
+  "structure_refs": [],
+  "obligations": [
+    {
+      "id": "OBL_SYST_REGMAP",
+      "requirement_refs": [
+        "REQ_SYST_REGMAP",
+        "REQ_SYST_ACCESS",
+        "REQ_SYST_CSR_FIELDS",
+        "REQ_SYST_RESERVED_BITS",
+        "REQ_SYST_CALIB_LAYOUT"
+      ],
+      "status": "open",
+      "text": "Register map, word access, CSR/CALIB field layout, and reserved-bit policy match DDI0403 B3.3.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "CSR/RVR/CVR are RW and CALIB is RO at 0xE000E010/14/18/1C; CSR fields and CALIB fields sit at their architectural bit positions; reserved bits are RAZ/WI.",
+      "observable": "EVT_SYST_REGMAP scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.regmap",
+      "contracts": [
+        "CONTRACT_SYST_REGMAP"
+      ]
+    },
+    {
+      "id": "OBL_SYST_COUNT",
+      "requirement_refs": [
+        "REQ_SYST_ENABLE",
+        "REQ_SYST_COUNTDOWN"
+      ],
+      "status": "open",
+      "text": "Enabled 24-bit counter decrements once per processor clock and wraps via RVR reload.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "While ENABLE=1 the counter decrements by 1 each clock; on reaching 0 it reloads RVR on the next clock; ENABLE=0 freezes counting.",
+      "observable": "EVT_SYST_COUNT scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.count",
+      "contracts": [
+        "CONTRACT_SYST_COUNT"
+      ]
+    },
+    {
+      "id": "OBL_SYST_PERIOD",
+      "requirement_refs": [
+        "REQ_SYST_PERIOD",
+        "REQ_SYST_RELOAD_LATENCY"
+      ],
+      "status": "open",
+      "text": "Wrap period equals RELOAD+1 clocks with value 0 visible for exactly one cycle.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "Consecutive 1->0 wrap events are exactly (RELOAD+1) clocks apart; CURRENT=0 is observable for exactly one cycle before reload.",
+      "observable": "EVT_SYST_PERIOD scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "cycle_rules.syst.period",
+      "contracts": [
+        "CONTRACT_SYST_PERIOD"
+      ]
+    },
+    {
+      "id": "OBL_SYST_RELOAD",
+      "requirement_refs": [
+        "REQ_SYST_RELOAD",
+        "REQ_SYST_RVR_STAGING"
+      ],
+      "status": "open",
+      "text": "RVR is a staging reload value that applies at the next wrap, not immediately.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "Writing SYST_RVR updates RELOAD without reloading CVR; the new value loads only at the next wrap.",
+      "observable": "EVT_SYST_RELOAD scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.reload",
+      "contracts": [
+        "CONTRACT_SYST_RELOAD"
+      ]
+    },
+    {
+      "id": "OBL_SYST_RELOAD_ZERO",
+      "requirement_refs": [
+        "REQ_SYST_RELOAD_ZERO"
+      ],
+      "status": "open",
+      "text": "RELOAD=0 is legal and inert: counter holds 0 and produces no further events.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "After the next wrap with RELOAD=0 the counter loads 0 and holds 0, producing no 1->0 event; it never wraps to 0xFFFFFF.",
+      "observable": "EVT_SYST_RELOAD_ZERO scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.reload_zero",
+      "contracts": [
+        "CONTRACT_SYST_RELOAD_ZERO"
+      ]
+    },
+    {
+      "id": "OBL_SYST_CVR",
+      "requirement_refs": [
+        "REQ_SYST_CVR_READ",
+        "REQ_SYST_CVR_WRITE",
+        "REQ_SYST_CVR_RELOAD_NEXT"
+      ],
+      "status": "open",
+      "text": "CVR read returns live count; any CVR write clears CVR and COUNTFLAG without an exception, reloading next clock.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "A CVR read returns the live count; any CVR write clears CURRENT and COUNTFLAG, ignores data, pends no exception, and reloads RVR on the next enabled clock.",
+      "observable": "EVT_SYST_CVR scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.cvr",
+      "contracts": [
+        "CONTRACT_SYST_CVR"
+      ]
+    },
+    {
+      "id": "OBL_SYST_COUNTFLAG",
+      "requirement_refs": [
+        "REQ_SYST_COUNTFLAG_SET",
+        "REQ_SYST_COUNTFLAG_CLEAR",
+        "REQ_SYST_DEBUG_READ"
+      ],
+      "status": "open",
+      "text": "COUNTFLAG sets on 1->0 and clears only on a functional CSR read or any CVR write.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "COUNTFLAG[16] sets on the 1->0 transition; it clears on a functional SYST_CSR read or any SYST_CVR write; CSR and RVR writes do not clear it.",
+      "observable": "EVT_SYST_COUNTFLAG scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.countflag",
+      "contracts": [
+        "CONTRACT_SYST_COUNTFLAG"
+      ]
+    },
+    {
+      "id": "OBL_SYST_TICKINT",
+      "requirement_refs": [
+        "REQ_SYST_TICKINT",
+        "REQ_SYST_EXCEPTION"
+      ],
+      "status": "open",
+      "text": "A qualified set-pending pulse is emitted on a natural 1->0 wrap when TICKINT=1, never for a CVR write.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "The IP asserts a single-cycle tick set-pending request when a natural 1->0 transition occurs AND TICKINT=1; it never asserts it for a CVR-write-to-zero or when TICKINT=0.",
+      "observable": "EVT_SYST_TICKINT scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.tickint",
+      "contracts": [
+        "CONTRACT_SYST_TICKINT"
+      ]
+    },
+    {
+      "id": "OBL_SYST_CLKSOURCE",
+      "requirement_refs": [
+        "REQ_SYST_CLKSOURCE",
+        "REQ_SYST_NOREF_COUPLING"
+      ],
+      "status": "open",
+      "text": "With NOREF=1 (v1), CLKSOURCE is forced to processor clock and unclearable.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "When NOREF=1, SYST_CSR.CLKSOURCE reads as 1 and writes of 0 are ignored, keeping the processor clock as the only tick source.",
+      "observable": "EVT_SYST_CLKSOURCE scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.clksource",
+      "contracts": [
+        "CONTRACT_SYST_CLKSOURCE"
+      ]
+    },
+    {
+      "id": "OBL_SYST_RESET",
+      "requirement_refs": [
+        "REQ_SYST_RESET",
+        "REQ_SYST_INIT_SEQ"
+      ],
+      "status": "open",
+      "text": "After async-assert/sync-deassert reset SYST_CSR=0x00000000 and the init sequence starts counting from RELOAD.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "After reset deassertion SYST_CSR=0x00000000 (ENABLE/TICKINT/COUNTFLAG=0, CLKSOURCE=1 under NOREF=1); the write-RVR/write-CVR/set-ENABLE sequence makes counting start from RELOAD.",
+      "observable": "EVT_SYST_RESET scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.reset",
+      "contracts": [
+        "CONTRACT_SYST_RESET"
+      ]
+    },
+    {
+      "id": "OBL_SYST_DISABLE",
+      "requirement_refs": [
+        "REQ_SYST_DISABLE_FREEZE"
+      ],
+      "status": "open",
+      "text": "Disable freezes CVR and retains COUNTFLAG with no spurious reload on re-enable.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "Clearing ENABLE freezes CURRENT and leaves COUNTFLAG unchanged; re-enabling resumes from the held value with a reload only on wrap-through-0 or after a CVR write.",
+      "observable": "EVT_SYST_DISABLE scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.disable",
+      "contracts": [
+        "CONTRACT_SYST_DISABLE"
+      ]
+    },
+    {
+      "id": "OBL_SYST_BOUNDARY",
+      "requirement_refs": [
+        "REQ_SYST_BOUNDARY",
+        "REQ_SYST_DEBUG_HALT"
+      ],
+      "status": "open",
+      "text": "Only the qualified tick request crosses the boundary; SCB pending/priority and debug-halt are out of scope.",
+      "trigger": "a SysTick register access, clock edge, or reset event in this group's scope",
+      "guarantee": "The IP's only exception-related output is the qualified tick request; it drives no ICSR pending/priority/vector state, and the counter has no debug-halt qualifier in v1 (explicit environment assumption).",
+      "observable": "EVT_SYST_BOUNDARY scoreboard rows over CSR/CVR reads, COUNTFLAG, counter, and tick request",
+      "oracle_projection": "behavior_model.syst.boundary",
+      "contracts": [
+        "CONTRACT_SYST_BOUNDARY"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "CONTRACT_SYST_REGMAP",
+      "obligation": "OBL_SYST_REGMAP",
+      "contract_type": "interface_protocol",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "Host issues 32-bit word-aligned APB-lite accesses to the SysTick window."
+      },
+      "guarantee": {
+        "dut": "CSR/RVR/CVR are RW and CALIB is RO at 0xE000E010/14/18/1C; CSR fields and CALIB fields sit at their architectural bit positions; reserved bits are RAZ/WI."
+      },
+      "scenario_refs": [
+        "SCN_SYST_REGMAP"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_REGMAP"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.regmap for every SCN_SYST_REGMAP row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.regmap"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.syst.access"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_COUNT",
+      "obligation": "OBL_SYST_COUNT",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "ENABLE and RELOAD are programmed; processor clock runs."
+      },
+      "guarantee": {
+        "dut": "While ENABLE=1 the counter decrements by 1 each clock; on reaching 0 it reloads RVR on the next clock; ENABLE=0 freezes counting."
+      },
+      "scenario_refs": [
+        "SCN_SYST_COUNT"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_COUNT"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.count for every SCN_SYST_COUNT row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.count"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_PERIOD",
+      "obligation": "OBL_SYST_PERIOD",
+      "contract_type": "temporal",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "ENABLE=1 and RELOAD=N-1 with N>=1, stable."
+      },
+      "guarantee": {
+        "dut": "Consecutive 1->0 wrap events are exactly (RELOAD+1) clocks apart; CURRENT=0 is observable for exactly one cycle before reload."
+      },
+      "scenario_refs": [
+        "SCN_SYST_PERIOD"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_PERIOD"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals cycle_rules.syst.period for every SCN_SYST_PERIOD row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "cycle_rule_refs": [
+        "cycle_rules.syst.period"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_RELOAD",
+      "obligation": "OBL_SYST_RELOAD",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "Counter is running with a prior RELOAD."
+      },
+      "guarantee": {
+        "dut": "Writing SYST_RVR updates RELOAD without reloading CVR; the new value loads only at the next wrap."
+      },
+      "scenario_refs": [
+        "SCN_SYST_RELOAD"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_RELOAD"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.reload for every SCN_SYST_RELOAD row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.reload"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_RELOAD_ZERO",
+      "obligation": "OBL_SYST_RELOAD_ZERO",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "RELOAD is written to 0."
+      },
+      "guarantee": {
+        "dut": "After the next wrap with RELOAD=0 the counter loads 0 and holds 0, producing no 1->0 event; it never wraps to 0xFFFFFF."
+      },
+      "scenario_refs": [
+        "SCN_SYST_RELOAD_ZERO",
+        "SCN_SYST_RELOAD_ZERO"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_RELOAD_ZERO"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.reload_zero for every SCN_SYST_RELOAD_ZERO row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.reload_zero"
+      ],
+      "negative_scenario_refs": [
+        "SCN_SYST_RELOAD_ZERO"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_CVR",
+      "obligation": "OBL_SYST_CVR",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "Host may read or write SYST_CVR at any time."
+      },
+      "guarantee": {
+        "dut": "A CVR read returns the live count; any CVR write clears CURRENT and COUNTFLAG, ignores data, pends no exception, and reloads RVR on the next enabled clock."
+      },
+      "scenario_refs": [
+        "SCN_SYST_CVR",
+        "SCN_SYST_CVR_WRITE_NOINT"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_CVR"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.cvr for every SCN_SYST_CVR row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.cvr"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.syst.cvr_reload"
+      ],
+      "negative_scenario_refs": [
+        "SCN_SYST_CVR_WRITE_NOINT"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_COUNTFLAG",
+      "obligation": "OBL_SYST_COUNTFLAG",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "v1 has no debug interface: all CSR reads are functional reads."
+      },
+      "guarantee": {
+        "dut": "COUNTFLAG[16] sets on the 1->0 transition; it clears on a functional SYST_CSR read or any SYST_CVR write; CSR and RVR writes do not clear it."
+      },
+      "scenario_refs": [
+        "SCN_SYST_COUNTFLAG"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_COUNTFLAG"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.countflag for every SCN_SYST_COUNTFLAG row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.countflag"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_TICKINT",
+      "obligation": "OBL_SYST_TICKINT",
+      "contract_type": "interrupt_event",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "TICKINT programmed; SCB consumes the request and owns the pending latch."
+      },
+      "guarantee": {
+        "dut": "The IP asserts a single-cycle tick set-pending request when a natural 1->0 transition occurs AND TICKINT=1; it never asserts it for a CVR-write-to-zero or when TICKINT=0."
+      },
+      "scenario_refs": [
+        "SCN_SYST_TICKINT",
+        "SCN_SYST_TICKINT_OFF"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_TICKINT"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.tickint for every SCN_SYST_TICKINT row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.tickint"
+      ],
+      "negative_scenario_refs": [
+        "SCN_SYST_TICKINT_OFF"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.syst.tick_timing"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_CLKSOURCE",
+      "obligation": "OBL_SYST_CLKSOURCE",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "v1 is single-clock: NOREF=1."
+      },
+      "guarantee": {
+        "dut": "When NOREF=1, SYST_CSR.CLKSOURCE reads as 1 and writes of 0 are ignored, keeping the processor clock as the only tick source."
+      },
+      "scenario_refs": [
+        "SCN_SYST_CLKSOURCE",
+        "SCN_SYST_CLKSOURCE_FORCED"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_CLKSOURCE"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.clksource for every SCN_SYST_CLKSOURCE row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.clksource"
+      ],
+      "negative_scenario_refs": [
+        "SCN_SYST_CLKSOURCE_FORCED"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_RESET",
+      "obligation": "OBL_SYST_RESET",
+      "contract_type": "reset",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "Reset is asserted asynchronously and deasserted synchronously to the processor clock."
+      },
+      "guarantee": {
+        "dut": "After reset deassertion SYST_CSR=0x00000000 (ENABLE/TICKINT/COUNTFLAG=0, CLKSOURCE=1 under NOREF=1); the write-RVR/write-CVR/set-ENABLE sequence makes counting start from RELOAD."
+      },
+      "scenario_refs": [
+        "SCN_SYST_RESET"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_RESET"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.reset for every SCN_SYST_RESET row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.reset"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.syst.reset_release"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_DISABLE",
+      "obligation": "OBL_SYST_DISABLE",
+      "contract_type": "behavioral",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "Counter holds a non-zero value when ENABLE is cleared."
+      },
+      "guarantee": {
+        "dut": "Clearing ENABLE freezes CURRENT and leaves COUNTFLAG unchanged; re-enabling resumes from the held value with a reload only on wrap-through-0 or after a CVR write."
+      },
+      "scenario_refs": [
+        "SCN_SYST_DISABLE",
+        "SCN_SYST_DISABLE_REENABLE"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_DISABLE"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.disable for every SCN_SYST_DISABLE row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.disable"
+      ],
+      "negative_scenario_refs": [
+        "SCN_SYST_DISABLE_REENABLE"
+      ]
+    },
+    {
+      "id": "CONTRACT_SYST_BOUNDARY",
+      "obligation": "OBL_SYST_BOUNDARY",
+      "contract_type": "interface_protocol",
+      "status": "draft",
+      "variables": {
+        "SYST_CSR": "control/status (ENABLE/TICKINT/CLKSOURCE/COUNTFLAG)",
+        "SYST_RVR": "24-bit reload value",
+        "SYST_CVR": "24-bit current count",
+        "SYST_CALIB": "RO calibration tie-off",
+        "tick_irq": "qualified SysTick set-pending request"
+      },
+      "assume": {
+        "env": "SCB/NVIC own the pending latch, priority, and vectoring; v1 has no debug interface."
+      },
+      "guarantee": {
+        "dut": "The IP's only exception-related output is the qualified tick request; it drives no ICSR pending/priority/vector state, and the counter has no debug-halt qualifier in v1 (explicit environment assumption)."
+      },
+      "scenario_refs": [
+        "SCN_SYST_BOUNDARY"
+      ],
+      "scoreboard_row_refs": [
+        "EVT_SYST_BOUNDARY"
+      ],
+      "pass_condition": "scoreboard_rows.v1 rows show observed equals behavior_model.syst.boundary for every SCN_SYST_BOUNDARY row, zero failed rows",
+      "evidence_kinds": [
+        "scoreboard",
+        "assertion"
+      ],
+      "evidence_schemas": [
+        "scoreboard_rows.v1"
+      ],
+      "implementation_policy": "TB language and simulator are not fixed by this contract",
+      "behavior_refs": [
+        "behavior_model.syst.boundary"
+      ],
+      "cycle_rule_refs": [
+        "cycle_rules.syst.boundary"
+      ]
+    }
+  ],
+  "requirements": [],
+  "execution_policy": {
+    "draft_allowed": true,
+    "pass_allowed": true,
+    "signoff_allowed": false,
+    "notes": "Signoff requires oag.check and oag.decide; authoring packets are work inputs, not closure decisions."
+  }
+}

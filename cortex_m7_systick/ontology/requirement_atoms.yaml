@@ -1,0 +1,1062 @@
+schema_version: oag_requirement_atoms.v1
+ip: cortex_m7_systick
+policy:
+  status: draft
+  purpose: Semantic decomposition layer between requirement statements and obligations.
+  lock_gate: complete requirement atoms before post-lock RTL, TB, or closure claims.
+requirement_atoms:
+- id: ATOM_ENABLE_COUNTDOWN
+  source_requirement_id: REQ_SYST_ENABLE
+  status: draft
+  normalized_text: Enabled counter decrements once per selected clock.
+  pattern:
+    trigger: a rising selected-clock edge occurs
+    condition: SYST_CSR.ENABLE=1 and current count > 0
+    response: the 24-bit counter (SYST_CVR.CURRENT) decrements by 1
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CVR.CURRENT[23:0]; no change when ENABLE=0
+  phenomena:
+    monitored_variables: &id001
+    - selected_clock_edge
+    - ENABLE
+    controlled_variables:
+    - SYST_CVR.CURRENT
+    dut_inputs: *id001
+    dut_outputs:
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - SYST_CVR.CURRENT
+    observable_outputs:
+    - SYST_CVR.CURRENT
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_WRAP_RELOAD
+  source_requirement_id: REQ_SYST_COUNTDOWN
+  status: draft
+  normalized_text: On reaching zero, reload from RVR on the next clock.
+  pattern:
+    trigger: the counter transitions from 1 to 0 on a selected-clock edge while enabled
+    condition: SYST_CSR.ENABLE=1
+    response: on the next timer clock SYST_CVR.CURRENT is loaded with SYST_RVR.RELOAD and counting resumes
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CVR.CURRENT; value 0 visible for exactly one cycle before reload
+  phenomena:
+    monitored_variables: &id002
+    - 1_to_0_transition
+    controlled_variables:
+    - SYST_RVR.RELOAD
+    - SYST_CVR.CURRENT
+    dut_inputs: *id002
+    dut_outputs:
+    - SYST_RVR.RELOAD
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - SYST_RVR.RELOAD
+    - SYST_CVR.CURRENT
+    observable_outputs:
+    - SYST_RVR.RELOAD
+    - SYST_CVR.CURRENT
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_PERIOD
+  source_requirement_id: REQ_SYST_PERIOD
+  status: draft
+  normalized_text: Period equals RELOAD+1 selected clocks.
+  pattern:
+    trigger: the counter runs continuously with a fixed RELOAD=N-1
+    condition: SYST_CSR.ENABLE=1 and RELOAD>=1
+    response: a 1->0 wrap event is produced every N selected-clock cycles
+    timing: timing = (RELOAD+1) clocks between consecutive wrap events; measured at the 1->0 transition
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - timing = (RELOAD+1) clocks between consecutive wrap events; measured at the 1->0 transition
+  phenomena:
+    monitored_variables: &id003
+    - selected_clock
+    controlled_variables:
+    - SYST_RVR.RELOAD
+    - wrap_event_interval
+    dut_inputs: *id003
+    dut_outputs:
+    - wrap_event_interval
+    - SYST_RVR.RELOAD
+    controlled_state:
+    - SYST_RVR.RELOAD
+    observable_outputs:
+    - wrap_event_interval
+    - SYST_RVR.RELOAD
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_RELOAD_LATENCY
+  source_requirement_id: REQ_SYST_RELOAD_LATENCY
+  status: draft
+  normalized_text: Zero is visible one cycle; reload on next clock.
+  pattern:
+    trigger: the counter reaches 0
+    condition: SYST_CSR.ENABLE=1
+    response: SYST_CVR.CURRENT reads 0 for one cycle, then equals SYST_RVR.RELOAD on the next timer clock
+    timing: timing = exactly one cycle of 0 visibility before reload
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - timing = exactly one cycle of 0 visibility before reload
+  phenomena:
+    monitored_variables: &id004
+    - zero_visibility_cycle
+    controlled_variables:
+    - reload_next_clock
+    - SYST_CVR.CURRENT
+    dut_inputs: *id004
+    dut_outputs:
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - reload_next_clock
+    - SYST_CVR.CURRENT
+    observable_outputs:
+    - reload_next_clock
+    - SYST_CVR.CURRENT
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_RELOAD_ZERO
+  source_requirement_id: REQ_SYST_RELOAD_ZERO
+  status: draft
+  normalized_text: RELOAD=0 is legal and inert.
+  pattern:
+    trigger: the counter wraps while SYST_RVR.RELOAD=0
+    condition: SYST_RVR.RELOAD=0
+    response: SYST_CVR.CURRENT loads 0 and holds 0; no 1->0 event and no exception thereafter
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CVR.CURRENT held at 0; counter does not wrap to 0xFFFFFF; independent of ENABLE
+  phenomena:
+    monitored_variables: &id005 []
+    controlled_variables:
+    - RELOAD_zero
+    - held_zero
+    - SYST_CVR.CURRENT held 0
+    - no_event
+    dut_inputs: *id005
+    dut_outputs:
+    - no_event
+    - SYST_CVR.CURRENT held 0
+    controlled_state:
+    - RELOAD_zero
+    - held_zero
+    - SYST_CVR.CURRENT held 0
+    observable_outputs:
+    - no_event
+    - RELOAD_zero
+    - held_zero
+    - SYST_CVR.CURRENT held 0
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CVR_WRITE_CLEAR
+  source_requirement_id: REQ_SYST_CVR_WRITE
+  status: draft
+  normalized_text: Any CVR write clears CVR and COUNTFLAG, no exception.
+  pattern:
+    trigger: a software write to SYST_CVR occurs (any data)
+    condition: always (independent of ENABLE per AMB_CVR_WRITE_WHEN_DISABLED default)
+    response: SYST_CVR.CURRENT and SYST_CSR.COUNTFLAG are cleared to 0, written data ignored, and the SysTick
+      exception is NOT pended
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CVR.CURRENT, SYST_CSR.COUNTFLAG; output = no exception request
+  phenomena:
+    monitored_variables: &id006
+    - CVR_write
+    controlled_variables:
+    - SYST_CVR.CURRENT
+    - SYST_CSR.COUNTFLAG
+    - COUNTFLAG; output no exception
+    - no_exception
+    - no exception
+    dut_inputs: *id006
+    dut_outputs:
+    - no_exception
+    - no exception
+    - SYST_CVR.CURRENT
+    - SYST_CSR.COUNTFLAG
+    controlled_state:
+    - SYST_CVR.CURRENT
+    - SYST_CSR.COUNTFLAG
+    - COUNTFLAG; output no exception
+    observable_outputs:
+    - no_exception
+    - no exception
+    - SYST_CVR.CURRENT
+    - SYST_CSR.COUNTFLAG
+    - COUNTFLAG; output no exception
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CVR_RELOAD_NEXT
+  source_requirement_id: REQ_SYST_CVR_RELOAD_NEXT
+  status: draft
+  normalized_text: After CVR clear, read returns 0 then RVR on next clock.
+  pattern:
+    trigger: a CVR-clearing write occurs while enabled
+    condition: SYST_CSR.ENABLE=1
+    response: a read before the next timer clock returns 0; SYST_CVR.CURRENT equals SYST_RVR.RELOAD at the
+      next enabled timer clock
+    timing: timing = 0 same-cycle, RVR value at next clock
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - timing = 0 same-cycle, RVR value at next clock
+  phenomena:
+    monitored_variables: &id007
+    - CVR_clear
+    controlled_variables:
+    - next_clock_reload
+    - SYST_CVR.CURRENT
+    dut_inputs: *id007
+    dut_outputs:
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - next_clock_reload
+    - SYST_CVR.CURRENT
+    observable_outputs:
+    - next_clock_reload
+    - SYST_CVR.CURRENT
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_COUNTFLAG_SET
+  source_requirement_id: REQ_SYST_COUNTFLAG_SET
+  status: draft
+  normalized_text: COUNTFLAG sets on 1->0 transition.
+  pattern:
+    trigger: the counter transitions from 1 to 0
+    condition: always (count-driven)
+    response: SYST_CSR.COUNTFLAG is set to 1
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CSR.COUNTFLAG[16]; set independent of TICKINT
+  phenomena:
+    monitored_variables: &id008
+    - 1_to_0_transition
+    controlled_variables:
+    - SYST_CSR.COUNTFLAG
+    dut_inputs: *id008
+    dut_outputs:
+    - SYST_CSR.COUNTFLAG
+    controlled_state:
+    - SYST_CSR.COUNTFLAG
+    observable_outputs:
+    - SYST_CSR.COUNTFLAG
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_COUNTFLAG_CLEAR
+  source_requirement_id: REQ_SYST_COUNTFLAG_CLEAR
+  status: draft
+  normalized_text: COUNTFLAG clears on CSR read or CVR write only.
+  pattern:
+    trigger: a software functional read of SYST_CSR occurs, or any write to SYST_CVR occurs
+    condition: the access is a functional (non-debug) read or a CVR write
+    response: SYST_CSR.COUNTFLAG is cleared to 0
+    timing: read data is valid combinationally in the same access cycle (no wait states).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CSR.COUNTFLAG; NOT cleared by SYST_CSR writes or SYST_RVR writes
+  phenomena:
+    monitored_variables: &id009
+    - CSR_read
+    - CVR_write
+    controlled_variables:
+    - SYST_CSR.COUNTFLAG
+    dut_inputs: *id009
+    dut_outputs:
+    - SYST_CSR.COUNTFLAG
+    controlled_state:
+    - SYST_CSR.COUNTFLAG
+    observable_outputs:
+    - SYST_CSR.COUNTFLAG
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_DEBUG_READ_NOCLEAR
+  source_requirement_id: REQ_SYST_DEBUG_READ
+  status: draft
+  normalized_text: Debug reads do not clear COUNTFLAG.
+  pattern:
+    trigger: a debugger (non-functional) read of SYST_CSR occurs
+    condition: the access is qualified as a debug read
+    response: SYST_CSR.COUNTFLAG retains its value (not cleared)
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CSR.COUNTFLAG unchanged; requires debug-access qualifier
+  phenomena:
+    monitored_variables: &id010
+    - debug_read
+    controlled_variables:
+    - SYST_CSR.COUNTFLAG
+    - SYST_CSR.COUNTFLAG unchanged
+    dut_inputs: *id010
+    dut_outputs:
+    - SYST_CSR.COUNTFLAG
+    - SYST_CSR.COUNTFLAG unchanged
+    controlled_state:
+    - SYST_CSR.COUNTFLAG
+    - SYST_CSR.COUNTFLAG unchanged
+    observable_outputs:
+    - SYST_CSR.COUNTFLAG
+    - SYST_CSR.COUNTFLAG unchanged
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_TICKINT_PEND
+  source_requirement_id: REQ_SYST_TICKINT
+  status: draft
+  normalized_text: Qualified wrap pends the exception when TICKINT=1.
+  pattern:
+    trigger: the counter transitions from 1 to 0
+    condition: SYST_CSR.TICKINT=1
+    response: a SysTick exception set-pending request is asserted
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - output = tick interrupt request; not asserted when TICKINT=0 or for a CVR-write-to-zero
+  phenomena:
+    monitored_variables: &id011
+    - 1_to_0_transition
+    - TICKINT
+    controlled_variables:
+    - exception_request
+    - = tick interrupt request
+    dut_inputs: *id011
+    dut_outputs:
+    - exception_request
+    - = tick interrupt request
+    controlled_state: []
+    observable_outputs:
+    - exception_request
+    - = tick interrupt request
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_EXC_REQUEST
+  source_requirement_id: REQ_SYST_EXCEPTION
+  status: draft
+  normalized_text: Tick request is qualified by natural wrap AND TICKINT, excluding CVR write.
+  pattern:
+    trigger: a counter 1->0 transition occurs
+    condition: SYST_CSR.TICKINT=1 and the transition is a natural count-down (not a CVR write to zero)
+    response: the IP asserts the SysTick tick interrupt request output (per chosen pulse/level style)
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - output = qualified tick request crossing the IP boundary; SCB owns the pending latch
+  phenomena:
+    monitored_variables: &id012
+    - natural_wrap
+    - TICKINT
+    controlled_variables:
+    - tick_request_output
+    - = qualified tick request
+    dut_inputs: *id012
+    dut_outputs:
+    - tick_request_output
+    - = qualified tick request
+    controlled_state: []
+    observable_outputs:
+    - tick_request_output
+    - = qualified tick request
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CLKSOURCE_FORCED
+  source_requirement_id: REQ_SYST_NOREF_COUPLING
+  status: draft
+  normalized_text: NOREF=1 forces CLKSOURCE=1 unclearable.
+  pattern:
+    trigger: software writes 0 to SYST_CSR.CLKSOURCE
+    condition: SYST_CALIB.NOREF=1
+    response: SYST_CSR.CLKSOURCE remains 1 (write ignored) and reads as 1
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CSR.CLKSOURCE forced to 1
+  phenomena:
+    monitored_variables: &id013
+    - NOREF
+    - CLKSOURCE
+    - write_ignored
+    controlled_variables:
+    - SYST_CSR.CLKSOURCE
+    dut_inputs: *id013
+    dut_outputs:
+    - SYST_CSR.CLKSOURCE
+    controlled_state:
+    - SYST_CSR.CLKSOURCE
+    observable_outputs:
+    - SYST_CSR.CLKSOURCE
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_DISABLE_FREEZE
+  source_requirement_id: REQ_SYST_DISABLE_FREEZE
+  status: draft
+  normalized_text: Disable freezes CVR and retains COUNTFLAG.
+  pattern:
+    trigger: software clears SYST_CSR.ENABLE to 0
+    condition: counter currently holds a non-zero value
+    response: SYST_CVR.CURRENT is retained (frozen) and SYST_CSR.COUNTFLAG is unchanged; on re-enable counting
+      resumes from the held value with no reload on the enable edge
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CVR.CURRENT retained, SYST_CSR.COUNTFLAG retained; reload only on wrap-through-0
+      or CVR write
+  phenomena:
+    monitored_variables: &id014
+    - ENABLE_clear
+    controlled_variables:
+    - frozen_count
+    - no_reload_on_enable
+    - SYST_CVR.CURRENT
+    - COUNTFLAG retained
+    dut_inputs: *id014
+    dut_outputs:
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - frozen_count
+    - no_reload_on_enable
+    - SYST_CVR.CURRENT
+    - COUNTFLAG retained
+    observable_outputs:
+    - frozen_count
+    - no_reload_on_enable
+    - SYST_CVR.CURRENT
+    - COUNTFLAG retained
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_RVR_STAGING
+  source_requirement_id: REQ_SYST_RVR_STAGING
+  status: draft
+  normalized_text: RVR write does not immediately reload CVR.
+  pattern:
+    trigger: software writes SYST_RVR while the counter is running
+    condition: SYST_CSR.ENABLE=1 and counter > 0
+    response: SYST_RVR.RELOAD updates but SYST_CVR.CURRENT continues its current countdown; the new RELOAD
+      applies at the next wrap
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_RVR.RELOAD updated; SYST_CVR.CURRENT unaffected until next wrap
+  phenomena:
+    monitored_variables: &id015
+    - RVR_write
+    controlled_variables:
+    - deferred_reload
+    - SYST_RVR.RELOAD
+    - SYST_RVR.RELOAD; deferred CVR effect
+    dut_inputs: *id015
+    dut_outputs:
+    - SYST_RVR.RELOAD
+    - SYST_RVR.RELOAD; deferred CVR effect
+    controlled_state:
+    - deferred_reload
+    - SYST_RVR.RELOAD
+    - SYST_RVR.RELOAD; deferred CVR effect
+    observable_outputs:
+    - deferred_reload
+    - SYST_RVR.RELOAD
+    - SYST_RVR.RELOAD; deferred CVR effect
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CSR_RESET
+  source_requirement_id: REQ_SYST_RESET
+  status: draft
+  normalized_text: SYST_CSR resets to 0x00000000 (CLKSOURCE per decision).
+  pattern:
+    trigger: reset is asserted then deasserted
+    condition: always
+    response: SYST_CSR reads 0x00000000 with ENABLE=0, TICKINT=0, COUNTFLAG=0; CLKSOURCE reset per the external-clock/NOREF
+      decision
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CSR; RVR/CVR remain architecturally UNKNOWN unless a design-chosen reset is
+      recorded
+  phenomena:
+    monitored_variables: &id016
+    - reset
+    - SYST_CSR
+    - ENABLE
+    - TICKINT
+    controlled_variables:
+    - COUNTFLAG
+    - SYST_CSR=0x00000000
+    dut_inputs: *id016
+    dut_outputs:
+    - SYST_CSR=0x00000000
+    controlled_state:
+    - COUNTFLAG
+    - SYST_CSR=0x00000000
+    observable_outputs:
+    - COUNTFLAG
+    - SYST_CSR=0x00000000
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_INIT_SEQ
+  source_requirement_id: REQ_SYST_INIT_SEQ
+  status: draft
+  normalized_text: Init sequence write RVR, write CVR, then enable.
+  pattern:
+    trigger: software performs write RVR, then write CVR, then set ENABLE
+    condition: RVR programmed before CVR write before ENABLE
+    response: the first enabled wrap loads SYST_CVR from SYST_RVR so counting starts from RELOAD
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - controlled state = SYST_CVR.CURRENT initialized to RELOAD at first enabled clock after CVR clear
+  phenomena:
+    monitored_variables: &id017
+    - RVR_write
+    - CVR_write
+    - ENABLE_set
+    controlled_variables:
+    - SYST_CVR.CURRENT
+    - SYST_CVR.CURRENT initialized from RELOAD
+    dut_inputs: *id017
+    dut_outputs:
+    - SYST_CVR.CURRENT
+    - SYST_CVR.CURRENT initialized from RELOAD
+    controlled_state:
+    - SYST_CVR.CURRENT
+    - SYST_CVR.CURRENT initialized from RELOAD
+    observable_outputs:
+    - SYST_CVR.CURRENT
+    - SYST_CVR.CURRENT initialized from RELOAD
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_ACCESS_WORD
+  source_requirement_id: REQ_SYST_ACCESS
+  status: draft
+  normalized_text: Word-only access to SysTick registers.
+  pattern:
+    trigger: a register access to a SysTick address occurs
+    condition: the access is a 32-bit word-aligned access
+    response: the access completes normally; byte/halfword accesses are treated as unsupported/UNPREDICTABLE
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - interface = word-aligned word access only; little-endian
+  phenomena:
+    monitored_variables: &id018
+    - word_access
+    - byte_halfword_unpredictable
+    controlled_variables:
+    - access_word_response
+    dut_inputs: *id018
+    dut_outputs:
+    - access_word_response
+    controlled_state: []
+    observable_outputs:
+    - access_word_response
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_REGMAP
+  source_requirement_id: REQ_SYST_REGMAP
+  status: draft
+  normalized_text: Four SysTick registers decode at fixed SCS offsets.
+  pattern:
+    trigger: a word access targets a SysTick address (0xE000E010/14/18/1C)
+    condition: the access is word-aligned
+    response: the addressed register (CSR/RVR/CVR/CALIB) is read or written per its access type
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'structural: CSR/RVR/CVR are RW, CALIB is RO; 0x20-0xFC reserved'
+  phenomena:
+    monitored_variables: &id019
+    - paddr
+    - pwrite
+    - psel
+    controlled_variables:
+    - reg_decode
+    - prdata
+    dut_inputs: *id019
+    dut_outputs:
+    - prdata
+    controlled_state:
+    - reg_decode
+    observable_outputs:
+    - prdata
+    - reg_decode
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CSR_FIELDS
+  source_requirement_id: REQ_SYST_CSR_FIELDS
+  status: draft
+  normalized_text: SYST_CSR exposes ENABLE/TICKINT/CLKSOURCE/COUNTFLAG at fixed bits.
+  pattern:
+    trigger: SYST_CSR is read or written
+    condition: always
+    response: ENABLE[0]/TICKINT[1]/CLKSOURCE[2] are RW, COUNTFLAG[16] is RO; other bits reserved
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'structural: bit positions and access types fixed'
+  phenomena:
+    monitored_variables: &id020
+    - paddr
+    - pwrite
+    controlled_variables:
+    - SYST_CSR.ENABLE
+    - SYST_CSR.TICKINT
+    - SYST_CSR.CLKSOURCE
+    - SYST_CSR.COUNTFLAG
+    dut_inputs: *id020
+    dut_outputs:
+    - SYST_CSR.COUNTFLAG
+    - SYST_CSR.ENABLE
+    - SYST_CSR.TICKINT
+    - SYST_CSR.CLKSOURCE
+    controlled_state:
+    - SYST_CSR.ENABLE
+    - SYST_CSR.TICKINT
+    - SYST_CSR.CLKSOURCE
+    observable_outputs:
+    - SYST_CSR.COUNTFLAG
+    - SYST_CSR.ENABLE
+    - SYST_CSR.TICKINT
+    - SYST_CSR.CLKSOURCE
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_RELOAD_FIELD
+  source_requirement_id: REQ_SYST_RELOAD
+  status: draft
+  normalized_text: RVR holds the 24-bit reload value.
+  pattern:
+    trigger: SYST_RVR is written
+    condition: always
+    response: SYST_RVR.RELOAD[23:0] stores the value loaded into CVR on wrap; [31:24] RAZ/WI
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'structural+behavioral: RELOAD width 24'
+  phenomena:
+    monitored_variables: &id021
+    - paddr
+    - pwrite
+    - pwdata
+    controlled_variables:
+    - SYST_RVR.RELOAD
+    dut_inputs: *id021
+    dut_outputs:
+    - SYST_RVR.RELOAD
+    controlled_state:
+    - SYST_RVR.RELOAD
+    observable_outputs:
+    - SYST_RVR.RELOAD
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CVR_READ
+  source_requirement_id: REQ_SYST_CVR_READ
+  status: draft
+  normalized_text: CVR read returns the live count.
+  pattern:
+    trigger: SYST_CVR is read
+    condition: always
+    response: prdata returns the live 24-bit SYST_CVR.CURRENT in [23:0]; [31:24]=0
+    timing: read data is valid combinationally in the same access cycle (no wait states).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'behavioral: read reflects current count'
+  phenomena:
+    monitored_variables: &id022
+    - paddr
+    - psel
+    controlled_variables:
+    - SYST_CVR.CURRENT
+    - prdata
+    dut_inputs: *id022
+    dut_outputs:
+    - prdata
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - SYST_CVR.CURRENT
+    observable_outputs:
+    - prdata
+    - SYST_CVR.CURRENT
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CLKSOURCE_FIELD
+  source_requirement_id: REQ_SYST_CLKSOURCE
+  status: draft
+  normalized_text: CLKSOURCE selects clock; forced to processor in v1.
+  pattern:
+    trigger: SYST_CSR.CLKSOURCE is read or written
+    condition: NOREF=1 (v1 single-clock)
+    response: CLKSOURCE reads as 1 (processor clock) and ignores writes to 0
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'behavioral: v1 forces processor clock'
+  phenomena:
+    monitored_variables: &id023
+    - pwrite
+    - pwdata
+    controlled_variables:
+    - SYST_CSR.CLKSOURCE
+    dut_inputs: *id023
+    dut_outputs:
+    - SYST_CSR.CLKSOURCE
+    controlled_state:
+    - SYST_CSR.CLKSOURCE
+    observable_outputs:
+    - SYST_CSR.CLKSOURCE
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_CALIB_LAYOUT
+  source_requirement_id: REQ_SYST_CALIB_LAYOUT
+  status: draft
+  normalized_text: CALIB is RO tie-off NOREF/SKEW/TENMS.
+  pattern:
+    trigger: SYST_CALIB is read
+    condition: always
+    response: prdata returns NOREF[31],SKEW[30],reserved[29:24]=0,TENMS[23:0] from the integrator tie-off;
+      writes ignored
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'structural: RO, field positions fixed, values are tie-offs'
+  phenomena:
+    monitored_variables: &id024
+    - paddr
+    - pwrite
+    controlled_variables:
+    - SYST_CALIB_tieoff
+    - prdata
+    dut_inputs: *id024
+    dut_outputs:
+    - prdata
+    - SYST_CALIB_tieoff
+    controlled_state:
+    - SYST_CALIB_tieoff
+    observable_outputs:
+    - prdata
+    - SYST_CALIB_tieoff
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_RESERVED_BITS
+  source_requirement_id: REQ_SYST_RESERVED_BITS
+  status: draft
+  normalized_text: Reserved bits are RAZ/WI.
+  pattern:
+    trigger: a reserved bit range is read or written
+    condition: always
+    response: reserved bits read as 0 and ignore writes (store no data)
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'structural: RAZ/WI policy'
+  phenomena:
+    monitored_variables: &id025
+    - paddr
+    - pwrite
+    - pwdata
+    controlled_variables:
+    - reserved_bits
+    - prdata
+    dut_inputs: *id025
+    dut_outputs:
+    - prdata
+    controlled_state:
+    - reserved_bits
+    observable_outputs:
+    - prdata
+    - reserved_bits
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_BOUNDARY
+  source_requirement_id: REQ_SYST_BOUNDARY
+  status: draft
+  normalized_text: Only the tick request crosses the IP boundary.
+  pattern:
+    trigger: a SysTick exception event occurs
+    condition: always
+    response: the IP emits only a qualified tick interrupt request; it drives no SCB ICSR pending/priority/vector
+      state
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'interface: SCB owns pending latch/priority/vectoring (out of scope)'
+  phenomena:
+    monitored_variables: &id026
+    - tick_event
+    controlled_variables:
+    - tick_irq_request
+    dut_inputs: *id026
+    dut_outputs:
+    - tick_irq_request
+    controlled_state: []
+    observable_outputs:
+    - tick_irq_request
+  ambiguity:
+    missing_terms: []
+    open_questions: []
+- id: ATOM_DEBUG_HALT
+  source_requirement_id: REQ_SYST_DEBUG_HALT
+  status: draft
+  normalized_text: No debug-halt qualifier in v1 (env assumption).
+  pattern:
+    trigger: the processor would be halted in Debug state
+    condition: v1 has no debug interface (environment assumption)
+    response: the counter continues per ENABLE; debug-halt freeze is explicitly out of scope for v1
+    timing: controlled state updates on the processor-clock edge of the triggering access/event (registered
+      next clock).
+    exception: ''
+  boundary:
+    responsible_agent: dut
+    environment_agents:
+    - register_host
+    - clock_reset_source
+  assumptions:
+    environment: []
+    dut:
+    - 'behavioral: documented environment assumption (no debug qualifier)'
+  phenomena:
+    monitored_variables: &id027
+    - debug_halt_absent
+    controlled_variables:
+    - SYST_CVR.CURRENT
+    dut_inputs: *id027
+    dut_outputs:
+    - SYST_CVR.CURRENT
+    controlled_state:
+    - SYST_CVR.CURRENT
+    observable_outputs:
+    - SYST_CVR.CURRENT
+  ambiguity:
+    missing_terms: []
+    open_questions: []

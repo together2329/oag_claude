@@ -1,0 +1,447 @@
+schema: ontology_requirements.v1
+ip: cortex_m7_systick
+requirements:
+- id: REQ_SYST_REGMAP
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_REG32
+  - CLAIM_REGMAP
+  - CLAIM_SCS_MAP
+  decision_refs:
+  - DEC_CSR_BUS_PROFILE
+  status: locked
+  requirement_type: structural
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: 'The IP shall implement exactly four 32-bit registers at SCS offsets: SYST_CSR (0xE000E010, RW), SYST_RVR
+    (0xE000E014, RW), SYST_CVR (0xE000E018, RW), SYST_CALIB (0xE000E01C, RO), with 0xE000E020-0xE000E0FC reserved.'
+- id: REQ_SYST_ACCESS
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_ACCESS
+  - CLAIM_REG32
+  decision_refs:
+  - DEC_CSR_BUS_PROFILE
+  status: locked
+  requirement_type: interface
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: The IP shall support 32-bit word-aligned word accesses only to the SysTick registers; byte/halfword
+    accesses are treated as unsupported/UNPREDICTABLE; accesses are little-endian.
+- id: REQ_SYST_CSR_FIELDS
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CSR_FIELDS
+  decision_refs:
+  - DEC_CSR_BUS_PROFILE
+  status: locked
+  requirement_type: structural
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_CSR shall present ENABLE[0] (RW), TICKINT[1] (RW), CLKSOURCE[2] (RW), COUNTFLAG[16] (RO), with
+    bits [31:17] and [15:3] reserved.
+- id: REQ_SYST_ENABLE
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CSR_FIELDS
+  - CLAIM_ENABLE
+  decision_refs: []
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: When SYST_CSR.ENABLE=1 the 24-bit counter shall decrement once per selected timer clock; when ENABLE=0
+    the counter shall be disabled (frozen).
+- id: REQ_SYST_COUNTDOWN
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_ENABLE
+  - CLAIM_WRAP
+  decision_refs: []
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: While enabled, the counter shall count down from its current value toward 0; on reaching 0 it shall
+    wrap by reloading from SYST_RVR on the next timer clock and continue counting.
+- id: REQ_SYST_RELOAD
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_PERIOD
+  - CLAIM_RVR
+  decision_refs:
+  - DEC_RELOAD_WIDTH
+  status: locked
+  requirement_type: structural
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_RVR.RELOAD[23:0] shall hold the 24-bit value loaded into SYST_CVR on wrap; bits [31:24] are reserved
+    (RAZ/WI).
+- id: REQ_SYST_PERIOD
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_PERIOD
+  decision_refs: []
+  status: locked
+  requirement_type: temporal
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: For RELOAD=N-1 with N>=1, the counter shall produce a wrap (1->0 event) every N selected-clock cycles.
+- id: REQ_SYST_RELOAD_LATENCY
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_WRAP
+  decision_refs: []
+  status: locked
+  requirement_type: temporal
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: On the cycle the counter reaches 0, the value 0 shall be visible for one cycle and the reload from
+    SYST_RVR shall take effect on the next timer clock.
+- id: REQ_SYST_RELOAD_ZERO
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_RELOAD_ZERO
+  decision_refs: []
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: A write of RELOAD=0 shall be accepted as legal; at the next wrap the counter shall load 0 and hold
+    0, producing no further periodic events (no 1->0 transition), independent of ENABLE; the counter shall
+    not wrap to 0xFFFFFF.
+- id: REQ_SYST_RVR_STAGING
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_RVR_NO_IMMEDIATE_RELOAD
+  decision_refs: []
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: Writing SYST_RVR shall update the reload value without immediately reloading SYST_CVR; the new RELOAD
+    shall take effect at the next wrap.
+- id: REQ_SYST_CVR_READ
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CVR
+  decision_refs:
+  - DEC_RELOAD_WIDTH
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: A read of SYST_CVR shall return the live 24-bit counter value in [23:0]; unsupported upper bits [31:24]
+    read as 0.
+- id: REQ_SYST_CVR_WRITE
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CVR
+  - CLAIM_TICKINT
+  decision_refs:
+  - DEC_CVR_DISABLE_BEHAVIOR
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: Any write to SYST_CVR shall clear SYST_CVR to 0 and clear SYST_CSR.COUNTFLAG to 0, ignore the written
+    data, and shall NOT trigger the SysTick exception.
+- id: REQ_SYST_CVR_RELOAD_NEXT
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CVR
+  decision_refs: []
+  status: locked
+  requirement_type: temporal
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: After a CVR-clearing write while enabled, a read before the next timer clock shall return 0, and CURRENT
+    shall become the SYST_RVR value on the next enabled timer clock.
+- id: REQ_SYST_COUNTFLAG_SET
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_COUNTFLAG
+  decision_refs:
+  - DEC_COUNTFLAG_SEMANTICS
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_CSR.COUNTFLAG shall be set to 1 by a counter transition from 1 to 0.
+- id: REQ_SYST_COUNTFLAG_CLEAR
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_COUNTFLAG
+  decision_refs:
+  - DEC_COUNTFLAG_SEMANTICS
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_CSR.COUNTFLAG shall be cleared to 0 by a software read of SYST_CSR and by any write to SYST_CVR;
+    it shall not be cleared by writes to SYST_CSR or SYST_RVR.
+- id: REQ_SYST_DEBUG_READ
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_COUNTFLAG
+  decision_refs:
+  - DEC_COUNTFLAG_SEMANTICS
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: Debugger (non-functional) reads of SYST_CSR shall not clear COUNTFLAG; only software functional reads
+    shall clear it.
+- id: REQ_SYST_TICKINT
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CSR_FIELDS
+  - CLAIM_TICKINT
+  decision_refs: []
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: When TICKINT=1, a counter 1->0 transition shall change the SysTick exception status to pending; when
+    TICKINT=0 it shall not.
+- id: REQ_SYST_EXCEPTION
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_EXC_NUMBER
+  - CLAIM_ICSR_PEND
+  - CLAIM_TICKINT
+  decision_refs:
+  - DEC_EXC_BOUNDARY
+  status: locked
+  requirement_type: interface
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: The IP shall assert a qualified SysTick tick interrupt request when a counter 1->0 transition occurs
+    AND TICKINT=1, and shall not assert it for a software CVR-write-to-zero; ownership of the pending latch,
+    priority, and vectoring is external (SCB/NVIC).
+- id: REQ_SYST_CLKSOURCE
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CLKSOURCE
+  - CLAIM_CSR_FIELDS
+  - CLAIM_EXT_REFCLK_IMPDEF
+  - CLAIM_FCLK
+  decision_refs:
+  - DEC_CLOCK_CDC
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_CSR.CLKSOURCE shall select the processor clock (1) or the implementation-defined external reference
+    clock (0); if no external clock is provided (NOREF=1), CLKSOURCE shall read as 1 and ignore writes.
+- id: REQ_SYST_CALIB_LAYOUT
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CALIB_CFGSTCALIB
+  - CLAIM_CALIB_FIELDS
+  decision_refs:
+  - DEC_CALIB_STRATEGY
+  status: locked
+  requirement_type: structural
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_CALIB shall be read-only with NOREF[31], SKEW[30], reserved[29:24] (RAZ), TENMS[23:0]; its field
+    values are implementation-defined (driven from CFGSTCALIB[25:0] on Cortex-M7) and shall not be hard-coded
+    as architectural constants.
+- id: REQ_SYST_NOREF_COUPLING
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CALIB_FIELDS
+  decision_refs:
+  - DEC_CLOCK_CDC
+  - DEC_CALIB_STRATEGY
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: When SYST_CALIB.NOREF=1, SYST_CSR.CLKSOURCE shall be forced to 1 and shall not be clearable to 0.
+- id: REQ_SYST_RESERVED_BITS
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_RVR
+  decision_refs:
+  - DEC_RELOAD_WIDTH
+  status: locked
+  requirement_type: structural
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: Reserved bit ranges (SYST_RVR[31:24], SYST_CVR[31:24], SYST_CALIB[29:24], SYST_CSR reserved ranges)
+    shall follow their architectural reserved policy (RAZ/WI or RAZ as applicable) and shall not store written
+    data.
+- id: REQ_SYST_RESET
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_CSR_RESET
+  - CLAIM_CVR
+  - CLAIM_RVR
+  decision_refs:
+  - DEC_RESET_STRATEGY
+  status: locked
+  requirement_type: reset
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: SYST_CSR shall reset to 0x00000000 (ENABLE=0, TICKINT=0, COUNTFLAG=0) with bit[2] CLKSOURCE reset
+    per the external-clock/NOREF decision; SYST_RVR and SYST_CVR power-on values are architecturally UNKNOWN
+    and shall not be asserted as ARM truth.
+- id: REQ_SYST_INIT_SEQ
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_INIT_SEQ
+  decision_refs: []
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: 'The IP shall support the architectural init sequence: write SYST_RVR, then write SYST_CVR (which
+    clears CVR and COUNTFLAG), then set ENABLE; the first enabled wrap shall reload from SYST_RVR.'
+- id: REQ_SYST_DISABLE_FREEZE
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_DISABLE_FREEZE
+  decision_refs:
+  - DEC_CVR_DISABLE_BEHAVIOR
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: Clearing ENABLE shall freeze SYST_CVR (retain its value) and shall not clear COUNTFLAG; re-enabling
+    shall resume counting from the held value, with a reload occurring only on a natural wrap-through-0 or
+    after a CVR write.
+- id: REQ_SYST_DEBUG_HALT
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_DEBUG_HALT
+  decision_refs:
+  - DEC_DEBUG_HALT_SCOPE
+  status: locked
+  requirement_type: behavioral
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: When the processor is halted in Debug state, the counter shall not decrement (if a debug-halt qualifier
+    is in scope); otherwise the absence of debug-halt shall be an explicit environment assumption.
+- id: REQ_SYST_BOUNDARY
+  source: req/source_claims.yaml
+  source_refs:
+  - req/source_claims.yaml
+  - ontology/decision_matrix.yaml
+  source_claim_refs:
+  - CLAIM_ICSR_PEND
+  decision_refs:
+  - DEC_EXC_BOUNDARY
+  status: locked
+  requirement_type: interface
+  verification_method:
+  - scoreboard
+  ambiguity_status: clear
+  text: 'The IP boundary shall exclude SCB/NVIC functions: ICSR.PENDSTSET/PENDSTCLR, the architectural SysTick
+    pending latch, priority, preemption, vectoring, and vector-table entry 15 are out of scope; the IP only
+    emits a qualified tick interrupt request.'

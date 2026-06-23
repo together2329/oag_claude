@@ -1,0 +1,14 @@
+schema: evidence_schema.v1
+id: verification_plan_report.v1
+artifact: ontology/verification_plan.yaml plus strategy subagent receipt
+format: yaml_json_or_tool_report
+required_fields:
+  - schema_version
+  - verification_objectives
+  - proof_methods
+  - scenarios
+  - coverage_goals
+  - residual_risks
+rules:
+  - strategy defines proof objectives; TB implementation satisfies them
+  - locked TB work requires objectives that map to requirement, obligation, and contract refs

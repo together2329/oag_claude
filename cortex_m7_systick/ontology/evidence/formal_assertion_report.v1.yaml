@@ -1,0 +1,16 @@
+schema: evidence_schema.v1
+id: formal_assertion_report.v1
+artifact: signoff/formal_assertion_report.json
+format: json
+required_fields:
+  - schema_version
+  - ip
+  - status
+  - closure_profile
+  - method
+  - checks
+  - properties
+  - issues
+  - signoff_limitations
+  - evidence_refs
+rule: status=development_pass is development evidence only; auto research must rank it as partially_closed unless a promoted formal contract and signoff evidence exist

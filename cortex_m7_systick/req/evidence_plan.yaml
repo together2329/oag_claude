@@ -1,0 +1,25 @@
+schema: ip_evidence_plan.v1
+ip: cortex_m7_systick
+planned_scenarios:
+  - id: SCN_CORTEX_M7_SYSTICK_RESET_DEFAULTS
+    obligations: [OBL_CORTEX_M7_SYSTICK_RESET_KNOWN]
+    contracts: [CONTRACT_CORTEX_M7_SYSTICK_SIM_SCOREBOARD]
+    expected_scoreboard_rows:
+      - EVT_CORTEX_M7_SYSTICK_RESET_DEFAULTS
+    expected_source:
+      kind: behavior_model
+      refs:
+        - behavior_model.seed_obligations.reset_known_state
+contracts:
+  - id: CONTRACT_CORTEX_M7_SYSTICK_SIM_SCOREBOARD
+    obligation: OBL_CORTEX_M7_SYSTICK_RESET_KNOWN
+    method: scoreboard
+    pass_condition: sim/results.xml has zero failures and scoreboard_events.jsonl rows conform to scoreboard_rows.v1 with zero failed rows
+    scenario_refs: [SCN_CORTEX_M7_SYSTICK_RESET_DEFAULTS]
+    scoreboard_row_refs: [EVT_CORTEX_M7_SYSTICK_RESET_DEFAULTS]
+    evidence:
+      files:
+        - sim/results.xml
+        - sim/scoreboard_events.jsonl
+      schemas:
+        - ontology/evidence/scoreboard_rows.v1.yaml

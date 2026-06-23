@@ -1,0 +1,4 @@
+schema: ip_release.v1
+ip: cortex_m7_systick
+status: draft
+validations: []

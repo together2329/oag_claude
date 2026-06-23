@@ -1,0 +1,514 @@
+schema_version: oag_source_claims.v1
+ip: cortex_m7_systick
+claims:
+- id: CLAIM_SCS_MAP
+  source: ARMv7-M ARM DDI0403E.b B3.2 / B3.3
+  quote: SysTick registers are SCS-mapped within the PPB; SysTick sub-region is 0xE000E010-0xE000E0FF
+    inside the SCS (base 0xE000E000, 4KB).
+  summary: SysTick registers are SCS-mapped within the PPB; SysTick sub-region is 0xE000E010-0xE000E0FF
+    inside the SCS (base 0xE000E000, 4KB).
+  status: accepted
+  normalized_meaning: 'Address context: SCS base 0xE000E000; SysTick block 0xE000E010-0xE000E0FF; SCS
+    sits inside PPB 0xE0000000-0xE0100000. Region is Strongly-ordered memory.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_REGMAP
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_REGMAP
+  source: ARMv7-M ARM DDI0403E.b B3.3.2 Table B3-7 (corroborated Cortex-M7 TRM DDI0489F 3.2 Table 3-1)
+  quote: 'Four mandatory SysTick registers: SYST_CSR 0xE000E010 (RW), SYST_RVR 0xE000E014 (RW), SYST_CVR
+    0xE000E018 (RW), SYST_CALIB 0xE000E01C (RO); 0xE000E020-0xE000E0FC reserved.'
+  summary: 'Four mandatory SysTick registers: SYST_CSR 0xE000E010 (RW), SYST_RVR 0xE000E014 (RW), SYST_CVR
+    0xE000E018 (RW), SYST_CALIB 0xE000E01C (RO); 0xE000E020-0xE000E0FC reserved.'
+  status: accepted
+  normalized_meaning: 'Register map fixed: CSR@0x10 RW, RVR@0x14 RW, CVR@0x18 RW, CALIB@0x1C RO. All four
+    always implemented (mandatory).'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_REGMAP
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_REG32
+  source: ARMv7-M ARM DDI0403E.b B3.3.2
+  quote: All four SysTick registers are 32 bits wide.
+  summary: All four SysTick registers are 32 bits wide.
+  status: accepted
+  normalized_meaning: Each SysTick register is a 32-bit register.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_REGMAP
+  - REQ_SYST_ACCESS
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_ACCESS
+  source: ARMv7-M ARM DDI0403E.b B3.1.1 General rules for PPB register accesses
+  quote: PPB/SCS registers support word (32-bit) accesses only; byte/halfword access is UNPREDICTABLE;
+    always little-endian; Strongly-ordered.
+  summary: PPB/SCS registers support word (32-bit) accesses only; byte/halfword access is UNPREDICTABLE;
+    always little-endian; Strongly-ordered.
+  status: accepted
+  normalized_meaning: 'Access constraint: 32-bit word-aligned word access only for all four SysTick registers;
+    byte/halfword UNPREDICTABLE; little-endian. The 0x10/0x14/0x18/0x1C offsets are already word-aligned.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_ACCESS
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_SUBWORD_ACCESS
+- id: CLAIM_CSR_FIELDS
+  source: ARMv7-M ARM DDI0403E.b B3.3.3 SYST_CSR
+  quote: 'SYST_CSR fields: ENABLE[0] RW, TICKINT[1] RW, CLKSOURCE[2] RW, COUNTFLAG[16] RO; bits[31:17]
+    and [15:3] reserved.'
+  summary: 'SYST_CSR fields: ENABLE[0] RW, TICKINT[1] RW, CLKSOURCE[2] RW, COUNTFLAG[16] RO; bits[31:17]
+    and [15:3] reserved.'
+  status: accepted
+  normalized_meaning: 'CSR layout: [0]=ENABLE, [1]=TICKINT, [2]=CLKSOURCE, [16]=COUNTFLAG (RO), remainder
+    reserved. COUNTFLAG is authoritatively at bit[16], not bit[31].'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CSR_FIELDS
+  - REQ_SYST_ENABLE
+  - REQ_SYST_TICKINT
+  - REQ_SYST_CLKSOURCE
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_CSR_RESET
+  source: 'ARMv7-M ARM DDI0403E.b B3.3.2 Table B3-7 footnote a (corroborated Cortex-M7 TRM DDI0489F Table
+    3-1: SYST_CSR reset 0x00000000)'
+  quote: SYST_CSR resets to 0x00000000 in all fields except bit[2] CLKSOURCE whose reset is conditional;
+    ENABLE/TICKINT/COUNTFLAG reset to 0.
+  summary: SYST_CSR resets to 0x00000000 in all fields except bit[2] CLKSOURCE whose reset is conditional;
+    ENABLE/TICKINT/COUNTFLAG reset to 0.
+  status: accepted
+  normalized_meaning: 'Reset: ENABLE=0, TICKINT=0, COUNTFLAG=0 (timer disabled out of reset). CLKSOURCE
+    bit[2] reset is implementation-defined (depends on external-clock/NOREF choice). Cortex-M7 resets
+    whole CSR to 0x00000000.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_RESET
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_CLKSOURCE_RESET
+- id: CLAIM_ENABLE
+  source: ARMv7-M ARM DDI0403E.b B3.3.3 (ENABLE bit[0])
+  quote: 'ENABLE[0]: 0=counter disabled; 1=counter operating (counts down once per selected clock).'
+  summary: 'ENABLE[0]: 0=counter disabled; 1=counter operating (counts down once per selected clock).'
+  status: accepted
+  normalized_meaning: ENABLE=1 makes the 24-bit counter decrement once per selected clock; ENABLE=0 disables/halts
+    counting.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_ENABLE
+  - REQ_SYST_COUNTDOWN
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_TICKINT
+  source: ARMv7-M ARM DDI0403E.b B3.3.3 (TICKINT bit[1])
+  quote: 'TICKINT[1]: 1=count-to-0 (1->0 transition) sets the SysTick exception pending; 0=count-to-0
+    does not affect exception status. A write of 0 to SYST_CVR never changes exception status.'
+  summary: 'TICKINT[1]: 1=count-to-0 (1->0 transition) sets the SysTick exception pending; 0=count-to-0
+    does not affect exception status. A write of 0 to SYST_CVR never changes exception status.'
+  status: accepted
+  normalized_meaning: With TICKINT=1, the hardware 1->0 count transition pends the SysTick exception.
+    A software CVR write that zeroes the counter does NOT pend the exception.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_TICKINT
+  - REQ_SYST_EXCEPTION
+  - REQ_SYST_CVR_WRITE
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_CLKSOURCE
+  source: ARMv7-M ARM DDI0403E.b B3.3.3 (CLKSOURCE bit[2])
+  quote: 'CLKSOURCE[2]: 0=IMPLEMENTATION DEFINED external reference clock; 1=processor clock. If no external
+    clock provided, reads-as-1 and ignores writes.'
+  summary: 'CLKSOURCE[2]: 0=IMPLEMENTATION DEFINED external reference clock; 1=processor clock. If no
+    external clock provided, reads-as-1 and ignores writes.'
+  status: accepted
+  normalized_meaning: 'CLKSOURCE selects tick source: 1=processor clock, 0=external reference clock (existence/freq
+    implementation-defined). NOREF=1 forces CLKSOURCE=1 read-only.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CLKSOURCE
+  decision_refs:
+  - DEC_CLOCK_CDC
+  ambiguity_refs:
+  - AMB_EXT_REFCLK
+  - AMB_CLKSOURCE_RESET
+  - AMB_CDC_ASYNC
+- id: CLAIM_COUNTFLAG
+  source: ARMv7-M ARM DDI0403E.b B3.3.3 (COUNTFLAG bit[16])
+  quote: 'COUNTFLAG[16] RO: set to 1 by a count transition 1->0; cleared to 0 by a software read of SYST_CSR
+    and by any write to SYST_CVR; debugger reads do NOT clear it.'
+  summary: 'COUNTFLAG[16] RO: set to 1 by a count transition 1->0; cleared to 0 by a software read of
+    SYST_CSR and by any write to SYST_CVR; debugger reads do NOT clear it.'
+  status: accepted
+  normalized_meaning: 'COUNTFLAG is a sticky ''reached zero since last read'' status set on the 1->0 transition.
+    Clear sources: (a) software (non-debug) read of SYST_CSR, (b) any write to SYST_CVR. Debug-accessor
+    reads must not clear it.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_COUNTFLAG_SET
+  - REQ_SYST_COUNTFLAG_CLEAR
+  - REQ_SYST_DEBUG_READ
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_DEBUG_READ_QUALIFIER
+- id: CLAIM_RVR
+  source: ARMv7-M ARM DDI0403E.b B3.3.4 SYST_RVR
+  quote: SYST_RVR RELOAD[23:0] RW = value loaded into SYST_CVR when the counter reaches 0; bits[31:24]
+    reserved RAZ/WI; reset UNKNOWN.
+  summary: SYST_RVR RELOAD[23:0] RW = value loaded into SYST_CVR when the counter reaches 0; bits[31:24]
+    reserved RAZ/WI; reset UNKNOWN.
+  status: accepted
+  normalized_meaning: RVR is the 24-bit reload value [23:0] (RW); upper 8 bits RAZ/WI; power-on value
+    architecturally UNKNOWN (software must program before enabling).
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_RELOAD
+  - REQ_SYST_RESERVED_BITS
+  - REQ_SYST_RESET
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_RVR_CVR_RESET
+- id: CLAIM_PERIOD
+  source: ARMv7-M ARM DDI0403E.b B3.3 / Cortex-M generic user guides (DUI0552 'Calculating the RELOAD
+    value')
+  quote: Period of N counter clocks uses RELOAD = N-1; the SysTick exception/COUNTFLAG event occurs on
+    the 1->0 transition; programmable repeating range 0x000001-0xFFFFFF.
+  summary: Period of N counter clocks uses RELOAD = N-1; the SysTick exception/COUNTFLAG event occurs
+    on the 1->0 transition; programmable repeating range 0x000001-0xFFFFFF.
+  status: accepted
+  normalized_meaning: 'Cycle truth: counting RELOAD..0 gives a period of (RELOAD+1) clocks; the event
+    point is the 1->0 transition (not the reload). Value 0 is visible for one cycle.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_PERIOD
+  - REQ_SYST_RELOAD
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_WRAP
+  source: ARMv7-M ARM DDI0403E.b B3.3.1 SysTick operation
+  quote: When enabled and the counter reaches 0, it reloads SYST_CVR from SYST_RVR on the NEXT timer clock,
+    then continues counting down (wrapping).
+  summary: When enabled and the counter reaches 0, it reloads SYST_CVR from SYST_RVR on the NEXT timer
+    clock, then continues counting down (wrapping).
+  status: accepted
+  normalized_meaning: 'Wrap behavior: on reaching 0, the next enabled timer clock loads CVR <- RVR.RELOAD;
+    decrementing resumes from RELOAD. Continuous wrap while enabled.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_RELOAD_LATENCY
+  - REQ_SYST_COUNTDOWN
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_RELOAD_ZERO
+  source: ARMv7-M ARM DDI0403E.b B3.3.1 + Note
+  quote: Writing RELOAD=0 is a legal write; at the next wrap the counter loads 0 and holds 0, generating
+    no further periodic events; this disables the counter independently of ENABLE.
+  summary: Writing RELOAD=0 is a legal write; at the next wrap the counter loads 0 and holds 0, generating
+    no further periodic events; this disables the counter independently of ENABLE.
+  status: accepted
+  normalized_meaning: 'Corner case: RELOAD=0 is accepted (not illegal) and produces no 1->0 events after
+    the next wrap; counter holds 0. RTL must not wrap to 0xFFFFFF.'
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_RELOAD_ZERO
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_RELOAD_ZERO_POLICY
+- id: CLAIM_CVR
+  source: ARMv7-M ARM DDI0403E.b B3.3.5 / B3.3.1 SYST_CVR
+  quote: 'SYST_CVR CURRENT[23:0] RW: read returns the live 24-bit count (upper bits read 0); any write
+    clears CVR to 0 AND clears COUNTFLAG, ignores written data, and causes a reload from SYST_RVR on the
+    next t'
+  summary: 'SYST_CVR CURRENT[23:0] RW: read returns the live 24-bit count (upper bits read 0); any write
+    clears CVR to 0 AND clears COUNTFLAG, ignores written data, and causes a reload from SYST_RVR on the
+    next timer clock; the write does NOT trigger the SysTick exception. Reset UNKNOWN.'
+  status: accepted
+  normalized_meaning: CVR read = live count; any CVR write = data-independent clear of CVR and COUNTFLAG,
+    reload-from-RVR on next timer clock, no exception. No read-modify-write protection. Reset UNKNOWN.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CVR_READ
+  - REQ_SYST_CVR_WRITE
+  - REQ_SYST_CVR_RELOAD_NEXT
+  - REQ_SYST_RESET
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_RVR_CVR_RESET
+  - AMB_CVR_WRITE_WHEN_DISABLED
+  - AMB_CVR_VISIBILITY
+- id: CLAIM_INIT_SEQ
+  source: ARMv7-M ARM DDI0403E.b B3.3.1 Note (programming the SysTick timer)
+  quote: 'Required init sequence: write SYST_RVR (RELOAD), then write SYST_CVR (clears CVR to 0), then
+    set SYST_CSR.ENABLE; first enabled wrap reloads from RVR.'
+  summary: 'Required init sequence: write SYST_RVR (RELOAD), then write SYST_CVR (clears CVR to 0), then
+    set SYST_CSR.ENABLE; first enabled wrap reloads from RVR.'
+  status: accepted
+  normalized_meaning: Because RVR/CVR reset is UNKNOWN, correct startup is write RVR, write CVR (clears
+    it), then enable, so the first count starts from a known RELOAD rather than an arbitrary value.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_INIT_SEQ
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_DISABLE_FREEZE
+  source: ARMv7-M ARM DDI0403E.b B3.3 (ENABLE bit[0]); corroborated QEMU armv7m_systick.c
+  quote: Clearing ENABLE freezes the counter; CVR is retained, not reset; re-enabling resumes from the
+    held CVR value (no reload on the enable edge unless CVR has reached 0 or a CVR write occurred).
+  summary: Clearing ENABLE freezes the counter; CVR is retained, not reset; re-enabling resumes from the
+    held CVR value (no reload on the enable edge unless CVR has reached 0 or a CVR write occurred).
+  status: accepted
+  normalized_meaning: Disable freezes CVR (does not clear it or COUNTFLAG). Re-enable resumes the held
+    countdown; a reload from RVR happens only on a natural wrap-through-0 or after a CVR write.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_DISABLE_FREEZE
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_REENABLE_RELOAD
+- id: CLAIM_RVR_NO_IMMEDIATE_RELOAD
+  source: ARMv7-M ARM DDI0403E.b B3.3.2; corroborated QEMU armv7m_systick.c
+  quote: Writing SYST_RVR sets the reload value but does NOT immediately reload SYST_CVR; the new RELOAD
+    takes effect at the next wrap. To apply a new period immediately, software writes CVR.
+  summary: Writing SYST_RVR sets the reload value but does NOT immediately reload SYST_CVR; the new RELOAD
+    takes effect at the next wrap. To apply a new period immediately, software writes CVR.
+  status: accepted
+  normalized_meaning: RVR is a staging register; updating RELOAD has no immediate effect on the running
+    count. New RELOAD applies at the next wrap, or immediately if CVR is then written (forcing CVR=0 and
+    reload from new RVR on next clock).
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_RVR_STAGING
+  decision_refs: []
+  ambiguity_refs: []
+- id: CLAIM_DEBUG_HALT
+  source: ARMv7-M ARM DDI0403E.b B3.3.1 Note
+  quote: When the processor is halted in Debug state, the SysTick counter does not decrement.
+  summary: When the processor is halted in Debug state, the SysTick counter does not decrement.
+  status: accepted
+  normalized_meaning: Debug-halt freezes the SysTick counter; no decrements while halted. Requires a debug-halt
+    qualifier input if the behavior is in scope.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_DEBUG_HALT
+  decision_refs: []
+  ambiguity_refs:
+  - AMB_DEBUG_HALT_QUALIFIER
+- id: CLAIM_CALIB_FIELDS
+  source: ARMv7-M ARM DDI0403E.b B3.3.6 SYST_CALIB
+  quote: 'SYST_CALIB RO: NOREF[31] (0=ref clock implemented, 1=not implemented; when 1 forces CLKSOURCE=1
+    unclearable), SKEW[30] (0=10ms exact, 1=inexact), bits[29:24] reserved/RAZ, TENMS[23:0] (10ms/100Hz
+    relo'
+  summary: 'SYST_CALIB RO: NOREF[31] (0=ref clock implemented, 1=not implemented; when 1 forces CLKSOURCE=1
+    unclearable), SKEW[30] (0=10ms exact, 1=inexact), bits[29:24] reserved/RAZ, TENMS[23:0] (10ms/100Hz
+    reload; 0=calibration unknown). Whole-register reset is IMPLEMENTATION DEFINED.'
+  status: accepted
+  normalized_meaning: CALIB advertises reference-clock presence (NOREF), 10ms calibration exactness (SKEW),
+    and the optional 10ms reload constant (TENMS). All three field values are implementation-defined,
+    not architectural constants. NOREF=1 is the architectural lock removing the CDC path.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CALIB_LAYOUT
+  - REQ_SYST_NOREF_COUPLING
+  decision_refs:
+  - DEC_CALIB_STRATEGY
+  ambiguity_refs:
+  - AMB_CALIB_TENMS
+  - AMB_CALIB_SKEW
+  - AMB_CALIB_NOREF
+  - AMB_CALIB_RESET
+- id: CLAIM_CALIB_CFGSTCALIB
+  source: Cortex-M7 TRM DDI0489F 3.2 Table 3-1 and Table 3-2 (SYST_CALIB inputs)
+  quote: 'On Cortex-M7, SYST_CALIB is sourced from integration input CFGSTCALIB[25:0]: NOREF=CFGSTCALIB[25],
+    SKEW=CFGSTCALIB[24], bits[29:24] RAZ, TENMS=CFGSTCALIB[23:0]. SYST_CSR resets to 0x00000000; SYST_RVR'
+  summary: 'On Cortex-M7, SYST_CALIB is sourced from integration input CFGSTCALIB[25:0]: NOREF=CFGSTCALIB[25],
+    SKEW=CFGSTCALIB[24], bits[29:24] RAZ, TENMS=CFGSTCALIB[23:0]. SYST_CSR resets to 0x00000000; SYST_RVR/SYST_CVR
+    reset Unknown.'
+  status: accepted
+  normalized_meaning: Cortex-M7 ties SYST_CALIB content to the SoC CFGSTCALIB tie-off, confirming TENMS/SKEW/NOREF
+    are integration-time choices, not core-fixed. Observed CALIB reset value is integration-defined.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CALIB_LAYOUT
+  decision_refs:
+  - DEC_CALIB_STRATEGY
+  ambiguity_refs:
+  - AMB_CALIB_RESET
+  - AMB_CFGSTCALIB_DYNAMIC
+- id: CLAIM_EXT_REFCLK_IMPDEF
+  source: ARMv7-M ARM DDI0403E.b B3.3 (intro to system timer)
+  quote: 'Whether the SysTick reference clock is the processor clock or an external clock source is IMPLEMENTATION
+    DEFINED; if external, the implementation must document the processor-to-reference relationship '
+  summary: Whether the SysTick reference clock is the processor clock or an external clock source is IMPLEMENTATION
+    DEFINED; if external, the implementation must document the processor-to-reference relationship accounting
+    for metastability, clock skew and jitter.
+  status: accepted
+  normalized_meaning: The existence and frequency of the external reference clock (CLKSOURCE=0 source)
+    is implementation-defined. ARM explicitly anticipates an asynchronous external domain (metastability/skew/jitter
+    named), which is the architectural hook for CDC handling.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CLKSOURCE
+  decision_refs:
+  - DEC_CLOCK_CDC
+  ambiguity_refs:
+  - AMB_EXT_REFCLK
+  - AMB_CDC_ASYNC
+  - AMB_REFCLK_RATIO
+  - AMB_REFCLK_PORT
+- id: CLAIM_FCLK
+  source: Cortex-M7 TRM DDI0489F (clocking/signals)
+  quote: The Cortex-M7 processor clock is named FCLK; external/asynchronous inputs must be sampled on
+    the rising edge of FCLK.
+  summary: The Cortex-M7 processor clock is named FCLK; external/asynchronous inputs must be sampled on
+    the rising edge of FCLK.
+  status: accepted
+  normalized_meaning: FCLK is the processor (free-running) clock domain into which SysTick events are
+    consumed. If an asynchronous external reference is used, the wrap/COUNTFLAG/interrupt pulse and the
+    24-bit count must be resynchronized into FCLK.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_CLKSOURCE
+  decision_refs:
+  - DEC_CLOCK_CDC
+  ambiguity_refs:
+  - AMB_CDC_ASYNC
+  - AMB_CDC_MITIGATION
+- id: CLAIM_EXC_NUMBER
+  source: ARMv7-M ARM DDI0403D B1.5.1/B1.5.2/B1.5.3
+  quote: The SysTick exception has exception number 15 (vector table entry 15) and is a fixed system exception
+    (one of the two system-level interrupts with PendSV), generated by the SysTick timer.
+  summary: The SysTick exception has exception number 15 (vector table entry 15) and is a fixed system
+    exception (one of the two system-level interrupts with PendSV), generated by the SysTick timer.
+  status: accepted
+  normalized_meaning: SysTick is a fixed system exception (number 15), not an external/NVIC interrupt.
+    Priority/vectoring/exception-number ownership is the processor exception model, outside the timer
+    block.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_EXCEPTION
+  decision_refs:
+  - DEC_EXC_BOUNDARY
+  ambiguity_refs: []
+- id: CLAIM_ICSR_PEND
+  source: 'ARMv7-M ARM DDI0403D B3.2.4 ICSR (0xE000ED04): PENDSTSET bit[26], PENDSTCLR bit[25]'
+  quote: 'Software set/clear-pending and the architectural SysTick pending state live in SCB ICSR (0xE000ED04):
+    PENDSTSET[26] RW (set-pending / pending status), PENDSTCLR[25] WO (clear-pending). Simultaneous se'
+  summary: 'Software set/clear-pending and the architectural SysTick pending state live in SCB ICSR (0xE000ED04):
+    PENDSTSET[26] RW (set-pending / pending status), PENDSTCLR[25] WO (clear-pending). Simultaneous set+clear
+    is UNPREDICTABLE. These are OUTSIDE the SysTick timer block.'
+  status: accepted
+  normalized_meaning: The SysTick pend latch, set/clear, priority, preemption, and vectoring are SCB/NVIC
+    responsibilities (ICSR @0xE000ED04). The SysTick timer only supplies a qualified hardware set-pending
+    request; it does not own ICSR.
+  affected_layers:
+  - requirements
+  - requirement_atoms
+  - contracts
+  - verification
+  requirement_refs:
+  - REQ_SYST_EXCEPTION
+  - REQ_SYST_BOUNDARY
+  decision_refs:
+  - DEC_EXC_BOUNDARY
+  ambiguity_refs:
+  - AMB_EXC_REQUEST_STYLE

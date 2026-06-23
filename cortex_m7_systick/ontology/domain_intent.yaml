@@ -1,0 +1,36 @@
+schema_version: oag_domain_intent.v1
+ip: cortex_m7_systick
+policy:
+  profile: simple_leaf_peripheral
+  development_static_check_required: true
+  release_requires_static_or_formal_cdc_rdc: true
+clock_domains:
+- id: CLK_PROC
+  name: clk
+  description: Cortex-M7 processor clock (FCLK); the single SysTick clock domain in v1 (NOREF=1).
+reset_domains:
+- id: RST_MAIN
+  name: rst_n
+  polarity: active_low
+  assertion: asynchronous
+  deassertion: synchronous
+  deassertion_policy: 2-FF reset-deassertion synchronizer on rst_n; async assert, sync deassert into CLK_PROC.
+async_inputs: []
+cdc_crossings: []
+rdc_crossings:
+- id: RDC_SINGLE_RESET
+  classification: no_known_rdc
+  basis:
+  - Single reset domain RST_MAIN drives all sequential logic; no second reset domain in v1.
+  caveat:
+  - External reference-clock CDC variant (NOREF=0) is deferred to a minor follow-on and will require domain_intent
+    + static/formal CDC evidence.
+sync_structures:
+- id: SYNC_RST_DEASSERT
+  kind: reset_deassertion_synchronizer
+  depth: 2
+  domain: CLK_PROC
+  purpose: Synchronize rst_n deassertion to clk (async assert / sync deassert).
+notes:
+- 'v1 single-clock: NOREF=1, CLKSOURCE forced to processor clock; no CDC crossings.'
+- RDC is acknowledged (not waived by single-clock); single reset domain with synchronized deassertion.

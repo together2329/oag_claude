@@ -1,0 +1,20 @@
+schema_version: oag_modeling.v1
+ip: cortex_m7_systick
+modeling_policy:
+  profile: simple_leaf_apb_peripheral
+  full_fl_model_required: false
+  full_cl_model_required: false
+  behavior_model_required_for_behavioral_closure: true
+  cycle_rules_required_for_temporal_closure: true
+  scoreboard_trace_required_for_closure: true
+behavior_model:
+  seed_obligations:
+    reset_known_state:
+      requirement: REQ_CORTEX_M7_SYSTICK_001
+      obligation: OBL_CORTEX_M7_SYSTICK_RESET_KNOWN
+      rule: Reset/default observable state must be specified before this obligation can close.
+cycle_rules:
+  reset:
+    reset_observable_on:
+      rule: Reset/default observations must be sampled at a contract-defined stable point.
+approved_equivalent_oracles: []

@@ -1,0 +1,197 @@
+{
+  "schema_version": "oag_compile_manifest.v1",
+  "ip": "cortex_m7_systick",
+  "compiled_at": "2026-06-23T17:39:51Z",
+  "status": "fail",
+  "input_fingerprints": [
+    {
+      "path": "list/rtl.f",
+      "sha256": "705625d0ca57a3a7f4fb694c57a146f8e7ba27a0bd27146668909cf98c7a5ef1"
+    },
+    {
+      "path": "ontology/contracts.yaml",
+      "sha256": "379afd011fe3e737416f1af924b5ec2402f13ea4a235645bc53693b7fa03caf7"
+    },
+    {
+      "path": "ontology/decomposition.yaml",
+      "sha256": "70407a327073d106c3a2ca6728f86c5e1b8dfd73619c152ecd4ac15d29e33e8a"
+    },
+    {
+      "path": "ontology/design_rules.yaml",
+      "sha256": "95c681804bec432e93d1b27ab21a684f0d1df88ecc7f393ca85e21b4113e52ac"
+    },
+    {
+      "path": "ontology/domain_intent.yaml",
+      "sha256": "94f9edef2d11f058be439a8f512c4f1d5ce63d5e627408e1f06d5ceca809ccea"
+    },
+    {
+      "path": "ontology/modeling.yaml",
+      "sha256": "034adc89938fa311113ab36982c9ce9a84a91dcd663a7019aef5761fc7edf4eb"
+    },
+    {
+      "path": "ontology/obligations.yaml",
+      "sha256": "70f8fb4c11f576a7cddf4574cdb9860fbed5a3aff712f05fc35fba59562b0dda"
+    },
+    {
+      "path": "ontology/policies.yaml",
+      "sha256": "fe63ddfd1442cf79f48f8384c73b77ec2b3a45891cef1061ab8b74f566a7da61"
+    },
+    {
+      "path": "ontology/protection.yaml",
+      "sha256": "ec0315f26a762887b1b17af296721738cb96d7202211381f084968b9ff63fe07"
+    },
+    {
+      "path": "ontology/requirements.yaml",
+      "sha256": "416e873dde7b47a246bdcc76c9abe9096e1c8c87e8ba84d538faf90d3f0e1779"
+    },
+    {
+      "path": "ontology/stages.yaml",
+      "sha256": "664e33af2855ca4f3b17d5a4d12cff2337917973aa6e1d7b711ae22cfb3c1b5a"
+    },
+    {
+      "path": "ontology/structure.yaml",
+      "sha256": "d6c02827464d081243d35c39335763d9e2e765e3a01e47298d1feb3335e81292"
+    },
+    {
+      "path": "ontology/tb_methodology.yaml",
+      "sha256": "7f6ca188dbd2121014d674094736541c41ac4167415c590fa5c8cde519ad6d46"
+    },
+    {
+      "path": "ontology/verification_plan.yaml",
+      "sha256": "fc18bd6f49558fb72db65b9441b9213d66ce1f797a6a8e3d5232e175aaa564e1"
+    },
+    {
+      "path": "signoff/release.yaml",
+      "sha256": "35267e7659b853bb08e3a1e50e139b1747b239287ad044864b5544bfc9b3ab95"
+    }
+  ],
+  "output_fingerprints": [
+    {
+      "path": "ontology/generated/design_truth_graph.json",
+      "sha256": "e4c8dedc27e477b2bf9c35c5965e4674201bd19c7fe820ed3f669c264db58bb5"
+    },
+    {
+      "path": "ontology/generated/design_spec.json",
+      "sha256": "f1d90fc2c984416e377dcadb28f68157d3086fd9f0c3576fe09c53fd3e88dc73"
+    },
+    {
+      "path": "ontology/generated/design_facts_graph.json",
+      "sha256": "b9e76c78b3d87cf18dd978cd4f882aec8f4a39b02940cdca59cf39401fac7776"
+    },
+    {
+      "path": "ontology/generated/domain_crossing_matrix.json",
+      "sha256": "2ad7236300d7d2fda8e7984866d525169ba9d52a076c76358230fb0cf1c02d6d"
+    },
+    {
+      "path": "ontology/generated/tb_methodology_matrix.json",
+      "sha256": "ee74686852cacdb177fb2807e3e0c5ec3a7ccb486dbdcfe49e53baa02d71e63b"
+    },
+    {
+      "path": "ontology/generated/authoring_packets/evidence__cortex_m7_systick.json",
+      "sha256": "c5f1b7e39f75fe3208a99675f2729fe7463d9d0503481c591d9d84777037aa5f"
+    },
+    {
+      "path": "ontology/generated/authoring_packets/module__cortex_m7_systick.json",
+      "sha256": "bc526e32225ba9b5754673246fcfe763666e938d0f7810544ab3af4c42d0361e"
+    },
+    {
+      "path": "ontology/generated/authoring_packets/rtl__cortex_m7_systick.json",
+      "sha256": "0a7f5edc9f56f823556b9bfec962123b686323f358315209a7392ccc1c5be5ca"
+    },
+    {
+      "path": "ontology/generated/authoring_packets/tb__cortex_m7_systick.json",
+      "sha256": "5a03e86f2f54afba31b2b2be6121e0461ff427ffbeb7f675075b51ae7eb2be4f"
+    }
+  ],
+  "stats": {
+    "requirements": 27,
+    "obligations": 12,
+    "contracts": 12,
+    "structure_refs": 0,
+    "modules": 1,
+    "design_facts_modules": 0,
+    "design_facts_instances": 0,
+    "domain_clock_domains": 1,
+    "domain_reset_domains": 1,
+    "domain_cdc_crossings": 0,
+    "domain_rdc_crossings": 1,
+    "tb_methodology_roles": 7,
+    "tb_coverage_goals": 0,
+    "tb_assertion_candidates": 0,
+    "tb_formal_candidates": 0,
+    "stages": 5,
+    "design_rules": 22,
+    "design_rule_instances": 11,
+    "authoring_packets": 4,
+    "load_bearing_edges": 78
+  },
+  "generated": {
+    "design_spec": "cortex_m7_systick/ontology/generated/design_spec.json",
+    "authoring_packets": [
+      {
+        "module": "cortex_m7_systick",
+        "path": "ontology/generated/authoring_packets/module__cortex_m7_systick.json",
+        "editable": true
+      },
+      {
+        "module": "",
+        "path": "ontology/generated/authoring_packets/rtl__cortex_m7_systick.json",
+        "editable": false,
+        "packet_type": "rtl_authoring_packet"
+      },
+      {
+        "module": "",
+        "path": "ontology/generated/authoring_packets/tb__cortex_m7_systick.json",
+        "editable": false,
+        "packet_type": "tb_authoring_packet"
+      },
+      {
+        "module": "",
+        "path": "ontology/generated/authoring_packets/evidence__cortex_m7_systick.json",
+        "editable": false,
+        "packet_type": "evidence_authoring_packet"
+      }
+    ],
+    "authoring_packet_count": 4,
+    "design_facts_graph": "cortex_m7_systick/ontology/generated/design_facts_graph.json",
+    "design_facts": {
+      "path": "cortex_m7_systick/ontology/generated/design_facts_graph.json",
+      "status": "pass",
+      "stats": {
+        "rtl_source_files": 0,
+        "modules": 0,
+        "ports": 0,
+        "parameters": 0,
+        "declarations": 0,
+        "registers": 0,
+        "memories": 0,
+        "instances": 0
+      },
+      "extractor": {
+        "backend": "pyslang",
+        "backend_errors": []
+      }
+    },
+    "domain_crossing_matrix": {
+      "path": "cortex_m7_systick/ontology/generated/domain_crossing_matrix.json",
+      "status": "present",
+      "stats": {
+        "clock_domains": 1,
+        "reset_domains": 1,
+        "async_inputs": 0,
+        "cdc_crossings": 0,
+        "rdc_crossings": 1
+      }
+    },
+    "tb_methodology_matrix": {
+      "path": "cortex_m7_systick/ontology/generated/tb_methodology_matrix.json",
+      "status": "present",
+      "stats": {
+        "roles": 7,
+        "coverage_goals": 0,
+        "assertion_candidates": 0,
+        "formal_candidates": 0
+      }
+    }
+  }
+}

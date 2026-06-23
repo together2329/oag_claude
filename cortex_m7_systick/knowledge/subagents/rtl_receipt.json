@@ -1,0 +1,215 @@
+{
+  "schema_version": "oag_subagent_receipt.v1",
+  "receipt_kind": "rtl_implementation_handoff",
+  "product_name": "IP Dev Agent",
+  "internal_gateway": "Ontology Agent Gateway",
+  "role_name": "oag-rtl-implementation-agent",
+  "agent_type": "oag-rtl-implementation-agent",
+  "dispatch_id": "DISPATCH_CORTEX_M7_SYSTICK_RTL_IMPLEMENTATION_20260623T174041Z_A1F3407F",
+  "dispatch_path": "cortex_m7_systick/knowledge/dispatches/DISPATCH_CORTEX_M7_SYSTICK_RTL_IMPLEMENTATION_20260623T174041Z_A1F3407F.json",
+  "receipt_path": "cortex_m7_systick/knowledge/subagents/rtl_receipt.json",
+  "created_at": "2026-06-24T02:45:00Z",
+  "stage": "rtl_impl",
+  "ip": "cortex_m7_systick",
+  "ip_dir": "cortex_m7_systick",
+  "wavefront_run_id": "",
+  "task_id": "",
+  "scope_lock": {
+    "state": "locked",
+    "lock_id": "LOCK_20260623T173330Z_CORTEX_M7_SYSTICK_V1_FOUR_SCS_REGISTERS_SYST_CSR"
+  },
+  "shard_scope": "RTL implementation of the single OAG SV-lite leaf module cortex_m7_systick.v realizing the 12 locked CONTRACT_SYST_* against doc/v1_interface.md. Write scope: cortex_m7_systick/rtl, cortex_m7_systick/knowledge/subagents. Out of scope: ontology/spec truth, tb/, sim/, signoff.",
+  "allowed_write_paths": [
+    "cortex_m7_systick/rtl",
+    "cortex_m7_systick/knowledge/subagents"
+  ],
+  "owned_obligations": [
+    "OBL_SYST_REGMAP",
+    "OBL_SYST_COUNT",
+    "OBL_SYST_PERIOD",
+    "OBL_SYST_RELOAD",
+    "OBL_SYST_RELOAD_ZERO",
+    "OBL_SYST_CVR",
+    "OBL_SYST_COUNTFLAG",
+    "OBL_SYST_TICKINT",
+    "OBL_SYST_CLKSOURCE",
+    "OBL_SYST_RESET",
+    "OBL_SYST_DISABLE",
+    "OBL_SYST_BOUNDARY"
+  ],
+  "contracts": [
+    "CONTRACT_SYST_REGMAP",
+    "CONTRACT_SYST_COUNT",
+    "CONTRACT_SYST_PERIOD",
+    "CONTRACT_SYST_RELOAD",
+    "CONTRACT_SYST_RELOAD_ZERO",
+    "CONTRACT_SYST_CVR",
+    "CONTRACT_SYST_COUNTFLAG",
+    "CONTRACT_SYST_TICKINT",
+    "CONTRACT_SYST_CLKSOURCE",
+    "CONTRACT_SYST_RESET",
+    "CONTRACT_SYST_DISABLE",
+    "CONTRACT_SYST_BOUNDARY"
+  ],
+  "rtl_dialect": "oag_sv_lite_verilog2001",
+  "truth_sources_read": [
+    "cortex_m7_systick/ontology/scope_lock.json",
+    "cortex_m7_systick/doc/v1_interface.md",
+    "cortex_m7_systick/ontology/contracts.yaml",
+    "cortex_m7_systick/ontology/domain_intent.yaml",
+    "cortex_m7_systick/ontology/modeling.yaml",
+    "cortex_m7_systick/req/locked_truth.md",
+    "cortex_m7_systick/ontology/generated/authoring_packets/rtl__cortex_m7_systick.json",
+    ".claude/oag/rtl-dialect-policy.md",
+    ".claude/rules/oag-rtl-ppa.rules.md"
+  ],
+  "forbidden_sources_avoided": [
+    "tb/",
+    "sim/scoreboard_events.jsonl",
+    "observed DUT behavior"
+  ],
+  "implemented_contracts": [
+    "CONTRACT_SYST_REGMAP",
+    "CONTRACT_SYST_COUNT",
+    "CONTRACT_SYST_PERIOD",
+    "CONTRACT_SYST_RELOAD",
+    "CONTRACT_SYST_RELOAD_ZERO",
+    "CONTRACT_SYST_CVR",
+    "CONTRACT_SYST_COUNTFLAG",
+    "CONTRACT_SYST_TICKINT",
+    "CONTRACT_SYST_CLKSOURCE",
+    "CONTRACT_SYST_RESET",
+    "CONTRACT_SYST_DISABLE",
+    "CONTRACT_SYST_BOUNDARY"
+  ],
+  "behavior_refs_implemented": [
+    "behavior_model.syst.regmap",
+    "behavior_model.syst.count",
+    "behavior_model.syst.reload",
+    "behavior_model.syst.reload_zero",
+    "behavior_model.syst.cvr",
+    "behavior_model.syst.countflag",
+    "behavior_model.syst.tickint",
+    "behavior_model.syst.clksource",
+    "behavior_model.syst.reset",
+    "behavior_model.syst.disable",
+    "behavior_model.syst.boundary"
+  ],
+  "cycle_rule_refs_implemented": [
+    "cycle_rules.syst.access",
+    "cycle_rules.syst.period",
+    "cycle_rules.syst.cvr_reload",
+    "cycle_rules.syst.tick_timing",
+    "cycle_rules.syst.reset_release",
+    "cycle_rules.syst.boundary"
+  ],
+  "implementation_notes": {
+    "decode": "Word-only APB-lite, paddr[3:2] => 0=CSR,1=RVR,2=CVR,3=CALIB; pready=1; prdata combinational; reserved bits RAZ/WI.",
+    "csr_fields": "ENABLE[0] RW, TICKINT[1] RW, CLKSOURCE[2] forced 1 read-only via NOREF (writes of 0 ignored), COUNTFLAG[16] RO.",
+    "counter": "24-bit down counter; decrement when ENABLE=1; natural 1->0 (current==1) sets COUNTFLAG and qualifies tick_irq; reload from RVR the clock after current==0 so period=RELOAD+1 and CURRENT=0 is visible exactly one cycle.",
+    "reload_zero": "RELOAD=0 loads 0 and holds 0; no 1->0 event (natural_to_zero requires current==1); never wraps to 0xFFFFFF.",
+    "cvr_write": "Any CVR write clears CURRENT and COUNTFLAG now, ignores write data, pulses no tick, and sets a deferred reload (cvr_reload_pending) that loads RVR on the next clock.",
+    "countflag_clear": "Cleared only by a functional SYST_CSR read (rd_csr) or any SYST_CVR write; NOT by CSR/RVR writes. A wrap coincident with a CSR read is reported (set wins over clear-by-read) then cleared next clock; prdata uses countflag|natural_to_zero for same-cycle visibility.",
+    "tick_irq": "Single-cycle pulse: natural_to_zero && TICKINT=1. Excludes CVR-write-to-zero (natural_to_zero excludes wr_cvr) and excludes TICKINT=0.",
+    "disable_freeze": "ENABLE=0 holds CURRENT and COUNTFLAG; re-enable resumes from held value; reload only on wrap-through-0 or after a CVR write.",
+    "calib": "SYST_CALIB RO = {NOREF=CFGSTCALIB[25], SKEW=CFGSTCALIB[24], reserved[29:24]=0, TENMS=CFGSTCALIB[23:0]}; default CFGSTCALIB=26'h3000000 => 0xC0000000.",
+    "reset": "rst_n async-assert/sync-deassert via 2-FF synchronizer (rst_sync_n drives all functional logic). Reset SYST_CSR=0x00000000 (CLKSOURCE reads 1 via NOREF). RVR/CVR reset to 0 as an IP-specific X-prop-clean superset (ARM power-on UNKNOWN), recorded as IP choice not ARM truth."
+  },
+  "ppa_notes": {
+    "performance": [
+      "Simple_leaf APB peripheral; no multi-stage pipeline and no large global combinational feedback, so no critical-path concern at typical M7 FCLK.",
+      "Decode is a flat 2-bit (paddr[3:2]) case; read mux is a single 4-way case to combinational prdata; counter is a single subtractor.",
+      "Zero-wait CSR (pready=1); single-cycle response satisfies the access contract without added latency."
+    ],
+    "power": [
+      "The 24-bit down-counter is the main high-toggle datapath when ENABLE=1; control flops toggle rarely.",
+      "ENABLE is a synchronous decrement qualifier inferred by synthesis; no manual clock gating added (policy default).",
+      "tick_irq and the prdata COUNTFLAG read share the low-fanout natural_to_zero term."
+    ],
+    "area": [
+      "Minimal: 24-bit RVR + 24-bit CVR + a few control flops (enable, tickint, countflag, cvr_reload_pending, 2-FF reset sync); no memory.",
+      "Explicit register write enables (wr_csr/wr_rvr/wr_cvr) let synthesis infer load enables.",
+      "Reset footprint limited to architecturally required state (CSR=0) plus RVR/CVR/pending zeroed for X-prop cleanliness."
+    ],
+    "tradeoffs": [
+      "Chose the simplest contract-preserving implementation for a simple_leaf APB peripheral.",
+      "No PPA optimization altered protocol, timing, reset values, priority, or the address map.",
+      "No accidental priority mux or latch: every always @(*) block fully assigns its outputs (default branches present)."
+    ]
+  },
+  "domain_crossing_notes": {
+    "clock_domains": [
+      "Single clock domain CLK_PROC (clk = FCLK; NOREF=1). No CDC crossings in v1 (domain_intent cdc_crossings=[]).",
+      "No independent multi-bit bit-synchronizers introduced."
+    ],
+    "reset_domains": [
+      "Single reset domain RST_MAIN (rst_n, active-low, async assert / sync deassert).",
+      "rst_n feeds only a 2-FF reset-deassertion synchronizer (SYNC_RST_DEASSERT, depth=2) into CLK_PROC; rst_sync_n is the single internal functional reset driving all sequential logic."
+    ],
+    "cdc_structures_implemented": [],
+    "rdc_structures_implemented": [
+      {
+        "id": "SYNC_RST_DEASSERT",
+        "kind": "reset_deassertion_synchronizer",
+        "depth": 2,
+        "domain": "CLK_PROC",
+        "classification": "no_known_rdc (RDC_SINGLE_RESET)",
+        "purpose": "Async-assert / sync-deassert of rst_n into clk; single reset domain so no reset-domain crossing in v1."
+      }
+    ],
+    "open_domain_crossing_blockers": [
+      "None for v1. External reference-clock CDC variant (NOREF=0) is deferred per domain_intent.yaml caveat and will require domain_intent updates plus static/formal CDC evidence."
+    ]
+  },
+  "changed_paths": [
+    "cortex_m7_systick/rtl/cortex_m7_systick.v"
+  ],
+  "owned_changed_paths": [
+    "cortex_m7_systick/rtl/cortex_m7_systick.v"
+  ],
+  "generated_side_effects": [],
+  "cross_dispatch_note": "The whole-workspace git delta also shows cortex_m7_systick/tb/Makefile and cortex_m7_systick/tb/test_cortex_m7_systick.py. These were authored by the concurrent TB dispatch (DISPATCH_CORTEX_M7_SYSTICK_TB_IMPLEMENTATION_20260623T174033Z_D2EF6ECD), NOT by this RTL agent. This agent wrote only within its allowed paths (cortex_m7_systick/rtl, cortex_m7_systick/knowledge/subagents) and did not read tb/ as a truth source. The verifier flags those tb/ paths as out-of-scope only because it diffs against a shared baseline snapshot; integration owner should reconcile per-dispatch ownership.",
+  "evidence_outputs": [
+    "cortex_m7_systick/rtl/cortex_m7_systick.v",
+    "cortex_m7_systick/knowledge/subagents/rtl_receipt.json"
+  ],
+  "lint_waivers": [
+    {
+      "tool": "verilator",
+      "warning": "UNUSEDSIGNAL",
+      "signal": "paddr",
+      "scope": "narrow lint_off/lint_on around the paddr port declaration only",
+      "rationale": "Word-only register decode uses paddr[3:2] only (4 word registers at 0x0/0x4/0x8/0xC per the frozen interface); the other paddr bits are intentionally not used for selection. Port width is fixed by contract."
+    },
+    {
+      "tool": "verilator",
+      "warning": "UNUSEDSIGNAL",
+      "signal": "pwdata",
+      "scope": "narrow lint_off/lint_on around the pwdata port declaration only",
+      "rationale": "32-bit APB write bus; only ENABLE/TICKINT[1:0] and RELOAD/CURRENT[23:0] are stored. Reserved/upper bits (incl. pwdata[31:24]) are RAZ/WI and intentionally not stored. Port width is fixed by contract."
+    }
+  ],
+  "checks_run": [
+    "iverilog -g2012 -o /tmp/syst_iv.out cortex_m7_systick/rtl/cortex_m7_systick.v => PASS (exit 0, clean elaboration of the single leaf module)",
+    "verilator --lint-only -Wall cortex_m7_systick/rtl/cortex_m7_systick.v => PASS (exit 0, no warnings/errors after narrow paddr/pwdata UNUSEDSIGNAL waivers)",
+    "python3 .claude/scripts/oag_ppa_check.py cortex_m7_systick/rtl/cortex_m7_systick.v => PASS (PASS oag ppa check)",
+    "oag_sv_lite_dialect_scan (grep always_ff/always_comb/typedef/enum/struct/interface/package/class/while/repeat/forever and procedural for outside generate) => PASS (matches only in comments; no procedural loops)",
+    "python3 .claude/scripts/oag_dispatch.py verify --dispatch <this dispatch> --receipt <this receipt> => receipt schema PASS (0 RECEIPT_SCHEMA issues); owned_changed_paths == [cortex_m7_systick/rtl/cortex_m7_systick.v]; the only ACTUAL_PATH_OUT_OF_SCOPE entries are cortex_m7_systick/tb/Makefile and cortex_m7_systick/tb/test_cortex_m7_systick.py, both authored by the concurrent TB dispatch (not this agent). Overall verify status=fail is caused solely by that cross-dispatch shared-baseline artifact, not by this RTL handoff."
+  ],
+  "rocev_trace": "REQ_SYST_* -> OBL_SYST_* (12) -> CONTRACT_SYST_* (12) -> rtl/cortex_m7_systick.v; behavior_model.syst.* / cycle_rules.syst.* oracle semantics carried by doc/v1_interface.md (locked) and contract guarantees.",
+  "blockers": [
+    {
+      "kind": "cross_dispatch_workspace_isolation",
+      "severity": "blocks_dispatch_verify_only",
+      "owner": "wavefront_integration_owner",
+      "detail": "oag_dispatch.py verify returns status=fail (exit 1) ONLY because the concurrent TB dispatch (DISPATCH_CORTEX_M7_SYSTICK_TB_IMPLEMENTATION_20260623T174033Z_D2EF6ECD) wrote cortex_m7_systick/tb/Makefile and tb/test_cortex_m7_systick.py into the shared workspace AFTER this RTL dispatch's baseline snapshot (2026-06-23T17:40:41Z, 84 paths, no tb/) was captured. The verifier enumerates the whole-IP untracked git status (git status --short -uall -- cortex_m7_systick) and subtracts the frozen baseline; the two post-baseline tb/ files are not in this dispatch's allowed_write_paths, so it raises ACTUAL_PATH_OUT_OF_SCOPE for each. This RTL agent did NOT create, modify, delete, or read those tb/ files. The receipt itself passes schema validation (0 RECEIPT_SCHEMA issues), owned_changed_paths is exactly cortex_m7_systick/rtl/cortex_m7_systick.v, and out_of_scope_paths contains only the two sibling tb/ files.",
+      "why_not_self_resolvable": "Clearing this would require one of: (a) editing the dispatch baseline under cortex_m7_systick/knowledge/dispatches/ (generated dispatch truth, outside this agent's allowed_write_paths, forbidden), (b) deleting or relocating the TB dispatch's tb/ files (outside scope and an OAG violation against another dispatch's work), or (c) committing the workspace (project policy: commit only when the user asks). None is permitted to this RTL agent.",
+      "resolution": "Integration owner re-snapshots this dispatch baseline (oag_dispatch.py create) or runs verify per-dispatch in an isolated git worktree so each agent's git-status delta contains only its own owned paths (RULE-WAVE-002 / RULE-WAVE-004). After isolation/re-snapshot, oag_dispatch.py verify for this dispatch is expected to return status=pass with the RTL receipt unchanged.",
+      "blocks_rtl_deliverable": false,
+      "rtl_deliverable_state": "RTL complete and passes iverilog -g2012, verilator --lint-only -Wall, oag_ppa_check.py, OAG SV-lite dialect scan, and receipt-schema validation."
+    }
+  ],
+  "next_action_for_downstream": "TB/sim agent: build a directed/table-driven micro-TB from behavior_model.syst.* and cycle_rules.syst.* oracle refs; produce sim/scenario_mapping.json and scoreboard_rows.v1 evidence. CDC/RDC: no crossings in v1; reset-deassertion synchronizer present. Do NOT treat this RTL handoff as closure.",
+  "may_claim_complete": false,
+  "status": "RTL_HANDOFF_PASS"
+}
