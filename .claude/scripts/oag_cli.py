@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -24,10 +25,45 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import oag_paths  # noqa: E402
+from oag_wavefront_core import WavefrontRun, graph_paths  # noqa: E402
+from oag_wavefront_graph import (  # noqa: E402
+    DONE_STATUSES,
+    active_lock_paths,
+    barrier_ready,
+    dependency_ready,
+    load_barriers,
+    load_graph,
+    load_locks,
+    ready_tasks,
+    task_map,
+    task_write_paths,
+)
+from oag_wavefront_ops import PlanRequest, create_wavefront_run, load_wavefront_run_status  # noqa: E402
+from oag_wavefront_records import RecordRequest, record_wavefront_task  # noqa: E402
+from oag_run_authority import (  # noqa: E402
+    GraphRecordContext,
+    OagGraphRecordError,
+    find_graph_record_task,
+    require_graph_dependencies_closed,
+    require_graph_evidence_ready,
+    require_record_authority,
+)
+from oag_run_promotion import IntegrationPromotionContext, promote_integration_merge  # noqa: E402
+from oag_loop_core import (  # noqa: E402
+    build_bounded_plan,
+    loop_policy_storage,
+    resolve_loop_policy,
+)
 
 
 RESPONSE_SCHEMA = "oag_tool_response.v1"
 VALID_COMPLETION_ACTIONS = {"claim_complete", "close_obligation", "merge", "promote", "signoff"}
+RUN_CLOSURE_GRAPH_TEMPLATE = "oag.run.start.closure_graph.v1"
+CANONICAL_AGGREGATE_REFS = {
+    "sim/scoreboard_events.jsonl": "sim",
+    "cov/coverage.json": "cov",
+    "formal/formal_status.json": "formal",
+}
 SCOREBOARD_REQUIRED_FIELDS = {
     "goal_id",
     "scenario_id",
@@ -6994,6 +7030,622 @@ def _save_run_state(ip: Path, state: dict[str, Any]) -> None:
     _write_json(_run_next_action_path(ip, run_id), next_action)
 
 
+def _wavefront_run(ip: Path, run_id: str) -> WavefrontRun:
+    return WavefrontRun(ip, _safe_filename(run_id))
+
+
+def _run_graph_refs(ip: Path, run_id: str) -> dict[str, str]:
+    paths = graph_paths(_wavefront_run(ip, run_id))
+    return {
+        "run_dir": _logical_rel_to_ip(ip, paths["run_dir"]),
+        "graph": _logical_rel_to_ip(ip, paths["graph"]),
+        "locks": _logical_rel_to_ip(ip, paths["locks"]),
+        "barriers": _logical_rel_to_ip(ip, paths["barriers"]),
+        "claims": _logical_rel_to_ip(ip, paths["claims"]),
+        "events": _logical_rel_to_ip(ip, paths["events"]),
+    }
+
+
+def _run_graph_mode(state: dict[str, Any]) -> str:
+    graph = state.get("graph") if isinstance(state.get("graph"), dict) else {}
+    candidates = [
+        state.get("run_mode"),
+        state.get("graph_mode"),
+        graph.get("mode"),
+        graph.get("run_mode"),
+    ]
+    for candidate in candidates:
+        mode = str(candidate or "").strip()
+        if mode:
+            return mode
+    return ""
+
+
+def _is_legacy_no_graph_run(state: dict[str, Any]) -> bool:
+    return _run_graph_mode(state) in {"legacy_no_graph", "legacy-no-graph", "no_graph", "legacy"}
+
+
+def _run_graph_meta(ip: Path, run_id: str, plan_result: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "oag_run_graph_ref.v1",
+        "mode": "graph_backed",
+        "migration_marker": "task_2_graph_backed_default",
+        "wavefront_schema_version": "oag_wavefront_task_graph.v1",
+        "scheduler_schema_version": "oag_run_graph_scheduler.v1",
+        "run_id": run_id,
+        "refs": _run_graph_refs(ip, run_id),
+        "planner": {
+            "schema_version": str(plan_result.get("schema_version") or ""),
+            "status": str(plan_result.get("status") or ""),
+            "template": RUN_CLOSURE_GRAPH_TEMPLATE,
+            "issues": plan_result.get("issues") if isinstance(plan_result.get("issues"), list) else [],
+        },
+    }
+
+
+def _run_planning_task(ip: Path, state: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "task_id": "planning_checkpoint",
+        "kind": "read_only",
+        "phase": "planning",
+        "agent_type": "oag-planning-checkpoint",
+        "depends_on": [],
+        "barrier_inputs": [],
+        "barrier_outputs": [],
+        "allowed_write_paths": [],
+        "shared_artifacts": [],
+        "stale_if_paths_changed": [],
+        "ownership_mode": "none",
+        "summary": "Author requirements, obligations, and contracts before closure work can be scheduled.",
+        "next_action_kind": "author_obligations",
+        "required_evidence": [],
+        "ip": ip.name,
+        "run_id": str(state.get("run_id") or ""),
+        "non_closure": True,
+    }
+
+
+def _run_task_hash(task: dict[str, Any]) -> str:
+    stable = {
+        key: value
+        for key, value in task.items()
+        if key
+        not in {
+            "status",
+            "claimed_by",
+            "claimed_at",
+            "pre_edit_hashes",
+            "task_hash",
+            "planner_projection_hash",
+        }
+    }
+    payload = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _planner_projection_hash(tasks: list[dict[str, Any]]) -> str:
+    items = [{"task_id": str(task.get("task_id") or ""), "task_hash": str(task.get("task_hash") or "")} for task in tasks]
+    payload = json.dumps(sorted(items, key=lambda item: item["task_id"]), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _finalize_run_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    finalized = [dict(task) for task in tasks]
+    for task in finalized:
+        task["task_hash"] = _run_task_hash(task)
+    projection_hash = _planner_projection_hash(finalized)
+    for task in finalized:
+        task["planner_projection_hash"] = projection_hash
+    return finalized
+
+
+def _obligation_serial_dependencies(obligation: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for key in (
+        "depends_on",
+        "dependencies",
+        "dependency",
+        "after",
+        "blocked_by",
+        "requires_obligations",
+        "prerequisite_obligations",
+    ):
+        refs.extend(_str_items(obligation.get(key)))
+    return sorted(dict.fromkeys(refs))
+
+
+def _evidence_family_for_ref(ref: str) -> str:
+    text = str(ref or "").strip().lower()
+    if text in CANONICAL_AGGREGATE_REFS:
+        return CANONICAL_AGGREGATE_REFS[text]
+    if text.startswith("sim/") or "scoreboard" in text or "simulation" in text:
+        return "sim"
+    if text.startswith("cov/") or "coverage" in text:
+        return "cov"
+    if text.startswith("formal/") or any(token in text for token in ("assertion", "proof", "sva")):
+        return "formal"
+    if text.startswith("knowledge/") or text.endswith("_receipt.json"):
+        return "knowledge"
+    return "knowledge"
+
+
+def _evidence_shard_path(family: str, obligation_id: str) -> str:
+    safe_obligation = _safe_filename(obligation_id)
+    shard_paths = {
+        "sim": f"sim/slices/{safe_obligation}/",
+        "cov": f"cov/slices/{safe_obligation}/",
+        "formal": f"formal/slices/{safe_obligation}/",
+        "knowledge": f"knowledge/subagents/{safe_obligation}_receipt.json",
+    }
+    return shard_paths.get(family, shard_paths["knowledge"])
+
+
+def _expected_evidence_families(refs: list[str]) -> dict[str, list[str]]:
+    families: dict[str, list[str]] = {}
+    for ref in refs:
+        family = _evidence_family_for_ref(ref)
+        families.setdefault(family, []).append(ref)
+    return {family: sorted(dict.fromkeys(items)) for family, items in families.items()}
+
+
+def _run_expected_evidence(ip: Path, contract_ids: list[str]) -> list[str]:
+    contracts = _contracts_by_id(ip)
+    evidence_refs: list[str] = []
+    for contract_id in contract_ids:
+        contract = contracts.get(contract_id)
+        if contract:
+            evidence_refs.extend(_contract_expected_evidence(contract))
+    return sorted(dict.fromkeys(evidence_refs))
+
+
+def _run_required_shard_evidence(refs: list[str], obligation_id: str) -> list[str]:
+    return sorted({_evidence_shard_path(_evidence_family_for_ref(ref), obligation_id) for ref in refs})
+
+
+def _run_obligation_base_deps(row: dict[str, Any], obligations: dict[str, dict[str, Any]]) -> list[str]:
+    obligation_id = str(row.get("obligation") or "")
+    obligation = obligations.get(obligation_id, {})
+    deps = [f"closure.{_safe_filename(dep)}" for dep in _obligation_serial_dependencies(obligation) if dep in obligations]
+    return sorted(dict.fromkeys(deps))
+
+
+def _run_triage_task(ip: Path, state: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+    obligation = str(row.get("obligation") or "")
+    contract_ids = [str(item) for item in _as_list(row.get("contracts")) if str(item).strip()]
+    evidence_refs = _run_expected_evidence(ip, contract_ids)
+    return {
+        "task_id": f"triage.{_safe_filename(obligation)}",
+        "kind": "read_only",
+        "phase": "closure_triage",
+        "agent_type": "oag-closure-triage",
+        "depends_on": _run_obligation_base_deps(row, _obligations_by_id(ip)),
+        "barrier_inputs": [],
+        "barrier_outputs": [],
+        "allowed_write_paths": [],
+        "shared_artifacts": [],
+        "stale_if_paths_changed": [],
+        "ownership_mode": "none",
+        "summary": f"Triage closure evidence requirements for {obligation}.",
+        "next_action_kind": "triage_obligation",
+        "obligation": obligation,
+        "contracts": contract_ids,
+        "owner": _owner_for_obligation(ip, obligation),
+        "required_evidence": _run_required_shard_evidence(evidence_refs, obligation),
+        "ip": ip.name,
+        "run_id": str(state.get("run_id") or ""),
+    }
+
+
+def _run_evidence_task(state: dict[str, Any], row: dict[str, Any], family_refs: tuple[str, list[str]]) -> dict[str, Any]:
+    obligation = str(row.get("obligation") or "")
+    family, refs = family_refs
+    return {
+        "task_id": f"evidence.{family}.{_safe_filename(obligation)}",
+        "kind": "write",
+        "phase": f"{family}_evidence_shard",
+        "agent_type": f"oag-{family}-evidence-worker",
+        "depends_on": _run_obligation_base_deps(row, _obligations_by_id(Path(str(state.get("ip_dir") or ".")))),
+        "barrier_inputs": [],
+        "barrier_outputs": [],
+        "allowed_write_paths": [_evidence_shard_path(family, obligation)],
+        "shared_artifacts": [],
+        "stale_if_paths_changed": [],
+        "ownership_mode": "exclusive_file",
+        "summary": f"Produce {family} evidence shard for {obligation}.",
+        "next_action_kind": "produce_evidence_shard",
+        "obligation": obligation,
+        "contracts": [str(item) for item in _as_list(row.get("contracts")) if str(item).strip()],
+        "evidence_family": family,
+        "evidence_shard_path": _evidence_shard_path(family, obligation),
+        "required_evidence": [_evidence_shard_path(family, obligation)] if refs else [],
+        "may_write_canonical_aggregate": False,
+        "ip": str(state.get("ip") or ""),
+        "run_id": str(state.get("run_id") or ""),
+    }
+
+
+def _run_parent_closure_task(ip: Path, state: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+    obligation = str(row.get("obligation") or "")
+    contract_ids = [str(item) for item in _as_list(row.get("contracts")) if str(item).strip()]
+    evidence_refs = _run_expected_evidence(ip, contract_ids)
+    families = sorted(_expected_evidence_families(evidence_refs))
+    safe_obligation = _safe_filename(obligation)
+    deps = [f"triage.{safe_obligation}"]
+    deps.extend(f"evidence.{family}.{safe_obligation}" for family in families)
+    deps.extend(f"merge.{family}.aggregate" for family in families if family in {"sim", "cov", "formal"})
+    deps.extend(_run_obligation_base_deps(row, _obligations_by_id(ip)))
+    return {
+        "task_id": f"closure.{safe_obligation}",
+        "kind": "closure",
+        "phase": "closure",
+        "agent_type": "oag-parent-closure",
+        "depends_on": sorted(dict.fromkeys(deps)),
+        "barrier_inputs": [],
+        "barrier_outputs": [f"closure:{obligation}:recorded"],
+        "allowed_write_paths": [],
+        "shared_artifacts": [],
+        "stale_if_paths_changed": [],
+        "ownership_mode": "none",
+        "summary": f"Parent records ROCEV closure for {obligation} after shard evidence and integration merge.",
+        "next_action_kind": "record_parent_closure",
+        "obligation": obligation,
+        "contracts": contract_ids,
+        "owner": _owner_for_obligation(ip, obligation),
+        "required_evidence": _run_required_shard_evidence(evidence_refs, obligation),
+        "ip": ip.name,
+        "run_id": str(state.get("run_id") or ""),
+    }
+
+
+def _run_merge_tasks(rows: list[dict[str, Any]], family_refs: dict[str, dict[str, list[str]]]) -> list[dict[str, Any]]:
+    tasks: list[dict[str, Any]] = []
+    for family in ("sim", "cov", "formal"):
+        refs_by_obligation = family_refs.get(family, {})
+        if not refs_by_obligation:
+            continue
+        obligations = sorted(refs_by_obligation)
+        canonical_refs = [ref for ref, ref_family in CANONICAL_AGGREGATE_REFS.items() if ref_family == family]
+        tasks.append(
+            {
+                "task_id": f"merge.{family}.aggregate",
+                "kind": "integration",
+                "phase": f"{family}_integration_merge",
+                "agent_type": f"oag-{family}-integration-owner",
+                "depends_on": [f"evidence.{family}.{_safe_filename(obligation)}" for obligation in obligations],
+                "barrier_inputs": [],
+                "barrier_outputs": [f"integration:{family}:merged"],
+                "allowed_write_paths": [],
+                "shared_artifacts": canonical_refs,
+                "canonical_outputs": canonical_refs,
+                "stale_if_paths_changed": [],
+                "ownership_mode": "integration_owner",
+                "summary": f"Merge {family} obligation shards into canonical aggregate evidence.",
+                "next_action_kind": "merge_evidence_shards",
+                "obligations": obligations,
+                "evidence_family": family,
+                "required_evidence": sorted({_evidence_shard_path(family, obligation) for obligation in obligations}),
+                "may_write_canonical_aggregate": True,
+                "integration_owner_only": True,
+            }
+        )
+    return tasks
+
+
+def _run_wavefront_seed_tasks(ip: Path, state: dict[str, Any]) -> list[dict[str, Any]]:
+    matrix = _closure_matrix(ip)
+    rows = [
+        row
+        for row in matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("closed") is not True and row.get("waived") is not True
+    ]
+    if not rows:
+        return _finalize_run_tasks([_run_planning_task(ip, state)])
+    state_with_ip = {**state, "ip": ip.name, "ip_dir": str(ip)}
+    tasks: list[dict[str, Any]] = []
+    family_refs: dict[str, dict[str, list[str]]] = {}
+    for row in rows:
+        contract_ids = [str(item) for item in _as_list(row.get("contracts")) if str(item).strip()]
+        expected_refs = _run_expected_evidence(ip, contract_ids)
+        families = _expected_evidence_families(expected_refs)
+        tasks.append(_run_triage_task(ip, state, row))
+        for family, refs in sorted(families.items()):
+            tasks.append(_run_evidence_task(state_with_ip, row, (family, refs)))
+            if family in {"sim", "cov", "formal"}:
+                family_refs.setdefault(family, {})[str(row.get("obligation") or "")] = refs
+        tasks.append(_run_parent_closure_task(ip, state, row))
+    tasks.extend(_run_merge_tasks(rows, family_refs))
+    return _finalize_run_tasks(tasks)
+
+
+def _run_graph_planner_status(ip: Path, state: dict[str, Any], graph: dict[str, Any]) -> dict[str, Any]:
+    expected = _run_wavefront_seed_tasks(ip, state)
+    expected_hashes = {str(task.get("task_id") or ""): str(task.get("task_hash") or "") for task in expected}
+    observed_hashes = {
+        str(task.get("task_id") or ""): str(task.get("task_hash") or "")
+        for task in graph.get("tasks", [])
+        if isinstance(task, dict)
+    }
+    if expected_hashes == observed_hashes:
+        return {"status": "pass", "issues": []}
+    open_obligations = [
+        row
+        for row in _closure_matrix(ip).get("rows", [])
+        if isinstance(row, dict) and row.get("closed") is not True and row.get("waived") is not True
+    ]
+    graph_tasks = [task for task in graph.get("tasks", []) if isinstance(task, dict)]
+    if graph_tasks and not open_obligations and all(str(task.get("status") or "") in DONE_STATUSES for task in graph_tasks):
+        return {"status": "pass", "issues": []}
+    missing = sorted(set(expected_hashes) - set(observed_hashes))
+    extra = sorted(set(observed_hashes) - set(expected_hashes))
+    changed = sorted(task_id for task_id in set(expected_hashes) & set(observed_hashes) if expected_hashes[task_id] != observed_hashes[task_id])
+    return {
+        "status": "fail",
+        "issues": [
+            {
+                "code": "RUN_GRAPH_STALE_REPLAN_REQUIRED",
+                "message": "closure graph planner inputs no longer match the stored run graph; run an explicit replan before dispatch",
+                "missing_task_ids": missing,
+                "extra_task_ids": extra,
+                "changed_task_ids": changed,
+            }
+        ],
+    }
+
+
+def _ensure_run_wavefront_graph(ip: Path, state: dict[str, Any]) -> dict[str, Any]:
+    run_id = str(state.get("run_id") or "")
+    run = _wavefront_run(ip, run_id)
+    status = load_wavefront_run_status(run, "oag_run_wavefront_attach_status.v1")
+    if status.get("status") in {"pass", "fail"} and status.get("graph_exists") is True:
+        if status.get("status") == "pass":
+            graph = load_graph(run)
+            planner_status = _run_graph_planner_status(ip, state, graph)
+            if planner_status["status"] != "pass":
+                status = {**status, "status": "fail", "issues": planner_status["issues"]}
+        return status
+    return create_wavefront_run(
+        PlanRequest(
+            run=run,
+            raw_tasks=_run_wavefront_seed_tasks(ip, state),
+            template=RUN_CLOSURE_GRAPH_TEMPLATE,
+            barrier_tokens=[],
+        )
+    )
+
+
+def _dispatch_candidate(ip: Path, run_id: str, task: dict[str, Any]) -> dict[str, Any]:
+    task_id = str(task.get("task_id") or "")
+    command = (
+        "python3 .claude/scripts/oag_wavefront.py claim"
+        f" --ip-dir {shlex.quote(str(ip))}"
+        f" --run-id {shlex.quote(run_id)}"
+        f" --task-id {shlex.quote(task_id)}"
+        " --claimed-by <actor>"
+        " --json"
+    )
+    return {
+        "task_id": task_id,
+        "command": command,
+        "ownership_mode": str(task.get("ownership_mode") or ""),
+        "may_claim_complete": False,
+    }
+
+
+def _task_lock_blockers(task: dict[str, Any], locks: dict[str, Any]) -> list[str]:
+    active = active_lock_paths(locks)
+    blockers = []
+    for path in task_write_paths(task):
+        owner = active.get(path)
+        if owner:
+            blockers.append(f"path {path} locked by {owner}")
+    return blockers
+
+
+def _blocked_graph_tasks(graph: dict[str, Any], barriers: dict[str, Any], locks: dict[str, Any]) -> list[dict[str, Any]]:
+    tasks = task_map(graph)
+    blocked: list[dict[str, Any]] = []
+    active_statuses = {"claimed", "blocked", "failed", "inconclusive"}
+    for task in graph.get("tasks", []):
+        if not isinstance(task, dict):
+            continue
+        status = str(task.get("status") or "")
+        blockers: list[str] = []
+        if status == "pending":
+            _, dependency_blockers = dependency_ready(task, tasks)
+            _, barrier_blockers = barrier_ready(task, barriers)
+            blockers.extend(dependency_blockers)
+            blockers.extend(f"missing barrier token: {token}" for token in barrier_blockers)
+            blockers.extend(_task_lock_blockers(task, locks))
+        elif status in active_statuses:
+            blockers.append(f"task status={status}")
+        if blockers:
+            blocked.append({"task_id": str(task.get("task_id") or ""), "status": status, "blockers": blockers, "task": task})
+    return blocked
+
+
+def _graph_issue_action(ip: Path, state: dict[str, Any], status: dict[str, Any]) -> dict[str, Any]:
+    run_id = str(state.get("run_id") or "")
+    issues = status.get("issues") if isinstance(status.get("issues"), list) else []
+    return {
+        "schema_version": "oag_run_graph_next_action.v1",
+        "scheduler_schema_version": "oag_run_graph_scheduler.v1",
+        "mode": "graph_backed",
+        "ip": ip.name,
+        "run_id": run_id,
+        "stage": str(state.get("stage") or ""),
+        "intent": str(state.get("intent") or ""),
+        "status": "graph_issue",
+        "active_obligation": "",
+        "active_contracts": [],
+        "owner": {},
+        "next_action": {
+            "kind": "replan_wavefront_graph"
+            if any(isinstance(item, dict) and item.get("code") == "RUN_GRAPH_STALE_REPLAN_REQUIRED" for item in issues)
+            else "repair_wavefront_graph",
+            "summary": "Graph-backed run graph is stale; explicitly replan before dispatch."
+            if any(isinstance(item, dict) and item.get("code") == "RUN_GRAPH_STALE_REPLAN_REQUIRED" for item in issues)
+            else "Graph-backed run state is missing or invalid; restore or replan the wavefront graph before continuing.",
+            "why": [str(item.get("message") or item) for item in issues if isinstance(item, dict)] or ["wavefront graph is unavailable"],
+            "commands": [],
+            "required_evidence": [],
+        },
+        "blockers": issues,
+        "ready_tasks": [],
+        "blocked_tasks": [],
+        "active_locks": [],
+        "dispatch_command_candidates": [],
+        "graph_status": status,
+        "closure_matrix": _closure_matrix(ip),
+        "stop_condition": "wavefront graph status=pass",
+        "prompt_block": "",
+    }
+
+
+def _run_graph_action_from_state(ip: Path, state: dict[str, Any]) -> dict[str, Any]:
+    run_id = str(state.get("run_id") or "")
+    run = _wavefront_run(ip, run_id)
+    status = load_wavefront_run_status(run, "oag_run_graph_scheduler_status.v1")
+    if status.get("status") != "pass":
+        return _graph_issue_action(ip, state, status)
+    graph = load_graph(run)
+    planner_status = _run_graph_planner_status(ip, state, graph)
+    if planner_status["status"] != "pass":
+        status = {**status, "status": "fail", "issues": planner_status["issues"]}
+        return _graph_issue_action(ip, state, status)
+    locks = load_locks(run)
+    barriers = load_barriers(run)
+    raw_ready = ready_tasks(graph, barriers)
+    ready = [task for task in raw_ready if not _task_lock_blockers(task, locks)]
+    blocked = _blocked_graph_tasks(graph, barriers, locks)
+    selected = ready[0] if ready else {}
+    active_obligation = str(selected.get("obligation") or "")
+    active_contracts = _str_items(selected.get("contracts"))
+    owner = selected.get("owner") if isinstance(selected.get("owner"), dict) else {}
+    dispatch_candidates = [_dispatch_candidate(ip, run_id, task) for task in ready]
+    next_action = {
+        "kind": str(selected.get("next_action_kind") or ("dispatch_ready_task" if ready else "wait_for_graph_dependencies")),
+        "summary": str(selected.get("summary") or ("Dispatch a graph-ready OAG task." if ready else "No graph tasks are ready; clear blockers or complete active work.")),
+        "why": [
+            f"ready_tasks={len(ready)}",
+            f"blocked_tasks={len(blocked)}",
+            f"active_locks={len(_as_list(locks.get('locks')))}",
+        ],
+        "commands": [candidate["command"] for candidate in dispatch_candidates],
+        "required_evidence": _str_items(selected.get("required_evidence")),
+    }
+    return {
+        "schema_version": "oag_run_graph_next_action.v1",
+        "scheduler_schema_version": "oag_run_graph_scheduler.v1",
+        "mode": "graph_backed",
+        "ip": ip.name,
+        "run_id": run_id,
+        "stage": str(state.get("stage") or ""),
+        "intent": str(state.get("intent") or ""),
+        "status": "in_progress" if ready or blocked or locks.get("locks") else "checkpoint_ready",
+        "active_obligation": active_obligation,
+        "active_contracts": active_contracts,
+        "owner": owner,
+        "next_action": next_action,
+        "blockers": [],
+        "ready_tasks": ready,
+        "blocked_tasks": blocked,
+        "active_locks": locks.get("locks", []),
+        "dispatch_command_candidates": dispatch_candidates,
+        "graph_status": status,
+        "closure_matrix": _closure_matrix(ip),
+        "stop_condition": "oag.run.checkpoint allowed=true after graph tasks close",
+        "prompt_block": "",
+    }
+
+
+def _graph_checkpoint_blockers(ip: Path, state: dict[str, Any]) -> list[dict[str, Any]]:
+    run = _wavefront_run(ip, str(state.get("run_id") or ""))
+    status = load_wavefront_run_status(run, "oag_run_checkpoint_graph_status.v1")
+    if status.get("status") != "pass":
+        return [
+            {
+                "code": "GRAPH_STATE_ISSUE",
+                "message": "oag.run.checkpoint blocked because graph-backed run state is missing or invalid",
+                "issues": status.get("issues") if isinstance(status.get("issues"), list) else [],
+            }
+        ]
+    graph = load_graph(run)
+    locks = load_locks(run)
+    planner_status = _run_graph_planner_status(ip, state, graph)
+    blockers: list[dict[str, Any]] = []
+    if planner_status["status"] != "pass":
+        blockers.append(
+            {
+                "code": "GRAPH_STALE_REPLAN_REQUIRED",
+                "message": "oag.run.checkpoint blocked because graph planner inputs changed",
+                "issues": planner_status["issues"],
+            }
+        )
+    open_tasks = [
+        {"task_id": str(task.get("task_id") or ""), "kind": str(task.get("kind") or ""), "status": str(task.get("status") or "")}
+        for task in graph.get("tasks", [])
+        if isinstance(task, dict) and str(task.get("status") or "") not in DONE_STATUSES
+    ]
+    if open_tasks:
+        blockers.append(
+            {
+                "code": "GRAPH_TASKS_OPEN",
+                "message": "oag.run.checkpoint blocked because graph tasks remain open",
+                "open_tasks": open_tasks,
+            }
+        )
+    active = [lock for lock in locks.get("locks", []) if isinstance(lock, dict)]
+    if active:
+        blockers.append(
+            {
+                "code": "ACTIVE_LOCKS",
+                "message": "oag.run.checkpoint blocked because ownership locks remain active",
+                "active_locks": active,
+            }
+        )
+    pending_integration = [
+        str(task.get("task_id") or "")
+        for task in graph.get("tasks", [])
+        if isinstance(task, dict)
+        and str(task.get("kind") or "") == "integration"
+        and str(task.get("status") or "") not in DONE_STATUSES
+    ]
+    if pending_integration:
+        blockers.append(
+            {
+                "code": "INTEGRATION_MERGE_PENDING",
+                "message": "oag.run.checkpoint blocked because integration merges remain pending",
+                "task_ids": pending_integration,
+            }
+        )
+    matrix = _closure_matrix(ip)
+    missing_records = [
+        str(row.get("obligation") or "")
+        for row in matrix.get("rows", [])
+        if isinstance(row, dict) and row.get("closed") is not True and row.get("waived") is not True
+    ]
+    if missing_records:
+        blockers.append(
+            {
+                "code": "CLOSURE_RECORDS_MISSING",
+                "message": "oag.run.checkpoint blocked because required closure records are missing",
+                "obligations": missing_records,
+            }
+        )
+    return blockers
+
+
+def _graph_checkpoint_decision(blockers: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": "oag_run_checkpoint_decision.v1",
+        "allowed": False,
+        "reason": "graph_checkpoint_blocked",
+        "issues": blockers,
+        "check": {"ok": False, "issues": [str(item.get("message") or item.get("code") or item) for item in blockers]},
+        "decision_receipt": None,
+    }
+
+
 def _contracts_by_id(ip: Path) -> dict[str, dict[str, Any]]:
     return {str(item.get("id") or ""): item for item in _yaml_items(ip, "ontology/contracts.yaml", "contracts") if item.get("id")}
 
@@ -7092,6 +7744,64 @@ def _policy_allows_action(ip: Path, action: dict[str, Any]) -> tuple[bool, dict[
         "hook_auto_continue_until": limit,
         "next_action_stage": action_stage,
         "stop_hook_max_repeats": _stop_hook_max_repeats(ip),
+    }
+
+
+def _loop_policy_for_arguments(ip: Path, arguments: dict[str, Any], *, force_active: bool = False) -> dict[str, Any]:
+    return resolve_loop_policy(ip, arguments, force_active=force_active)
+
+
+def _apply_loop_projection(ip: Path, arguments: dict[str, Any], action: dict[str, Any]) -> dict[str, Any] | None:
+    policy = _loop_policy_for_arguments(ip, arguments)
+    if not policy.get("active"):
+        return None
+    plan = build_bounded_plan(ip, action, policy)
+    batch = plan.get("recommended_batch") if isinstance(plan.get("recommended_batch"), dict) else None
+    action["loop_policy"] = plan.get("policy") if isinstance(plan.get("policy"), dict) else loop_policy_storage(policy)
+    action["loop_plan"] = plan
+    action["loop_stop_reason"] = "" if batch else str(plan.get("stop_reason") or "no_runnable_batch")
+    action["next_batch"] = batch
+    if not batch:
+        action["prompt_block"] = ""
+    return plan
+
+
+def _loop_fields_for_response(plan: dict[str, Any] | None, action: dict[str, Any]) -> dict[str, Any]:
+    if not plan and not isinstance(action.get("next_batch"), dict) and not isinstance(action.get("loop_policy"), dict):
+        return {}
+    return {
+        "next_batch": action.get("next_batch") if isinstance(action.get("next_batch"), dict) else None,
+        "loop_policy": action.get("loop_policy") if isinstance(action.get("loop_policy"), dict) else {},
+        "loop_stop_reason": str(action.get("loop_stop_reason") or ""),
+        "loop_plan": plan if isinstance(plan, dict) else action.get("loop_plan") if isinstance(action.get("loop_plan"), dict) else {},
+    }
+
+
+def _bounded_loop_stop_response(
+    ip: Path,
+    state: dict[str, Any],
+    action: dict[str, Any],
+    plan: dict[str, Any],
+    *,
+    reason: str | None = None,
+) -> dict[str, Any]:
+    stop_reason = str(reason or plan.get("stop_reason") or "boundary_reached")
+    return {
+        "schema_version": "oag_stop_check.v1",
+        "ip": ip.name,
+        "run_id": state.get("run_id"),
+        "should_continue": False,
+        "reason": stop_reason,
+        "next_action": action,
+        "next_batch": None,
+        "prompt_block": "",
+        "policy": {
+            "hook_auto_continue_until": _hook_auto_continue_until(ip),
+            "stop_hook_max_repeats": _stop_hook_max_repeats(ip),
+            "loop_policy": plan.get("policy") if isinstance(plan.get("policy"), dict) else {},
+            "loop_stop_reason": stop_reason,
+        },
+        "loop_plan": plan,
     }
 
 
@@ -7261,6 +7971,7 @@ def _run_start(arguments: dict[str, Any]) -> dict[str, Any]:
         "stage": stage,
         "intent": intent,
         "status": "starting",
+        "run_mode": "graph_backed",
         "created_at": _now(),
         "updated_at": _now(),
         "iteration": 0,
@@ -7278,7 +7989,12 @@ def _run_start(arguments: dict[str, Any]) -> dict[str, Any]:
         },
         "compile": {"status": compile_result.get("status"), "issues": compile_result.get("issues") or []},
     }
-    action = _run_action_from_state(ip, arguments, state)
+    plan_result = _ensure_run_wavefront_graph(ip, state)
+    state["graph"] = _run_graph_meta(ip, run_id, plan_result)
+    artifacts = state.get("artifacts") if isinstance(state.get("artifacts"), dict) else {}
+    artifacts.update(_run_graph_refs(ip, run_id))
+    state["artifacts"] = artifacts
+    action = _run_graph_action_from_state(ip, state)
     action["prompt_block"] = _format_run_prompt_block(action)
     state["status"] = str(action.get("status") or "in_progress")
     state["active_obligation"] = str(action.get("active_obligation") or "")
@@ -7298,6 +8014,7 @@ def _run_start(arguments: dict[str, Any]) -> dict[str, Any]:
             "stage": stage,
             "intent": intent,
             "state": str(_run_state_path(ip, run_id).relative_to(ip)),
+            "graph": state["graph"],
             "next_action": action,
         },
     )
@@ -7309,6 +8026,13 @@ def _run_start(arguments: dict[str, Any]) -> dict[str, Any]:
         "state_path": str(_run_state_path(ip, run_id)),
         "next_action_path": str(_run_next_action_path(ip, run_id)),
         "history_path": str(_run_history_path(ip, run_id)),
+        "graph": state["graph"],
+        "ready_tasks": action.get("ready_tasks") if isinstance(action.get("ready_tasks"), list) else [],
+        "blocked_tasks": action.get("blocked_tasks") if isinstance(action.get("blocked_tasks"), list) else [],
+        "active_locks": action.get("active_locks") if isinstance(action.get("active_locks"), list) else [],
+        "dispatch_command_candidates": action.get("dispatch_command_candidates")
+        if isinstance(action.get("dispatch_command_candidates"), list)
+        else [],
         "next_action": action,
         "ledger_event": ledger_event["event_hash"],
     }
@@ -7325,7 +8049,7 @@ def _run_next(arguments: dict[str, Any]) -> dict[str, Any]:
             "parked": "run_parked",
             "needs_human": "needs_human_decision",
         }
-        return {
+        result = {
             "schema_version": "oag_run_next.v1",
             "ip": ip.name,
             "run_id": state["run_id"],
@@ -7337,9 +8061,61 @@ def _run_next(arguments: dict[str, Any]) -> dict[str, Any]:
             "terminal": True,
             "reason": reason_by_status.get(status, "run_terminal"),
         }
+        result.update(_loop_fields_for_response(None, action))
+        return result
+    if not _is_legacy_no_graph_run(state):
+        if _run_graph_mode(state) != "graph_backed":
+            graph_status = {
+                "schema_version": "oag_run_graph_scheduler_status.v1",
+                "status": "fail",
+                "graph_exists": False,
+                "run_id": str(state.get("run_id") or ""),
+                "issues": [
+                    {
+                        "code": "RUN_GRAPH_MODE_MISSING",
+                        "message": "run_state.json is not explicitly graph_backed or legacy_no_graph",
+                    }
+                ],
+            }
+            action = _graph_issue_action(ip, state, graph_status)
+        else:
+            action = _run_graph_action_from_state(ip, state)
+        action["prompt_block"] = _format_run_prompt_block(action)
+        loop_plan = _apply_loop_projection(ip, arguments, action)
+        state["iteration"] = int(state.get("iteration") or 0) + 1
+        state["status"] = str(action.get("status") or "in_progress")
+        state["active_obligation"] = str(action.get("active_obligation") or "")
+        state["active_contracts"] = action.get("active_contracts") if isinstance(action.get("active_contracts"), list) else []
+        state["active_owner"] = action.get("owner") if isinstance(action.get("owner"), dict) else {}
+        state["next_action"] = action
+        _save_run_state(ip, state)
+        _append_run_history(ip, str(state["run_id"]), {"event": "next", "status": state["status"], "next_action": action})
+        result = {
+            "schema_version": "oag_run_next.v1",
+            "ip": ip.name,
+            "run_id": state["run_id"],
+            "status": state["status"],
+            "run_mode": _run_graph_mode(state) or "unspecified",
+            "scheduler_schema_version": action.get("scheduler_schema_version"),
+            "state_path": str(_run_state_path(ip, str(state["run_id"]))),
+            "next_action_path": str(_run_next_action_path(ip, str(state["run_id"]))),
+            "graph": state.get("graph") if isinstance(state.get("graph"), dict) else {},
+            "ready_tasks": action.get("ready_tasks") if isinstance(action.get("ready_tasks"), list) else [],
+            "blocked_tasks": action.get("blocked_tasks") if isinstance(action.get("blocked_tasks"), list) else [],
+            "active_locks": action.get("active_locks") if isinstance(action.get("active_locks"), list) else [],
+            "dispatch_command_candidates": action.get("dispatch_command_candidates")
+            if isinstance(action.get("dispatch_command_candidates"), list)
+            else [],
+            "graph_status": action.get("graph_status") if isinstance(action.get("graph_status"), dict) else {},
+            "next_action": action,
+            "prompt_block": action["prompt_block"],
+        }
+        result.update(_loop_fields_for_response(loop_plan, action))
+        return result
     action_args = {**state, **arguments, "run_id": state["run_id"]}
     action = _run_action_from_state(ip, action_args, state)
     action["prompt_block"] = _format_run_prompt_block(action)
+    loop_plan = _apply_loop_projection(ip, arguments, action)
     state["iteration"] = int(state.get("iteration") or 0) + 1
     state["status"] = str(action.get("status") or "in_progress")
     state["active_obligation"] = str(action.get("active_obligation") or "")
@@ -7348,7 +8124,7 @@ def _run_next(arguments: dict[str, Any]) -> dict[str, Any]:
     state["next_action"] = action
     _save_run_state(ip, state)
     _append_run_history(ip, str(state["run_id"]), {"event": "next", "status": state["status"], "next_action": action})
-    return {
+    result = {
         "schema_version": "oag_run_next.v1",
         "ip": ip.name,
         "run_id": state["run_id"],
@@ -7358,11 +8134,51 @@ def _run_next(arguments: dict[str, Any]) -> dict[str, Any]:
         "next_action": action,
         "prompt_block": action["prompt_block"],
     }
+    result.update(_loop_fields_for_response(loop_plan, action))
+    return result
 
 
 def _run_record(arguments: dict[str, Any]) -> dict[str, Any]:
     ip = _ip_dir(arguments)
     state = _load_run_state(ip, str(arguments.get("run_id") or ""))
+    actor = arguments.get("actor") if isinstance(arguments.get("actor"), dict) else _run_actor(arguments, surface="oag.run.record")
+    graph_context: GraphRecordContext | None = None
+    if _run_graph_mode(state) == "graph_backed":
+        graph_context = GraphRecordContext(ip, state, actor, find_graph_record_task(ip, state, arguments))
+        merge = arguments.get("integration_merge") if isinstance(arguments.get("integration_merge"), dict) else {}
+        if merge:
+            promotion = promote_integration_merge(IntegrationPromotionContext(graph_context, merge))
+            action = _run_graph_action_from_state(ip, state)
+            action["prompt_block"] = _format_run_prompt_block(action)
+            state["status"] = str(action.get("status") or "in_progress")
+            state["active_obligation"] = str(action.get("active_obligation") or "")
+            state["active_contracts"] = action.get("active_contracts") if isinstance(action.get("active_contracts"), list) else []
+            state["active_owner"] = action.get("owner") if isinstance(action.get("owner"), dict) else {}
+            state["next_action"] = action
+            _save_run_state(ip, state)
+            _append_run_history(
+                ip,
+                str(state["run_id"]),
+                {
+                    "event": "integration_promotion",
+                    "status": state["status"],
+                    "task_id": str(graph_context.task.get("task_id") or ""),
+                    "promotion": promotion,
+                    "next_action": action,
+                },
+            )
+            return {
+                "schema_version": "oag_run_record.v1",
+                "ip": ip.name,
+                "run_id": state["run_id"],
+                "status": state["status"] if promotion.get("status") != "failed" else "failed",
+                "integration_promotion": promotion,
+                "next_action": action,
+                "prompt_block": action["prompt_block"],
+            }
+        require_record_authority(graph_context)
+        require_graph_dependencies_closed(graph_context)
+        require_graph_evidence_ready(graph_context)
     obligation = str(arguments.get("obligation") or state.get("active_obligation") or "")
     contracts = _str_items(arguments.get("contract") or arguments.get("contracts") or state.get("active_contracts"))
     contract = contracts[0] if contracts else ""
@@ -7402,7 +8218,7 @@ def _run_record(arguments: dict[str, Any]) -> dict[str, Any]:
             "type": str(arguments.get("type") or "run_evidence"),
             "claim": str(arguments.get("claim") or f"{obligation} closure evidence"),
             "summary": summary,
-            "actor": arguments.get("actor") if isinstance(arguments.get("actor"), dict) else _run_actor(arguments, surface="oag.run.record"),
+            "actor": actor,
             "status": status,
             "rocev": arguments.get("rocev")
             if isinstance(arguments.get("rocev"), dict)
@@ -7414,8 +8230,26 @@ def _run_record(arguments: dict[str, Any]) -> dict[str, Any]:
             },
         }
     )
-    action_args = {**state, **arguments, "run_id": state["run_id"]}
-    action = _run_action_from_state(ip, action_args, state)
+    if graph_context is not None:
+        graph_record = record_wavefront_task(
+            RecordRequest(
+                run=_wavefront_run(ip, str(state.get("run_id") or "")),
+                task_id=str(graph_context.task.get("task_id") or ""),
+                status="closed",
+                barrier_outputs=_str_items(graph_context.task.get("barrier_outputs")),
+                receipt=str(record_response.get("path") or ""),
+            )
+        )
+        if graph_record.get("status") != "pass":
+            issues = graph_record.get("issues") if isinstance(graph_record.get("issues"), list) else []
+            raise OagGraphRecordError(
+                "PARENT_AUTHORITY_GRAPH_RECORD_FAILED",
+                f"parent-authority error: graph closure task record failed: {issues}",
+            )
+        action = _run_graph_action_from_state(ip, state)
+    else:
+        action_args = {**state, **arguments, "run_id": state["run_id"]}
+        action = _run_action_from_state(ip, action_args, state)
     action["prompt_block"] = _format_run_prompt_block(action)
     state["status"] = str(action.get("status") or "in_progress")
     state["active_obligation"] = str(action.get("active_obligation") or "")
@@ -7432,6 +8266,7 @@ def _run_record(arguments: dict[str, Any]) -> dict[str, Any]:
             "record": record_response["id"],
             "obligation": obligation,
             "contract": contract,
+            "task_id": str(graph_context.task.get("task_id") or "") if graph_context is not None else "",
             "next_action": action,
         },
     )
@@ -7462,18 +8297,33 @@ def _run_checkpoint(arguments: dict[str, Any]) -> dict[str, Any]:
     ip = _ip_dir(arguments)
     state = _load_run_state(ip, str(arguments.get("run_id") or ""))
     _compile_graph({"ip_dir": str(ip)})
-    decision = _decide(
-        {
-            "ip_dir": str(ip),
-            "stage": str(arguments.get("stage") or state.get("stage") or ""),
-            "intent": str(arguments.get("intent") or state.get("intent") or ""),
-            "action": str(arguments.get("action") or "claim_complete"),
-            "record_decision": arguments.get("record_decision", True),
-            "actor": arguments.get("actor") if isinstance(arguments.get("actor"), dict) else _run_actor(arguments, surface="oag.run.checkpoint"),
-        }
-    )
-    action_args = {**state, **arguments, "run_id": state["run_id"]}
-    action = _run_action_from_state(ip, action_args, state)
+    actor = arguments.get("actor") if isinstance(arguments.get("actor"), dict) else _run_actor(arguments, surface="oag.run.checkpoint")
+    if _run_graph_mode(state) == "graph_backed":
+        blockers = _graph_checkpoint_blockers(ip, state)
+        decision = _graph_checkpoint_decision(blockers) if blockers else _decide(
+            {
+                "ip_dir": str(ip),
+                "stage": str(arguments.get("stage") or state.get("stage") or ""),
+                "intent": str(arguments.get("intent") or state.get("intent") or ""),
+                "action": str(arguments.get("action") or "claim_complete"),
+                "record_decision": arguments.get("record_decision", True),
+                "actor": actor,
+            }
+        )
+        action = _run_graph_action_from_state(ip, state)
+    else:
+        decision = _decide(
+            {
+                "ip_dir": str(ip),
+                "stage": str(arguments.get("stage") or state.get("stage") or ""),
+                "intent": str(arguments.get("intent") or state.get("intent") or ""),
+                "action": str(arguments.get("action") or "claim_complete"),
+                "record_decision": arguments.get("record_decision", True),
+                "actor": actor,
+            }
+        )
+        action_args = {**state, **arguments, "run_id": state["run_id"]}
+        action = _run_action_from_state(ip, action_args, state)
     action["prompt_block"] = _format_run_prompt_block(action)
     signature = _checkpoint_signature(decision, action)
     history = _run_history(ip, str(state["run_id"]))
@@ -7575,6 +8425,11 @@ def _stop_check(arguments: dict[str, Any]) -> dict[str, Any]:
         }
     stored_action = state.get("next_action") if isinstance(state.get("next_action"), dict) else {}
     if stored_action:
+        loop_policy = _loop_policy_for_arguments(ip, arguments)
+        if loop_policy.get("active"):
+            loop_plan = build_bounded_plan(ip, stored_action, loop_policy)
+            if not isinstance(loop_plan.get("recommended_batch"), dict):
+                return _bounded_loop_stop_response(ip, state, stored_action, loop_plan)
         allowed, policy = _policy_allows_action(ip, stored_action)
         if not allowed:
             return {
@@ -7589,6 +8444,16 @@ def _stop_check(arguments: dict[str, Any]) -> dict[str, Any]:
             }
     next_response = _run_next({**arguments, "ip_dir": str(ip), "run_id": str(state.get("run_id") or "")})
     next_action = next_response.get("next_action") if isinstance(next_response.get("next_action"), dict) else {}
+    if _loop_policy_for_arguments(ip, arguments).get("active") and not isinstance(next_response.get("next_batch"), dict):
+        loop_plan = next_response.get("loop_plan") if isinstance(next_response.get("loop_plan"), dict) else {}
+        if loop_plan:
+            return _bounded_loop_stop_response(
+                ip,
+                state,
+                next_action,
+                loop_plan,
+                reason=str(next_response.get("loop_stop_reason") or loop_plan.get("stop_reason") or "boundary_reached"),
+            )
     allowed, policy = _policy_allows_action(ip, next_action)
     if not allowed:
         return {
@@ -7608,8 +8473,14 @@ def _stop_check(arguments: dict[str, Any]) -> dict[str, Any]:
         "should_continue": True,
         "reason": "run_incomplete",
         "next_action": next_action,
+        "next_batch": next_response.get("next_batch") if isinstance(next_response.get("next_batch"), dict) else None,
         "prompt_block": next_response.get("prompt_block") or "",
-        "policy": policy,
+        "policy": {
+            **policy,
+            "loop_policy": next_response.get("loop_policy") if isinstance(next_response.get("loop_policy"), dict) else {},
+            "loop_stop_reason": str(next_response.get("loop_stop_reason") or ""),
+        },
+        "loop_plan": next_response.get("loop_plan") if isinstance(next_response.get("loop_plan"), dict) else {},
     }
 
 
@@ -7648,8 +8519,40 @@ def _configure(arguments: dict[str, Any]) -> dict[str, Any]:
         updates["stop_hook_max_repeats"] = execution["stop_hook_max_repeats"]
         if old != execution["stop_hook_max_repeats"]:
             changed["stop_hook_max_repeats"] = execution["stop_hook_max_repeats"]
+    clear_loop_policy = _truthy_policy(arguments.get("clear_loop_policy") or arguments.get("loop_clear"), default=False)
+    loop_arg_names = {
+        "loop_policy",
+        "loop_until",
+        "loop_boundary",
+        "loop_requirement",
+        "loop_requirements",
+        "loop_obligation",
+        "loop_obligations",
+        "loop_owner",
+        "loop_owner_module",
+        "loop_owner_modules",
+        "loop_job_type",
+        "loop_job_types",
+        "loop_limit",
+        "loop_max_iterations",
+        "loop_mode",
+    }
+    if clear_loop_policy:
+        old = execution.pop("loop_policy", None)
+        updates["loop_policy"] = None
+        if old is not None:
+            changed["loop_policy"] = None
+    elif any(name in arguments for name in loop_arg_names):
+        old = execution.get("loop_policy")
+        policy = loop_policy_storage(_loop_policy_for_arguments(ip, arguments, force_active=True))
+        execution["loop_policy"] = policy
+        updates["loop_policy"] = policy
+        if old != policy:
+            changed["loop_policy"] = policy
     if execution:
         policies["execution_policy"] = execution
+    elif "execution_policy" in policies:
+        policies.pop("execution_policy", None)
 
     graph = policies.get("graph_policy") if isinstance(policies.get("graph_policy"), dict) else {}
     graph = dict(graph)

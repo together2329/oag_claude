@@ -24,6 +24,7 @@ Primary assets:
 - `oag/data-lifecycle-policy.md`
 - `oag/baseline-git-policy.md`
 - `oag/ip-versioning-policy.md`
+- `oag/bounded-loop-hook-integration-plan.md`
 - `oag/wavefront-policy.md`
 - `oag/wavefront-task-graph.md`
 - `oag/contract-projection.md`
@@ -80,6 +81,9 @@ Primary assets:
 - `hooks/claude_subagent_oag_gate.py`
 - `hooks.json`
 - `scripts/oag_cli.py`
+- `scripts/oag_loop_core.py`
+- `scripts/oag_loop_hook.py`
+- `scripts/oag_loop_runner.py`
 - `scripts/oag_scaffold_ip.py`
 - `scripts/oag_graph.py`
 - `scripts/oag_portable_db.py`
@@ -143,6 +147,9 @@ boundaries, `oag/ip-versioning-policy.md` defines IP-local `.git`, functional
 semantic version bumps, golden baseline lineage, and patch/minor/major
 eligibility, `oag/contract-projection.md`
 defines ROCEV projection,
+`oag/bounded-loop-hook-integration-plan.md` defines the planned integration
+between bounded open-item planning, hook/runner execution caps, `oag.run.next`,
+and wavefront materialization,
 `oag/rtl-implementation.md` defines how generated RTL implements locked
 contract truth without inventing semantics, `oag/rtl-dialect-policy.md` defines
 the portable RTL subset, `oag/rtl-ppa-principles.md` defines correctness-first

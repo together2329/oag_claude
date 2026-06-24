@@ -70,6 +70,7 @@ def _start_run(ip: Path, *, intent: str) -> tuple[str, dict[str, Any]]:
 
 
 def _close_run(ip: Path, run_id: str, *, intent: str) -> dict[str, Any]:
+    _close_run_graph_prerequisites(ip, run_id)
     record = smoke_test.call(
         {
             "tool": "oag.run.record",
@@ -78,6 +79,7 @@ def _close_run(ip: Path, run_id: str, *, intent: str) -> dict[str, Any]:
                 "run_id": run_id,
                 "stage": "sim",
                 "summary": "evaluation evidence closes the active obligation",
+                "evidence_files": ["sim/results.xml", "sim/scoreboard_events.jsonl"],
                 "actor": {"kind": "ai", "id": "claude", "surface": "eval"},
             },
         }
@@ -95,6 +97,19 @@ def _close_run(ip: Path, run_id: str, *, intent: str) -> dict[str, Any]:
         }
     )
     return {"record": record["result"], "checkpoint": checkpoint["result"]}
+
+
+def _close_run_graph_prerequisites(ip: Path, run_id: str) -> None:
+    shard = ip / "sim" / "slices" / "OBL_DEMO_COUNTER_CX1_RESET_KNOWN" / "scoreboard_events.jsonl"
+    shard.parent.mkdir(parents=True, exist_ok=True)
+    shard.write_text((ip / "sim" / "scoreboard_events.jsonl").read_text(encoding="utf-8"), encoding="utf-8")
+    for task_id in (
+        "triage.OBL_DEMO_COUNTER_CX1_RESET_KNOWN",
+        "evidence.sim.OBL_DEMO_COUNTER_CX1_RESET_KNOWN",
+        "merge.sim.aggregate",
+    ):
+        graph_record = smoke_test.run_wavefront("record", "--ip-dir", str(ip), "--run-id", run_id, "--task-id", task_id, "--status", "closed", "--json", project_root=ip.parent)
+        assert graph_record.returncode == 0, graph_record.stderr or graph_record.stdout
 
 
 def _hook_json(ip: Path, run_id: str) -> tuple[int, dict[str, Any] | None, str]:

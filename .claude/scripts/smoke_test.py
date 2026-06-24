@@ -215,6 +215,237 @@ def run_wavefront(*args: str, project_root: Path | None = None) -> subprocess.Co
     )
 
 
+def task5_rel(project: Path, path: Path) -> str:
+    return path.resolve().relative_to(project.resolve()).as_posix()
+
+
+def task5_file_hashes(project: Path, ip: Path) -> dict[str, str]:
+    return {
+        task5_rel(project, path): sha256(path)
+        for path in sorted(ip.rglob("*"))
+        if path.is_file() and ".git" not in path.parts
+    }
+
+
+def write_task5_wavefront_state(ip: Path, run_id: str, task_id: str, dispatch_id: str, ownership_mode: str, status: str) -> None:
+    run_dir = ip / "ontology" / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "wavefront_task_graph.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "oag_wavefront_task_graph.v1",
+                "run_id": run_id,
+                "tasks": [
+                    {
+                        "task_id": task_id,
+                        "status": status,
+                        "ownership_mode": ownership_mode,
+                        "may_claim_complete": False,
+                    }
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    write_task5_ownership_locks(ip, run_id, task_id, dispatch_id)
+
+
+def write_task5_ownership_locks(ip: Path, run_id: str, task_id: str, dispatch_id: str) -> None:
+    run_dir = ip / "ontology" / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "ownership_locks.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "oag_ownership_locks.v1",
+                "run_id": run_id,
+                "locks": [{"task_id": task_id, "dispatch_id": dispatch_id}],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def write_task5_dispatch(
+    project: Path,
+    ip: Path,
+    scenario: str,
+    task_id: str,
+    ownership_mode: str,
+    allowed_write_paths: list[str],
+    *,
+    run_id: str = "RUN_TASK5",
+    stage: str = "sim",
+    status: str = "claimed",
+    wavefront: bool = True,
+) -> tuple[Path, Path, dict]:
+    dispatch_id = f"DISPATCH_TASK5_{scenario.upper()}_20260101T000000Z_ABCD1234"
+    if wavefront:
+        write_task5_wavefront_state(ip, run_id, task_id, dispatch_id, ownership_mode, status)
+    dispatch_path = ip / "knowledge" / "dispatches" / f"{scenario}.json"
+    receipt_path = ip / "knowledge" / "subagents" / f"{scenario}.json"
+    dispatch_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    baseline_hashes = task5_file_hashes(project, ip)
+    dispatch = {
+        "schema_version": "oag_dispatch.v1",
+        "product_name": "IP Dev Agent",
+        "internal_gateway": "Ontology Agent Gateway",
+        "dispatch_id": dispatch_id,
+        "dispatch_path": task5_rel(project, dispatch_path),
+        "agent_type": "oag-custom-worker",
+        "role_name": "oag-custom-worker",
+        "role_kind": "custom",
+        "registered_id": "oag-custom-worker",
+        "ip_id": ip.name,
+        "ip_dir": task5_rel(project, ip),
+        "stage": stage,
+        "owned_obligations": ["OBL_TASK5"],
+        "contracts": ["CONTRACT_TASK5"],
+        "allowed_write_paths": allowed_write_paths,
+        "allowed_tool_side_effects": [],
+        "receipt_path": task5_rel(project, receipt_path),
+        "may_claim_complete": False,
+        "wavefront_run_id": run_id if wavefront else "",
+        "task_id": task_id if wavefront else "",
+        "ownership_mode": ownership_mode if wavefront else "",
+        "baseline": {
+            "created_at": "2026-01-01T00:00:00Z",
+            "git_status_paths": sorted(baseline_hashes),
+            "file_hashes": baseline_hashes,
+        },
+        "created_at": "2026-01-01T00:00:00Z",
+    }
+    dispatch_path.write_text(json.dumps(dispatch, sort_keys=True) + "\n", encoding="utf-8")
+    return dispatch_path, receipt_path, dispatch
+
+
+def write_task5_receipt(
+    path: Path,
+    dispatch: dict,
+    changed_paths: list[str],
+    *,
+    wavefront: bool = True,
+    overrides: dict | None = None,
+) -> None:
+    receipt = {
+        "schema_version": "oag_subagent_receipt.v1",
+        "product_name": "IP Dev Agent",
+        "internal_gateway": "Ontology Agent Gateway",
+        "dispatch_id": dispatch["dispatch_id"],
+        "dispatch_path": dispatch["dispatch_path"],
+        "role_name": "oag-custom-worker",
+        "shard_scope": "task5",
+        "stage": dispatch["stage"],
+        "status": "STATIC_HANDOFF_PASS",
+        "owned_obligations": dispatch["owned_obligations"],
+        "contracts": dispatch["contracts"],
+        "allowed_write_paths": dispatch["allowed_write_paths"],
+        "changed_paths": changed_paths,
+        "generated_side_effects": [],
+        "evidence_outputs": [dispatch["receipt_path"]],
+        "may_claim_complete": False,
+        "created_at": "2026-01-01T00:00:00Z",
+    }
+    if wavefront:
+        receipt.update(
+            {
+                "wavefront_run_id": dispatch["wavefront_run_id"],
+                "task_id": dispatch["task_id"],
+                "ownership_mode": dispatch["ownership_mode"],
+            }
+        )
+    if overrides:
+        for key, value in overrides.items():
+            if value is None:
+                receipt.pop(key, None)
+            else:
+                receipt[key] = value
+    path.write_text(json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def verify_task5_dispatch(project: Path, dispatch_path: Path, receipt_path: Path) -> dict:
+    result = run_dispatch("verify", "--dispatch", str(dispatch_path), "--receipt", str(receipt_path), "--json", project_root=project)
+    payload = json.loads(result.stdout)
+    if result.returncode != 0 and payload["status"] == "pass":
+        raise AssertionError(payload)
+    return payload
+
+
+def test_task5_dispatch_wavefront_matrix(tmp_root: Path) -> None:
+    project = tmp_root / "task5_dispatch_project"
+    project.mkdir(parents=True)
+    subprocess.run(["git", "init"], cwd=project, text=True, capture_output=True, check=True)
+    ip = project / "task5_ip"
+
+    worker_allowed = [task5_rel(project, ip / "sim" / "slices"), task5_rel(project, ip / "knowledge" / "subagents")]
+    worker_dispatch_path, worker_receipt_path, worker_dispatch = write_task5_dispatch(project, ip, "worker_shard", "TASK_WORKER", "exclusive_file", worker_allowed)
+    worker_shard = ip / "sim" / "slices" / "OBL_TASK5" / "scoreboard_events.jsonl"
+    worker_shard.parent.mkdir(parents=True, exist_ok=True)
+    worker_shard.write_text("{}\n", encoding="utf-8")
+    write_task5_receipt(worker_receipt_path, worker_dispatch, [task5_rel(project, worker_shard)])
+    worker_result = verify_task5_dispatch(project, worker_dispatch_path, worker_receipt_path)
+    assert worker_result["status"] == "pass", worker_result
+
+    canonical_allowed = [task5_rel(project, ip / "sim" / "scoreboard_events.jsonl"), task5_rel(project, ip / "knowledge" / "subagents")]
+    bad_worker_dispatch_path, bad_worker_receipt_path, bad_worker_dispatch = write_task5_dispatch(project, ip, "worker_canonical", "TASK_BAD_WORKER", "exclusive_file", canonical_allowed)
+    canonical_path = ip / "sim" / "scoreboard_events.jsonl"
+    canonical_path.parent.mkdir(parents=True, exist_ok=True)
+    canonical_path.write_text("{}\n", encoding="utf-8")
+    write_task5_receipt(bad_worker_receipt_path, bad_worker_dispatch, [task5_rel(project, canonical_path)])
+    bad_worker_result = verify_task5_dispatch(project, bad_worker_dispatch_path, bad_worker_receipt_path)
+    assert bad_worker_result["status"] == "fail", bad_worker_result
+    assert any(item["code"] == "WORKER_CANONICAL_AGGREGATE_WRITE" for item in bad_worker_result["issues"]), bad_worker_result
+
+    integration_dispatch_path, integration_receipt_path, integration_dispatch = write_task5_dispatch(project, ip, "integration_canonical", "TASK_INTEGRATION", "integration_owner", canonical_allowed)
+    write_task5_receipt(integration_receipt_path, integration_dispatch, [task5_rel(project, canonical_path)])
+    integration_result = verify_task5_dispatch(project, integration_dispatch_path, integration_receipt_path)
+    assert integration_result["status"] == "pass", integration_result
+
+    missing_dispatch_path, missing_receipt_path, missing_dispatch = write_task5_dispatch(project, ip, "missing_fields", "TASK_MISSING_FIELDS", "exclusive_file", worker_allowed)
+    write_task5_receipt(missing_receipt_path, missing_dispatch, [task5_rel(project, worker_shard)], overrides={"wavefront_run_id": None, "task_id": None, "ownership_mode": None})
+    missing_result = verify_task5_dispatch(project, missing_dispatch_path, missing_receipt_path)
+    assert missing_result["status"] == "fail", missing_result
+    assert any(item["code"] == "WAVEFRONT_FIELD_MISSING" for item in missing_result["issues"]), missing_result
+
+    mismatch_dispatch_path, mismatch_receipt_path, mismatch_dispatch = write_task5_dispatch(project, ip, "mismatch_fields", "TASK_MISMATCH", "exclusive_file", worker_allowed)
+    write_task5_receipt(mismatch_receipt_path, mismatch_dispatch, [task5_rel(project, worker_shard)], overrides={"task_id": "TASK_OTHER"})
+    mismatch_result = verify_task5_dispatch(project, mismatch_dispatch_path, mismatch_receipt_path)
+    assert mismatch_result["status"] == "fail", mismatch_result
+    assert any(item["code"] == "WAVEFRONT_FIELD_MISMATCH" for item in mismatch_result["issues"]), mismatch_result
+
+    unclaimed_dispatch_path, unclaimed_receipt_path, unclaimed_dispatch = write_task5_dispatch(project, ip, "unclaimed_task", "TASK_UNCLAIMED", "exclusive_file", worker_allowed, status="ready")
+    write_task5_receipt(unclaimed_receipt_path, unclaimed_dispatch, [task5_rel(project, worker_shard)])
+    unclaimed_result = verify_task5_dispatch(project, unclaimed_dispatch_path, unclaimed_receipt_path)
+    assert unclaimed_result["status"] == "fail", unclaimed_result
+    assert any(item["code"] == "WAVEFRONT_TASK_UNCLAIMED" for item in unclaimed_result["issues"]), unclaimed_result
+
+    compat_allowed = [task5_rel(project, ip / "knowledge" / "subagents")]
+    compat_dispatch_path, compat_receipt_path, compat_dispatch = write_task5_dispatch(project, ip, "non_wavefront", "TASK_COMPAT", "none", compat_allowed, stage="draft", wavefront=False)
+    write_task5_receipt(compat_receipt_path, compat_dispatch, [task5_rel(project, compat_receipt_path)], wavefront=False)
+    compat_result = verify_task5_dispatch(project, compat_dispatch_path, compat_receipt_path)
+    assert compat_result["status"] == "pass", compat_result
+
+    malformed_dispatch_path = project / "malformed_dispatch_array.json"
+    malformed_dispatch_path.write_text("[]\n", encoding="utf-8")
+    malformed_dispatch_verify = run_dispatch("verify", "--dispatch", str(malformed_dispatch_path), "--receipt", str(worker_receipt_path), "--json", project_root=project)
+    assert malformed_dispatch_verify.returncode != 0, malformed_dispatch_verify.stdout
+    malformed_dispatch_result = json.loads(malformed_dispatch_verify.stdout)
+    assert malformed_dispatch_result["status"] == "fail", malformed_dispatch_result
+    assert any(item["code"] == "DISPATCH_LOAD_SHAPE" for item in malformed_dispatch_result["issues"]), malformed_dispatch_result
+
+    malformed_receipt_path = project / "malformed_receipt_array.json"
+    malformed_receipt_path.write_text("[]\n", encoding="utf-8")
+    malformed_receipt_verify = run_dispatch("verify", "--dispatch", str(worker_dispatch_path), "--receipt", str(malformed_receipt_path), "--json", project_root=project)
+    assert malformed_receipt_verify.returncode != 0, malformed_receipt_verify.stdout
+    malformed_receipt_result = json.loads(malformed_receipt_verify.stdout)
+    assert malformed_receipt_result["status"] == "fail", malformed_receipt_result
+    assert any(item["code"] == "RECEIPT_LOAD_SHAPE" for item in malformed_receipt_result["issues"]), malformed_receipt_result
+
+
 def run_lifecycle_check(*args: str) -> subprocess.CompletedProcess[str]:
     env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
     return subprocess.run(
@@ -2164,6 +2395,7 @@ def main() -> int:
         assert SPEC_RTL_LOOP.is_file(), SPEC_RTL_LOOP
         test_pyslang_lint_runner()
         test_wavefront_scheduler(Path(tmp))
+        test_task5_dispatch_wavefront_matrix(Path(tmp))
         test_artifact_lifecycle_checker(Path(tmp))
         test_authoring_packet_lifecycle_firewall(Path(tmp))
         test_stale_propagation_checker(Path(tmp))
@@ -2678,7 +2910,7 @@ def main() -> int:
             + "\n",
             encoding="utf-8",
         )
-        dispatch_create = run_dispatch(
+        dispatch_create_args = (
             "create",
             "--ip-dir",
             str(hook_ip),
@@ -2698,6 +2930,8 @@ def main() -> int:
             str(hook_ip / "knowledge" / "subagents"),
             "--allowed-tool-side-effect",
             str(hook_ip / "ontology" / "generated"),
+            "--allowed-tool-side-effect",
+            str(hook_ip / "ontology" / "runs" / "RUN_DISPATCH_SMOKE" / "ownership_locks.json"),
             "--receipt-path",
             str(hook_ip / "knowledge" / "subagents" / "smoke.json"),
             "--wavefront-run-id",
@@ -2707,8 +2941,9 @@ def main() -> int:
             "--ownership-mode",
             "exclusive_file",
             "--json",
-            project_root=hook_cwd,
         )
+        write_task5_wavefront_state(hook_ip, "RUN_DISPATCH_SMOKE", "RTL_SMOKE_TASK", "PENDING_DISPATCH_ID", "exclusive_file", "claimed")
+        dispatch_create = run_dispatch(*dispatch_create_args, project_root=hook_cwd)
         assert dispatch_create.returncode == 0, dispatch_create.stderr or dispatch_create.stdout
         dispatch_result = json.loads(dispatch_create.stdout)
         dispatch = dispatch_result["dispatch"]
@@ -2719,6 +2954,7 @@ def main() -> int:
         assert "wavefront_run_id" in dispatch["prompt_contract"], dispatch
         dispatch_nonce = dispatch["dispatch_id"].rsplit("_", 1)[-1]
         assert len(dispatch_nonce) == 8 and all(char in "0123456789ABCDEF" for char in dispatch_nonce), dispatch
+        write_task5_ownership_locks(hook_ip, "RUN_DISPATCH_SMOKE", "RTL_SMOKE_TASK", dispatch["dispatch_id"])
         (hook_ip / "rtl" / "smoke.sv").write_text("module smoke; endmodule\n", encoding="utf-8")
         receipt = hook_ip / "knowledge" / "subagents" / "smoke.json"
         receipt.parent.mkdir(parents=True, exist_ok=True)
@@ -3051,6 +3287,16 @@ def main() -> int:
         stop_hook_limited_second = stop_gate({"ip_dir": str(ip), "run_id": run_id}, limited_env)
         assert stop_hook_limited_second.returncode == 0, stop_hook_limited_second.stderr or stop_hook_limited_second.stdout
         assert stop_hook_limited_second.stdout == "", stop_hook_limited_second.stdout
+        run_shard = ip / "sim" / "slices" / "OBL_DEMO_COUNTER_CX1_RESET_KNOWN" / "scoreboard_events.jsonl"
+        run_shard.parent.mkdir(parents=True, exist_ok=True)
+        run_shard.write_text((ip / "sim" / "scoreboard_events.jsonl").read_text(encoding="utf-8"), encoding="utf-8")
+        for task_id in (
+            "triage.OBL_DEMO_COUNTER_CX1_RESET_KNOWN",
+            "evidence.sim.OBL_DEMO_COUNTER_CX1_RESET_KNOWN",
+            "merge.sim.aggregate",
+        ):
+            graph_record = run_wavefront("record", "--ip-dir", str(ip), "--run-id", run_id, "--task-id", task_id, "--status", "closed", "--json", project_root=Path(tmp))
+            assert graph_record.returncode == 0, graph_record.stderr or graph_record.stdout
         run_loop_record = call(
             {
                 "tool": "oag.run.record",
@@ -3059,6 +3305,7 @@ def main() -> int:
                     "run_id": run_id,
                     "stage": "sim",
                     "summary": "run-loop smoke scoreboard evidence closes the reset obligation",
+                    "evidence_files": ["sim/results.xml", "sim/scoreboard_events.jsonl"],
                     "actor": {"kind": "ai", "id": "claude", "surface": "smoke"},
                 },
             }
