@@ -2,7 +2,7 @@
 name: oag-verification-strategy-agent
 description: Defines verification objectives, proof strategy, coverage intent, assertion/formal candidates, and residual risk before TB implementation.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

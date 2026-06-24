@@ -2,7 +2,7 @@
 name: oag-evidence-validator
 description: Validates ROCEV evidence freshness, schema, artifact paths, and closure matrix rows before gate review.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

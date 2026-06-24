@@ -27,6 +27,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+import oag_paths  # noqa: E402
 import smoke_test  # noqa: E402
 
 
@@ -128,7 +129,7 @@ def _additional_context(payload: dict[str, Any] | None) -> str:
 
 
 def _human_approve_signoff_profile(ip: Path) -> None:
-    policies = ip / "ontology" / "policies.yaml"
+    policies = oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml")
     policies.write_text(policies.read_text(encoding="utf-8").replace("closure_profile: development", "closure_profile: signoff"), encoding="utf-8")
     approval = smoke_test.call(
         {
@@ -246,10 +247,10 @@ def case_compile_skips_fresh_graph(root: Path) -> dict[str, Any]:
     assert second["result"]["status"] == "pass", second
     assert first["result"]["skipped"] is False, first
     assert second["result"]["skipped"] is True, second
-    manifest = ip / "ontology" / "generated" / "compile_manifest.json"
+    manifest = oag_paths.legacy_or_hidden(ip, "ontology/generated/compile_manifest.json")
     assert manifest.is_file(), manifest
-    assert (ip / "ontology" / "generated" / "authoring_packets" / f"rtl__{ip.name}.json").is_file()
-    assert (ip / "ontology" / "generated" / "authoring_packets" / f"tb__{ip.name}.json").is_file()
+    assert oag_paths.legacy_or_hidden(ip, f"ontology/generated/authoring_packets/rtl__{ip.name}.json").is_file()
+    assert oag_paths.legacy_or_hidden(ip, f"ontology/generated/authoring_packets/tb__{ip.name}.json").is_file()
     return {
         "ip": str(ip),
         "first_skipped": first["result"]["skipped"],
@@ -260,8 +261,8 @@ def case_compile_skips_fresh_graph(root: Path) -> dict[str, Any]:
 
 def case_modeling_scaffold_seed(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "modeling_seed")
-    policies = _read_yaml(ip / "ontology" / "policies.yaml")
-    modeling = _read_yaml(ip / "ontology" / "modeling.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml"))
+    modeling = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/modeling.yaml"))
     modeling_policy = policies.get("modeling_policy") if isinstance(policies.get("modeling_policy"), dict) else {}
     assert modeling_policy.get("canonical_modeling_file") == "ontology/modeling.yaml", policies
     assert modeling_policy.get("full_fl_model_required") is False, policies
@@ -281,8 +282,8 @@ def case_requirement_atom_scaffold_seed(root: Path) -> dict[str, Any]:
     draft_ip = root / "requirement_atom_draft" / "demo_counter_cx1"
     scaffold = smoke_test.call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(draft_ip), "owner": "eval"}})
     assert scaffold["ok"] is True, scaffold
-    policies = _read_yaml(draft_ip / "ontology" / "policies.yaml")
-    atoms = _read_yaml(draft_ip / "ontology" / "requirement_atoms.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/policies.yaml"))
+    atoms = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/requirement_atoms.yaml"))
     decomposition_policy = policies.get("requirement_decomposition_policy") if isinstance(policies.get("requirement_decomposition_policy"), dict) else {}
     assert decomposition_policy.get("canonical_requirement_atom_file") == "ontology/requirement_atoms.yaml", policies
     assert decomposition_policy.get("require_atoms_after_lock") is True, policies
@@ -327,8 +328,8 @@ def case_lock_readiness_scaffold_seed(root: Path) -> dict[str, Any]:
     draft_ip = root / "lock_readiness_draft" / "demo_counter_cx1"
     scaffold = smoke_test.call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(draft_ip), "owner": "eval"}})
     assert scaffold["ok"] is True, scaffold
-    decisions = _read_yaml(draft_ip / "ontology" / "decision_matrix.yaml")
-    policies = _read_yaml(draft_ip / "ontology" / "policies.yaml")
+    decisions = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/decision_matrix.yaml"))
+    policies = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/policies.yaml"))
     decision_policy = policies.get("decision_matrix_policy") if isinstance(policies.get("decision_matrix_policy"), dict) else {}
     assert decisions.get("schema_version") == "oag_decision_matrix.v1", decisions
     assert isinstance(decisions.get("decisions"), list) and decisions["decisions"], decisions
@@ -403,7 +404,7 @@ def case_requirement_quality_scaffold_seed(root: Path) -> dict[str, Any]:
     draft_ip = root / "requirement_quality_draft" / "demo_counter_cx1"
     scaffold = smoke_test.call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(draft_ip), "owner": "eval"}})
     assert scaffold["ok"] is True, scaffold
-    policies = _read_yaml(draft_ip / "ontology" / "policies.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/policies.yaml"))
     source_claims = _read_yaml(draft_ip / "req" / "source_claims.yaml")
     ambiguities = _read_yaml(draft_ip / "req" / "ambiguity_register.yaml")
     quality_policy = policies.get("requirement_quality_policy") if isinstance(policies.get("requirement_quality_policy"), dict) else {}
@@ -452,8 +453,8 @@ def case_verification_plan_scaffold_seed(root: Path) -> dict[str, Any]:
     draft_ip = root / "verification_plan_draft" / "demo_counter_cx1"
     scaffold = smoke_test.call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(draft_ip), "owner": "eval"}})
     assert scaffold["ok"] is True, scaffold
-    policies = _read_yaml(draft_ip / "ontology" / "policies.yaml")
-    vplan = _read_yaml(draft_ip / "ontology" / "verification_plan.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/policies.yaml"))
+    vplan = _read_yaml(oag_paths.legacy_or_hidden(draft_ip, "ontology/verification_plan.yaml"))
     strategy_policy = policies.get("verification_strategy_policy") if isinstance(policies.get("verification_strategy_policy"), dict) else {}
     assert strategy_policy.get("canonical_verification_plan_file") == "ontology/verification_plan.yaml", policies
     assert strategy_policy.get("owner_role") == "oag-verification-strategy-agent", policies
@@ -594,7 +595,7 @@ def case_decision_matrix_generator_mctp_profile(root: Path) -> dict[str, Any]:
     assert proc.returncode == 0, proc.stdout + proc.stderr
     result = json.loads(proc.stdout)
     assert result["counts"]["added"] >= 13, result
-    matrix = _read_yaml(ip / "ontology" / "decision_matrix.yaml")
+    matrix = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/decision_matrix.yaml"))
     rows = {item["id"]: item for item in matrix["decisions"]}
     assert rows["D003_TLP_BOUNDARY"]["status"] == "unresolved", rows["D003_TLP_BOUNDARY"]
     assert rows["D003_TLP_BOUNDARY"]["decision"] is None, rows["D003_TLP_BOUNDARY"]
@@ -722,15 +723,15 @@ def _domain_intent_template(ip: Path, *, crossing_type: str = "multi_bit_level_s
 
 def case_domain_intent_scaffold_seed(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "domain_intent_seed")
-    policies = _read_yaml(ip / "ontology" / "policies.yaml")
-    domain_intent = _read_yaml(ip / "ontology" / "domain_intent.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml"))
+    domain_intent = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/domain_intent.yaml"))
     domain_policy = policies.get("domain_crossing_policy") if isinstance(policies.get("domain_crossing_policy"), dict) else {}
     assert domain_policy.get("canonical_domain_intent_file") == "ontology/domain_intent.yaml", policies
     assert domain_policy.get("domain_intent_required") is True, policies
     assert domain_intent.get("schema_version") == "oag_domain_intent.v1", domain_intent
     compiled = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip), "force": True}})
     assert compiled["result"]["status"] == "pass", compiled
-    matrix = json.loads((ip / "ontology" / "generated" / "domain_crossing_matrix.json").read_text(encoding="utf-8"))
+    matrix = json.loads(oag_paths.legacy_or_hidden(ip, "ontology/generated/domain_crossing_matrix.json").read_text(encoding="utf-8"))
     assert matrix["schema_version"] == "oag_domain_crossing_matrix.v1", matrix
     return {
         "ip": str(ip),
@@ -742,8 +743,8 @@ def case_domain_intent_scaffold_seed(root: Path) -> dict[str, Any]:
 
 def case_tb_methodology_scaffold_seed(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "tb_methodology_seed")
-    policies = _read_yaml(ip / "ontology" / "policies.yaml")
-    tb_methodology = _read_yaml(ip / "ontology" / "tb_methodology.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml"))
+    tb_methodology = _read_yaml(oag_paths.legacy_or_hidden(ip, "ontology/tb_methodology.yaml"))
     tb_policy = policies.get("tb_methodology_policy") if isinstance(policies.get("tb_methodology_policy"), dict) else {}
     assert tb_policy.get("canonical_tb_methodology_file") == "ontology/tb_methodology.yaml", policies
     assert tb_policy.get("framework_required") is False, policies
@@ -753,7 +754,7 @@ def case_tb_methodology_scaffold_seed(root: Path) -> dict[str, Any]:
     assert isinstance(tb_methodology.get("coverage_goals"), list) and tb_methodology["coverage_goals"], tb_methodology
     compiled = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip), "force": True}})
     assert compiled["result"]["status"] == "pass", compiled
-    matrix = json.loads((ip / "ontology" / "generated" / "tb_methodology_matrix.json").read_text(encoding="utf-8"))
+    matrix = json.loads(oag_paths.legacy_or_hidden(ip, "ontology/generated/tb_methodology_matrix.json").read_text(encoding="utf-8"))
     assert matrix["schema_version"] == "oag_tb_methodology_matrix.v1", matrix
     assert matrix["stats"]["coverage_goals"] >= 1, matrix
     return {
@@ -766,7 +767,7 @@ def case_tb_methodology_scaffold_seed(root: Path) -> dict[str, Any]:
 
 def case_random_without_coverage_goals_fails(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "random_without_coverage")
-    path = ip / "ontology" / "tb_methodology.yaml"
+    path = oag_paths.legacy_or_hidden(ip, "ontology/tb_methodology.yaml")
     tb_methodology = _read_yaml(path)
     tb_methodology["coverage_goals"] = []
     tb_methodology["stimulus_strategy"]["constrained_random"] = {
@@ -799,8 +800,9 @@ def case_failed_scoreboard_row_with_coverage_ref_fails(root: Path) -> dict[str, 
     )
     _record_closed_validation(ip)
     issues = _check_issues(ip)
-    assert any("TB_CHECK_FAILED_ROWS_NOT_COUNTED_FOR_COVERAGE" in issue for issue in issues), issues
-    return {"ip": str(ip), "matched_issue": "TB_CHECK_FAILED_ROWS_NOT_COUNTED_FOR_COVERAGE"}
+    matched = "weak closure evidence: scoreboard evidence has failing rows"
+    assert any(matched in issue for issue in issues), issues
+    return {"ip": str(ip), "matched_issue": matched}
 
 
 def case_unresolved_scoreboard_coverage_ref_fails(root: Path) -> dict[str, Any]:
@@ -833,8 +835,8 @@ def case_missing_results_xml_after_tb_closure_fails(root: Path) -> dict[str, Any
 
 def case_missing_domain_intent_blocks_cdc_closure(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "missing_domain_intent")
-    (ip / "ontology" / "domain_intent.yaml").unlink()
-    contracts_path = ip / "ontology" / "contracts.yaml"
+    oag_paths.legacy_or_hidden(ip, "ontology/domain_intent.yaml").unlink()
+    contracts_path = oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml")
     contracts = _read_yaml(contracts_path)
     contract = contracts["contracts"][0]
     contract["status"] = "closed"
@@ -851,8 +853,8 @@ def case_missing_domain_intent_blocks_cdc_closure(root: Path) -> dict[str, Any]:
 
 def case_cdc_sim_only_closure_fails(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "cdc_sim_only")
-    _write_yaml(ip / "ontology" / "domain_intent.yaml", _domain_intent_template(ip))
-    contracts_path = ip / "ontology" / "contracts.yaml"
+    _write_yaml(oag_paths.ontology_path(ip, "domain_intent.yaml"), _domain_intent_template(ip))
+    contracts_path = oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml")
     contracts = _read_yaml(contracts_path)
     contract = contracts["contracts"][0]
     contract["status"] = "closed"
@@ -871,7 +873,7 @@ def case_cdc_sim_only_closure_fails(root: Path) -> dict[str, Any]:
 def case_multibit_cdc_direct_sample_fails(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "multibit_cdc_direct")
     _write_yaml(
-        ip / "ontology" / "domain_intent.yaml",
+        oag_paths.ontology_path(ip, "domain_intent.yaml"),
         _domain_intent_template(ip, crossing_type="multi_bit_data", pattern="direct"),
     )
     _approve_eval_protected_update(ip, summary="eval declares unsafe direct multi-bit CDC")
@@ -902,8 +904,8 @@ def case_rdc_contract_requires_reset_relation(root: Path) -> dict[str, Any]:
             "destination_reset_domain": "presetn_domain",
         }
     ]
-    _write_yaml(ip / "ontology" / "domain_intent.yaml", domain_intent)
-    contracts_path = ip / "ontology" / "contracts.yaml"
+    _write_yaml(oag_paths.ontology_path(ip, "domain_intent.yaml"), domain_intent)
+    contracts_path = oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml")
     contracts = _read_yaml(contracts_path)
     contract = contracts["contracts"][0]
     contract["status"] = "closed"
@@ -921,7 +923,7 @@ def case_rdc_contract_requires_reset_relation(root: Path) -> dict[str, Any]:
 
 def case_missing_behavior_model_blocks_behavioral_closure(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "missing_behavior_model")
-    contracts_path = ip / "ontology" / "contracts.yaml"
+    contracts_path = oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml")
     contracts = _read_yaml(contracts_path)
     contracts["contracts"][0]["status"] = "closed"
     contracts["contracts"][0]["contract_type"] = "behavioral"
@@ -935,7 +937,7 @@ def case_missing_behavior_model_blocks_behavioral_closure(root: Path) -> dict[st
 
 def case_missing_cycle_rules_blocks_temporal_closure(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "missing_cycle_rules")
-    contracts_path = ip / "ontology" / "contracts.yaml"
+    contracts_path = oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml")
     contracts = _read_yaml(contracts_path)
     contracts["contracts"][0]["status"] = "closed"
     contracts["contracts"][0]["contract_type"] = "temporal"
@@ -949,7 +951,7 @@ def case_missing_cycle_rules_blocks_temporal_closure(root: Path) -> dict[str, An
 
 def case_prose_only_contract_fails_closure_grade_check(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "prose_only_contract")
-    contracts_path = ip / "ontology" / "contracts.yaml"
+    contracts_path = oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml")
     contracts = _read_yaml(contracts_path)
     contract = contracts["contracts"][0]
     contract["status"] = "closed"
@@ -1029,8 +1031,9 @@ def case_manual_spec_expected_source_blocks_closure(root: Path) -> dict[str, Any
     )
     _record_closed_validation(ip)
     issues = _check_issues(ip)
-    assert any("CHECK_MANUAL_SPEC_DOWNGRADED_FOR_CLOSURE" in issue for issue in issues), issues
-    return {"ip": str(ip), "matched_issue": "CHECK_MANUAL_SPEC_DOWNGRADED_FOR_CLOSURE"}
+    matched = "weak closure evidence: 2 scoreboard row(s) use manual_spec expected_source"
+    assert any(matched in issue for issue in issues), issues
+    return {"ip": str(ip), "matched_issue": matched}
 
 
 def case_scenario_mapping_required_after_tb_closure(root: Path) -> dict[str, Any]:
@@ -1303,13 +1306,14 @@ def case_evidence_supersession_clears_stale_record(root: Path) -> dict[str, Any]
     fresh_check = smoke_test.call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})
     stale_issues = [issue for issue in fresh_check["result"]["issues"] if "evidence file stale: sim/results.xml" in issue]
     assert not stale_issues, fresh_check
-    assert fresh_check["result"]["ok"] is True, fresh_check
+    assert any("weak closure evidence: closed validation requires behavioral scoreboard or formal evidence" in issue for issue in fresh_check["result"]["issues"]), fresh_check
     return {
         "ip": str(ip),
         "baseline": baseline["result"]["id"],
         "superseder": superseder["result"]["id"],
         "stale_before": True,
         "stale_after": False,
+        "remaining_closure_blocked": True,
     }
 
 
@@ -1394,7 +1398,7 @@ def case_module_per_file_boundary_blocks_greenfield(root: Path) -> dict[str, Any
             "",
         ]
     )
-    decomp_path = ip / "ontology" / "decomposition.yaml"
+    decomp_path = oag_paths.ontology_path(ip, "decomposition.yaml")
     decomp_path.write_text(bad_decomposition, encoding="utf-8")
     _approve_eval_protected_update(ip, summary="Approve temporary duplicate-file decomposition fixture.")
     blocked = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
@@ -1434,7 +1438,7 @@ def case_module_per_file_boundary_blocks_greenfield(root: Path) -> dict[str, Any
 def case_design_facts_graph_extraction_gate(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "design_facts_graph")
     (ip / "list" / "rtl.f").write_text("rtl/demo_counter_cx1.sv\nrtl/counter_leaf.sv\n", encoding="utf-8")
-    (ip / "ontology" / "decomposition.yaml").write_text(
+    oag_paths.ontology_path(ip, "decomposition.yaml").write_text(
         "\n".join(
             [
                 "schema: oag_decomposition.v1",
@@ -1509,7 +1513,7 @@ def case_design_facts_graph_extraction_gate(root: Path) -> dict[str, Any]:
     leaf.write_text(leaf.read_text(encoding="utf-8").replace("module wrong_leaf", "module counter_leaf", 1), encoding="utf-8")
     allowed = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
     assert allowed["result"]["status"] == "pass", allowed
-    facts = json.loads((ip / "ontology" / "generated" / "design_facts_graph.json").read_text(encoding="utf-8"))
+    facts = json.loads(oag_paths.legacy_or_hidden(ip, "ontology/generated/design_facts_graph.json").read_text(encoding="utf-8"))
     modules = {module["name"]: module for module in facts["modules"]}
     assert {"demo_counter_cx1", "counter_leaf"} <= set(modules), facts
     top_facts = modules["demo_counter_cx1"]
@@ -1530,7 +1534,7 @@ def case_design_facts_graph_extraction_gate(root: Path) -> dict[str, Any]:
 
 def case_interleaved_context_coverage_gate(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "interleaved_context")
-    rules_path = ip / "ontology" / "design_rules.yaml"
+    rules_path = oag_paths.legacy_or_hidden(ip, "ontology/design_rules.yaml")
     rules_text = rules_path.read_text(encoding="utf-8")
     rules_text = rules_text.replace(
         "instances:\n",
@@ -1585,7 +1589,7 @@ def case_interleaved_context_coverage_gate(root: Path) -> dict[str, Any]:
 
 def case_fault_model_coverage_gate(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "fault_model_coverage")
-    rules_path = ip / "ontology" / "design_rules.yaml"
+    rules_path = oag_paths.legacy_or_hidden(ip, "ontology/design_rules.yaml")
     rules_text = rules_path.read_text(encoding="utf-8")
     rules_text += "\n".join(
         [
@@ -1644,7 +1648,7 @@ def case_fault_model_coverage_gate(root: Path) -> dict[str, Any]:
     rules_path.write_text(rules_text, encoding="utf-8")
     allowed = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
     assert allowed["result"]["status"] == "pass", allowed
-    graph = json.loads((ip / "ontology" / "generated" / "design_truth_graph.json").read_text(encoding="utf-8"))
+    graph = json.loads(oag_paths.legacy_or_hidden(ip, "ontology/generated/design_truth_graph.json").read_text(encoding="utf-8"))
     node_types = {node.get("type") for node in graph.get("nodes", []) if isinstance(node, dict)}
     assert "fault_model" in node_types, graph
     assert "mutation" in node_types, graph
@@ -1659,7 +1663,7 @@ def case_fault_model_coverage_gate(root: Path) -> dict[str, Any]:
 
 def case_verification_role_decomposition_gate(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "verification_role_decomposition")
-    rules_path = ip / "ontology" / "design_rules.yaml"
+    rules_path = oag_paths.legacy_or_hidden(ip, "ontology/design_rules.yaml")
     rules_text = rules_path.read_text(encoding="utf-8")
     rules_text += "\n".join(
         [
@@ -1721,7 +1725,7 @@ def case_verification_role_decomposition_gate(root: Path) -> dict[str, Any]:
     rules_path.write_text(rules_text, encoding="utf-8")
     allowed = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
     assert allowed["result"]["status"] == "pass", allowed
-    graph = json.loads((ip / "ontology" / "generated" / "design_truth_graph.json").read_text(encoding="utf-8"))
+    graph = json.loads(oag_paths.legacy_or_hidden(ip, "ontology/generated/design_truth_graph.json").read_text(encoding="utf-8"))
     role_nodes = [node for node in graph.get("nodes", []) if isinstance(node, dict) and node.get("type") == "verification_role"]
     assert len(role_nodes) >= 8, graph
     return {
@@ -1736,7 +1740,7 @@ def case_verification_role_decomposition_gate(root: Path) -> dict[str, Any]:
 
 def case_signoff_domain_rule_gates(root: Path) -> dict[str, Any]:
     ip = smoke_test.make_ip(root / "signoff_domain_rules")
-    rules_path = ip / "ontology" / "design_rules.yaml"
+    rules_path = oag_paths.legacy_or_hidden(ip, "ontology/design_rules.yaml")
     rules_path.write_text(
         rules_path.read_text(encoding="utf-8")
         + "\n".join(
@@ -1865,7 +1869,7 @@ def case_signoff_domain_rule_gates(root: Path) -> dict[str, Any]:
     rules_path.write_text(rules_text, encoding="utf-8")
     allowed = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
     assert allowed["result"]["status"] == "pass", allowed
-    graph = json.loads((ip / "ontology" / "generated" / "design_truth_graph.json").read_text(encoding="utf-8"))
+    graph = json.loads(oag_paths.legacy_or_hidden(ip, "ontology/generated/design_truth_graph.json").read_text(encoding="utf-8"))
     node_types = {node.get("type") for node in graph.get("nodes", []) if isinstance(node, dict)}
     assert {"protocol", "clock_domain", "coverage_ref", "artifact"} <= node_types, graph
     return {
@@ -1903,7 +1907,8 @@ def case_reviewer_separation_signoff_gate(root: Path) -> dict[str, Any]:
     )
     assert blocked["result"]["allowed"] is False, blocked
     assert blocked["result"]["reason"] == "reviewer_receipt_required", blocked
-    fake_review_path = ip / "ontology" / "validations" / "REV_SELF_ALLOWED.json"
+    fake_review_path = oag_paths.ontology_path(ip, "validations/REV_SELF_ALLOWED.json")
+    fake_review_path.parent.mkdir(parents=True, exist_ok=True)
     fake_review_path.write_text(
         json.dumps(
             {
@@ -1999,7 +2004,7 @@ def case_claude_runtime_hook_configuration(root: Path) -> dict[str, Any]:
     ]
     assert "python3 .claude/hooks/claude_context_inject.py" in user_commands, hooks
     assert "python3 .claude/hooks/claude_draft_pressure.py" in user_commands, hooks
-    assert "python3 .claude/hooks/claude_stop_gate.py" in stop_commands, hooks
+    assert any("claude_stop_gate.py" in command for command in stop_commands), hooks
     assert "python3 .claude/hooks/claude_context_inject.py" in post_compact_commands, hooks
     return {
         "hooks_json": str(smoke_test.ROOT / "hooks.json"),

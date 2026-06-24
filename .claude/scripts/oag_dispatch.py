@@ -23,6 +23,7 @@ SCHEMAS_DIR = CODEX_ROOT / "schemas"
 
 sys.path.insert(0, str(SCRIPTS_DIR))
 from oag_validate_json import validate_document  # pylint: disable=wrong-import-position
+import oag_paths  # noqa: E402
 
 
 AGENT_RE = re.compile(r"^oag-[a-z0-9_-]+$")
@@ -156,7 +157,7 @@ def hash_known_paths(paths: list[str]) -> dict[str, str]:
 
 
 def scope_lock_status(ip_dir: Path) -> dict[str, Any]:
-    path = ip_dir / "ontology" / "scope_lock.json"
+    path = oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json")
     if not path.is_file():
         return {"state": "draft", "locked": False, "missing": True}
     try:
@@ -287,12 +288,12 @@ def create_dispatch(args: argparse.Namespace) -> dict[str, Any]:
             )
 
     status_raw, status_paths = git_status_paths(ip_rel)
-    dispatch_path = ip_dir / "knowledge" / "dispatches" / "unused.json"
-    dispatch_path.parent.mkdir(parents=True, exist_ok=True)
+    dispatch_path = oag_paths.state_path(ip_dir, "knowledge/dispatches/unused.json")
+    oag_paths.state_path(ip_dir, "knowledge/dispatches").mkdir(parents=True, exist_ok=True)
     dispatch: dict[str, Any] | None = None
     for sequence in range(0, 100):
         dispatch_id = safe_dispatch_id(ip_dir.name, args.agent_type, sequence=sequence)
-        candidate_path = ip_dir / "knowledge" / "dispatches" / f"{dispatch_id}.json"
+        candidate_path = oag_paths.state_path(ip_dir, f"knowledge/dispatches/{dispatch_id}.json")
         dispatch_rel = project_rel(candidate_path)
         candidate = {
             "schema_version": "oag_dispatch.v1",

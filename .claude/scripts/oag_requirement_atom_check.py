@@ -5,8 +5,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+import oag_paths  # noqa: E402
 
 
 CLOSURE_CONTRACT_TYPES = {
@@ -70,7 +77,7 @@ def issue(code: str, message: str, path: str = "") -> dict[str, str]:
 
 
 def is_locked(ip_dir: Path) -> bool:
-    scope = read_json(ip_dir / "ontology" / "scope_lock.json")
+    scope = read_json(oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json"))
     return scope.get("state") == "locked"
 
 
@@ -92,9 +99,9 @@ def atom_has_observable_phenomena(atom: dict[str, Any]) -> bool:
 
 def check_atoms(ip_dir: Path, *, require_locked: bool) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
-    path = ip_dir / "ontology" / "requirement_atoms.yaml"
-    atoms_doc = read_yaml(path)
-    req_doc = read_yaml(ip_dir / "ontology" / "requirements.yaml")
+    path = ip_dir / Path("ontology/requirement_atoms.yaml")
+    atoms_doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/requirement_atoms.yaml"))
+    req_doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/requirements.yaml"))
     req_ids = {item_id(item) for item in as_list(req_doc.get("requirements")) if isinstance(item, dict)}
     locked = require_locked or is_locked(ip_dir)
 
@@ -178,8 +185,8 @@ def check_obligations(ip_dir: Path, *, require_locked: bool) -> list[dict[str, s
     issues: list[dict[str, str]] = []
     if not (require_locked or is_locked(ip_dir)):
         return issues
-    path = ip_dir / "ontology" / "obligations.yaml"
-    doc = read_yaml(path)
+    path = ip_dir / Path("ontology/obligations.yaml")
+    doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/obligations.yaml"))
     if "__load_error__" in doc:
         return [issue("OBLIGATION_FILE_INVALID", f"Cannot read obligations.yaml: {doc['__load_error__']}", str(path))]
     for index, obligation in enumerate(as_list(doc.get("obligations"))):
@@ -212,8 +219,8 @@ def contract_needs_assume_guarantee(contract: dict[str, Any], *, require_locked:
 def check_contracts(ip_dir: Path, *, require_locked: bool) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     locked = require_locked or is_locked(ip_dir)
-    path = ip_dir / "ontology" / "contracts.yaml"
-    doc = read_yaml(path)
+    path = ip_dir / Path("ontology/contracts.yaml")
+    doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/contracts.yaml"))
     if "__load_error__" in doc:
         return [issue("CONTRACT_FILE_INVALID", f"Cannot read contracts.yaml: {doc['__load_error__']}", str(path))]
     for index, contract in enumerate(as_list(doc.get("contracts"))):

@@ -2,8 +2,8 @@
 name: oag-coverage-agent
 description: Reviews functional, scoreboard, protocol, fault-model, and coverage closure against OAG evidence.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: coverage agent.

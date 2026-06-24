@@ -20,6 +20,11 @@ try:
 except ImportError:  # pragma: no cover - non-POSIX fallback
     fcntl = None
 
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import oag_paths  # noqa: E402
+
 
 RESPONSE_SCHEMA = "oag_tool_response.v1"
 VALID_COMPLETION_ACTIONS = {"claim_complete", "close_obligation", "merge", "promote", "signoff"}
@@ -104,6 +109,7 @@ REQUIRED_DESIGN_RULE_KINDS = {
 FORMAL_CONTRACT_METHODS = {"formal", "assertion", "sva", "property", "proof"}
 CLOSED_STATUSES = {"closed", "pass", "passed", "validated", "complete", "done", "signoff", "promoted"}
 WEAKER_STATUSES = {"draft", "open", "partial", "pending", "unknown", "stale", "blocked"}
+TERMINAL_RUN_STATUSES = {"complete", "parked", "needs_human"}
 APPROVAL_ACTIONS = {"protected_change_approved", "human_approval", "approval"}
 VALID_STRUCTURE_PROFILES = {"greenfield_modular", "small_leaf_single_file", "legacy_preserve", "wrapper_adapter"}
 CURRENT_IP_OWNERSHIPS = {"current_ip", "manifest", "owned"}
@@ -217,7 +223,10 @@ def _ip_dir(arguments: dict[str, Any]) -> Path:
     raw = arguments.get("ip_dir") or arguments.get("ip") or arguments.get("ip_root")
     if not raw:
         raise ValueError("arguments.ip_dir is required")
-    return Path(str(raw)).expanduser()
+    # Resolve here so the IP base is consistent with oag_paths.* (which resolve
+    # internally); otherwise `<resolver_path>.relative_to(ip)` mismatches on
+    # platforms where the temp/real root differs (e.g. macOS /var -> /private/var).
+    return Path(str(raw)).expanduser().resolve()
 
 
 def _read_json_file(path: Path) -> Any:
@@ -266,37 +275,37 @@ def _safe_filename(value: str) -> str:
 
 
 def _structure_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / STRUCTURE_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(STRUCTURE_REL)))
     return data if isinstance(data, dict) else {}
 
 
 def _decomposition_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / DECOMPOSITION_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(DECOMPOSITION_REL)))
     return data if isinstance(data, dict) else {}
 
 
 def _policy_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / POLICIES_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(POLICIES_REL)))
     return data if isinstance(data, dict) else {}
 
 
 def _modeling_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / MODELING_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(MODELING_REL)))
     return data if isinstance(data, dict) else {}
 
 
 def _domain_intent_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / DOMAIN_INTENT_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(DOMAIN_INTENT_REL)))
     return data if isinstance(data, dict) else {}
 
 
 def _tb_methodology_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / TB_METHODOLOGY_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(TB_METHODOLOGY_REL)))
     return data if isinstance(data, dict) else {}
 
 
 def _verification_plan_doc(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / VERIFICATION_PLAN_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(VERIFICATION_PLAN_REL)))
     return data if isinstance(data, dict) else {}
 
 
@@ -421,9 +430,9 @@ def _decomposition_issues(
     profile_doc = decomposition.get("profile") if isinstance(decomposition.get("profile"), dict) else {}
     profile = _structure_profile(ip, policies=policies, decomposition=decomposition)
 
-    if not (ip / STRUCTURE_REL).is_file():
+    if not oag_paths.legacy_or_hidden(ip, str(STRUCTURE_REL)).is_file():
         issues.append(f"missing {STRUCTURE_REL}")
-    if not (ip / DECOMPOSITION_REL).is_file():
+    if not oag_paths.legacy_or_hidden(ip, str(DECOMPOSITION_REL)).is_file():
         issues.append(f"missing {DECOMPOSITION_REL}")
     if not structure_policy:
         issues.append("ontology/policies.yaml missing structure_policy")
@@ -962,7 +971,7 @@ def _extract_design_facts(ip: Path, decomposition: dict[str, Any], profile: str)
 
 
 def _write_design_facts_graph(ip: Path, decomposition: dict[str, Any], profile: str) -> dict[str, Any]:
-    path = ip / DESIGN_FACTS_REL
+    path = oag_paths.state_path(ip, str(DESIGN_FACTS_REL))
     path.parent.mkdir(parents=True, exist_ok=True)
     facts = _extract_design_facts(ip, decomposition, profile)
     return _write_json_semantic_stable(path, facts, volatile_keys={"generated_at"})
@@ -1024,7 +1033,7 @@ def _write_domain_crossing_matrix(ip: Path) -> dict[str, Any]:
             "rdc_crossings": len(rdc),
         },
     }
-    path = ip / DOMAIN_CROSSING_MATRIX_REL
+    path = oag_paths.state_path(ip, str(DOMAIN_CROSSING_MATRIX_REL))
     path.parent.mkdir(parents=True, exist_ok=True)
     return _write_json_semantic_stable(path, matrix, volatile_keys={"generated_at"})
 
@@ -1078,7 +1087,7 @@ def _write_tb_methodology_matrix(ip: Path) -> dict[str, Any]:
             "formal_candidates": len(formal_candidates),
         },
     }
-    path = ip / TB_METHODOLOGY_MATRIX_REL
+    path = oag_paths.state_path(ip, str(TB_METHODOLOGY_MATRIX_REL))
     path.parent.mkdir(parents=True, exist_ok=True)
     return _write_json_semantic_stable(path, matrix, volatile_keys={"generated_at"})
 
@@ -1094,7 +1103,7 @@ def _write_generated_design_views(
     contracts: list[dict[str, Any]],
     issues: list[str],
 ) -> dict[str, Any]:
-    generated = ip / "ontology" / "generated"
+    generated = oag_paths.state_path(ip, "ontology/generated")
     generated.mkdir(parents=True, exist_ok=True)
     modules = _module_items(decomposition)
     req_by_id = {str(item.get("id") or ""): item for item in reqs if item.get("id")}
@@ -1159,11 +1168,11 @@ def _write_generated_design_views(
         },
         "modules": modules,
     }
-    design_spec_path = ip / DESIGN_SPEC_REL
+    design_spec_path = oag_paths.state_path(ip, str(DESIGN_SPEC_REL))
     design_spec_path.parent.mkdir(parents=True, exist_ok=True)
     design_spec = _write_json_semantic_stable(design_spec_path, design_spec, volatile_keys={"generated_at"})
 
-    packets_dir = ip / AUTHORING_PACKETS_REL
+    packets_dir = oag_paths.state_path(ip, str(AUTHORING_PACKETS_REL))
     packets_dir.mkdir(parents=True, exist_ok=True)
     packets: list[dict[str, Any]] = []
     live_packet_paths: set[Path] = set()
@@ -1338,11 +1347,11 @@ def _hash_value(value: Any) -> str:
 
 
 def _ledger_path(ip: Path) -> Path:
-    return ip / LEDGER_REL
+    return oag_paths.legacy_or_hidden(ip, str(LEDGER_REL))
 
 
 def _protection_policy(ip: Path) -> dict[str, Any]:
-    data = _read_yaml_file(ip / PROTECTION_REL)
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, str(PROTECTION_REL)))
     return data if isinstance(data, dict) else {}
 
 
@@ -1352,10 +1361,21 @@ def _protected_paths(ip: Path) -> list[str]:
     return sorted(dict.fromkeys(paths))
 
 
+def _resolve_state_rel(ip: Path, rel: str) -> Path:
+    """Resolve an IP-relative path: route ontology/ and knowledge/ through the
+    .oag-aware resolver, leave all other (top-level) subtrees as ip / rel."""
+    try:
+        if Path(rel).parts[:1] in (("ontology",), ("knowledge",)):
+            return oag_paths.legacy_or_hidden(ip, str(rel))
+    except ValueError:
+        pass
+    return ip / rel
+
+
 def _protected_snapshot(ip: Path) -> dict[str, str]:
     snapshot: dict[str, str] = {}
     for rel in _protected_paths(ip):
-        path = ip / rel
+        path = _resolve_state_rel(ip, rel)
         snapshot[rel] = _sha256(path) if path.is_file() else "missing"
     return snapshot
 
@@ -1384,7 +1404,7 @@ def _last_ledger_entry(ip: Path) -> dict[str, Any] | None:
 
 @contextmanager
 def _ledger_append_lock(ip: Path):
-    lock_path = ip / "knowledge" / ".ledger.lock"
+    lock_path = oag_paths.state_path(ip, "knowledge/.ledger.lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+", encoding="utf-8") as handle:
         if fcntl is not None:
@@ -1500,9 +1520,9 @@ def _ledger_issues(ip: Path) -> list[str]:
 
 
 def _protection_issues(ip: Path) -> list[str]:
-    if not (ip / "ontology").is_dir():
+    if not oag_paths.legacy_or_hidden(ip, "ontology").is_dir():
         return []
-    policy_path = ip / PROTECTION_REL
+    policy_path = oag_paths.legacy_or_hidden(ip, str(PROTECTION_REL))
     policy = _protection_policy(ip)
     issues: list[str] = []
     if not policy_path.is_file():
@@ -1514,7 +1534,7 @@ def _protection_issues(ip: Path) -> list[str]:
     if not protected_fields:
         issues.append(f"{PROTECTION_REL} declares no protected_fields")
     for rel in [str(item).strip() for item in protected_paths if str(item).strip()]:
-        if not (ip / rel).exists():
+        if not _resolve_state_rel(ip, rel).exists():
             issues.append(f"{PROTECTION_REL} protected path missing on disk: {rel}")
     changed = _protected_snapshot_delta(ip)
     if changed:
@@ -1523,7 +1543,10 @@ def _protection_issues(ip: Path) -> list[str]:
 
 
 def _yaml_items(ip: Path, rel: str, key: str) -> list[dict[str, Any]]:
-    path = ip / rel
+    if Path(rel).parts[:1] in (("ontology",), ("knowledge",)):
+        path = oag_paths.legacy_or_hidden(ip, str(rel))
+    else:
+        path = ip / rel
     data = _read_yaml_file(path)
     if isinstance(data, dict) and isinstance(data.get(key), list):
         return [item for item in data[key] if isinstance(item, dict)]
@@ -2148,6 +2171,8 @@ def _rtl_language_subset_violations(ip: Path, source_refs: list[str], forbidden:
         "modport": re.compile(r"\bmodport\b"),
         "typedef": re.compile(r"\btypedef\b"),
         "enum": re.compile(r"\benum\b"),
+        "function": re.compile(r"\bfunction\b"),
+        "task": re.compile(r"\btask\b"),
         "always_ff": re.compile(r"\balways_ff\b"),
         "always_comb": re.compile(r"\balways_comb\b"),
         "always_latch": re.compile(r"\balways_latch\b"),
@@ -2703,10 +2728,10 @@ def _signoff_design_rule_issues(
 
 
 def _policy_profile(ip: Path) -> str:
-    data = _read_yaml_file(ip / "ontology" / "policies.yaml")
+    data = _read_yaml_file(oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml"))
     if isinstance(data, dict):
         return str(data.get("closure_profile") or "development")
-    path = ip / "ontology" / "policies.yaml"
+    path = oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml")
     if path.is_file():
         match = re.search(r"(?m)^\s*closure_profile\s*:\s*([A-Za-z0-9_-]+)\s*$", path.read_text(encoding="utf-8", errors="ignore"))
         if match:
@@ -2715,7 +2740,7 @@ def _policy_profile(ip: Path) -> str:
 
 
 def _scope_lock_path(ip: Path) -> Path:
-    return ip / SCOPE_LOCK_REL
+    return oag_paths.legacy_or_hidden(ip, str(SCOPE_LOCK_REL))
 
 
 def _implementation_artifacts(ip: Path) -> list[str]:
@@ -2928,7 +2953,7 @@ def _mark_scope_draft_after_interview(ip: Path, *, actor: dict[str, Any], draft_
 
 
 def _truth_graph_path(ip: Path) -> Path:
-    return ip / TRUTH_GRAPH_REL
+    return oag_paths.legacy_or_hidden(ip, str(TRUTH_GRAPH_REL))
 
 
 def _truth_graph_compiled(ip: Path) -> bool:
@@ -3155,6 +3180,131 @@ def _coverage_status(ip: Path) -> tuple[bool, str]:
     return True, "present"
 
 
+def _closure_evidence_report(ip: Path, evidence_files: list[str]) -> dict[str, Any]:
+    refs = sorted(dict.fromkeys(str(item).strip() for item in evidence_files if str(item).strip()))
+    issues: list[str] = []
+    facts: dict[str, Any] = {"files": refs}
+    has_behavioral_evidence = False
+
+    scoreboard_required = any(ref == str(SCOREBOARD_REL) or ref.endswith("/scoreboard_events.jsonl") for ref in refs)
+    if scoreboard_required:
+        summary = _scoreboard_summary(ip / SCOREBOARD_REL)
+        sb = summary.get("summary") if isinstance(summary.get("summary"), dict) else {}
+        facts["scoreboard"] = sb
+        total = int(sb.get("total") or 0)
+        if not summary.get("present") or total == 0:
+            issues.append("scoreboard evidence is missing or empty")
+        if int(sb.get("schema_failed") or 0) > 0 or int(sb.get("unreadable") or 0) > 0:
+            issues.append("scoreboard evidence has invalid rows")
+        if int(sb.get("failed") or 0) > 0:
+            issues.append("scoreboard evidence has failing rows")
+
+        live_rows = 0
+        manual_spec_rows = 0
+        dut_derived_expected_rows = 0
+        hdl_not_run_rows = 0
+        static_rows = 0
+        missing_expected_source_rows = 0
+        for line_no, row in _scoreboard_rows(ip):
+            expected_source = row.get("expected_source")
+            if not isinstance(expected_source, dict):
+                missing_expected_source_rows += 1
+            else:
+                expected_kind = str(expected_source.get("kind") or "").strip()
+                if expected_kind == "manual_spec":
+                    manual_spec_rows += 1
+                elif expected_kind in DUT_DERIVED_EXPECTED_SOURCE_KINDS:
+                    dut_derived_expected_rows += 1
+
+            observed_source = row.get("observed_source")
+            observed_kind = ""
+            if isinstance(observed_source, dict):
+                observed_kind = str(observed_source.get("kind") or "").strip()
+            if row.get("hdl_simulation_executed") is False:
+                hdl_not_run_rows += 1
+            strength_text = " ".join(
+                str(row.get(key) or "")
+                for key in ("evidence_strength", "runner_observation_mode", "observation_mode")
+            ).lower()
+            if any(token in strength_text for token in ("static", "smoke", "manual_spec", "not_hdl")):
+                static_rows += 1
+            if observed_kind in {"monitor", "waveform", "transaction", "assertion", "bus_monitor"}:
+                live_rows += 1
+            elif observed_kind == "interface_sample" and row.get("hdl_simulation_executed") is True:
+                live_rows += 1
+        facts["scoreboard_detail"] = {
+            "live_observation_rows": live_rows,
+            "manual_spec_rows": manual_spec_rows,
+            "dut_derived_expected_rows": dut_derived_expected_rows,
+            "hdl_not_run_rows": hdl_not_run_rows,
+            "static_rows": static_rows,
+            "missing_expected_source_rows": missing_expected_source_rows,
+        }
+        if missing_expected_source_rows:
+            issues.append(f"{missing_expected_source_rows} scoreboard row(s) lack expected_source")
+        if manual_spec_rows:
+            issues.append(f"{manual_spec_rows} scoreboard row(s) use manual_spec expected_source")
+        if dut_derived_expected_rows:
+            issues.append(f"{dut_derived_expected_rows} scoreboard row(s) use DUT-derived expected_source")
+        if hdl_not_run_rows:
+            issues.append(f"{hdl_not_run_rows} scoreboard row(s) report hdl_simulation_executed=false")
+        if static_rows:
+            issues.append(f"{static_rows} scoreboard row(s) are marked static/smoke/not-HDL")
+        if total and live_rows == 0:
+            issues.append("scoreboard has no live DUT monitor/waveform/transaction/assertion observations")
+        if total:
+            has_behavioral_evidence = True
+
+    coverage_required = any(ref == "cov/coverage.json" or ref.endswith("/coverage.json") for ref in refs)
+    if coverage_required:
+        coverage = _read_json_file(ip / "cov" / "coverage.json")
+        facts["coverage"] = {
+            "present": isinstance(coverage, dict),
+            "status": str(coverage.get("status") or coverage.get("result") or "") if isinstance(coverage, dict) else "",
+            "countable_for_release_closure": coverage.get("countable_for_release_closure") if isinstance(coverage, dict) else None,
+            "row_count": len(coverage.get("coverage") or []) if isinstance(coverage, dict) and isinstance(coverage.get("coverage"), list) else 0,
+        }
+        if not isinstance(coverage, dict):
+            issues.append("coverage evidence is missing or unreadable")
+        else:
+            status = str(coverage.get("status") or coverage.get("result") or "").lower()
+            if coverage.get("countable_for_release_closure") is False:
+                issues.append("coverage is explicitly non-countable for release closure")
+            if status and status not in CLOSED_STATUSES and status not in {"pass", "passed"}:
+                issues.append(f"coverage status is not closure-grade: {status}")
+
+    formal_required = any(ref.startswith("formal/") or "/formal/" in ref for ref in refs)
+    if formal_required:
+        formal = _read_json_file(ip / "formal" / "formal_status.json")
+        facts["formal"] = {
+            "present": isinstance(formal, dict),
+            "status": str(formal.get("status") or formal.get("result") or "") if isinstance(formal, dict) else "",
+            "formal_engine_run": formal.get("formal_engine_run") if isinstance(formal, dict) else None,
+        }
+        if not isinstance(formal, dict):
+            issues.append("formal evidence is missing or unreadable")
+        else:
+            status = str(formal.get("status") or formal.get("result") or "").lower()
+            if formal.get("formal_engine_run") is not True:
+                issues.append("formal engine was not run")
+            if status not in {"pass", "passed", "proven", "closed", "validated"}:
+                issues.append(f"formal status is not closure-grade: {status or '<missing>'}")
+            if formal.get("formal_engine_run") is True and status in {"pass", "passed", "proven", "closed", "validated"}:
+                has_behavioral_evidence = True
+
+    if refs and not has_behavioral_evidence:
+        issues.append("closed validation requires behavioral scoreboard or formal evidence, not static files alone")
+    if not refs:
+        issues.append("closed validation requires evidence files")
+
+    return {
+        "schema_version": "oag_closure_evidence_strength.v1",
+        "closure_grade": not issues,
+        "issues": sorted(dict.fromkeys(issues)),
+        "facts": facts,
+    }
+
+
 def _rel_to_ip(ip: Path, path: Path) -> str:
     try:
         return str(path.resolve().relative_to(ip.resolve()))
@@ -3162,21 +3312,42 @@ def _rel_to_ip(ip: Path, path: Path) -> str:
         return str(path)
 
 
+def _logical_rel_to_ip(ip: Path, path: Path) -> str:
+    """Relative-to-ip path with any leading ``.oag/`` stripped.
+
+    Used wherever a path is RECORDED/STORED as a logical identity so the
+    active ``.oag`` layout never leaks into manifests, ledgers, or receipts.
+    """
+    rel = _rel_to_ip(ip, path)
+    prefix = oag_paths.HIDDEN_DIR + "/"
+    if rel.startswith(prefix):
+        rel = rel[len(prefix):]
+    return rel
+
+
 def _compile_input_fingerprints(ip: Path) -> list[dict[str, str]]:
+    # Ontology inputs route to the active layout (.oag or legacy) for the
+    # filesystem target, but the fingerprint key stays the LOGICAL rel so the
+    # compile manifest never records a ".oag/" prefix.
+    ontology_rels = [
+        "ontology/requirements.yaml",
+        "ontology/obligations.yaml",
+        "ontology/contracts.yaml",
+        "ontology/stages.yaml",
+        str(DESIGN_RULES_REL),
+        str(STRUCTURE_REL),
+        str(DECOMPOSITION_REL),
+        str(MODELING_REL),
+        str(DOMAIN_INTENT_REL),
+        str(TB_METHODOLOGY_REL),
+        str(VERIFICATION_PLAN_REL),
+        "ontology/policies.yaml",
+        str(PROTECTION_REL),
+    ]
+    unique: dict[str, Path] = {}
+    for rel in ontology_rels:
+        unique[rel] = oag_paths.legacy_or_hidden(ip, rel)
     candidates = [
-        ip / "ontology" / "requirements.yaml",
-        ip / "ontology" / "obligations.yaml",
-        ip / "ontology" / "contracts.yaml",
-        ip / "ontology" / "stages.yaml",
-        ip / DESIGN_RULES_REL,
-        ip / STRUCTURE_REL,
-        ip / DECOMPOSITION_REL,
-        ip / MODELING_REL,
-        ip / DOMAIN_INTENT_REL,
-        ip / TB_METHODOLOGY_REL,
-        ip / VERIFICATION_PLAN_REL,
-        ip / "ontology" / "policies.yaml",
-        ip / PROTECTION_REL,
         ip / "list" / "rtl.f",
     ]
     for source in _rtl_source_files(ip, _decomposition_doc(ip)):
@@ -3197,9 +3368,12 @@ def _compile_input_fingerprints(ip: Path) -> list[dict[str, str]]:
         for path in ip.glob(pattern):
             if path.is_file():
                 candidates.append(path)
-    unique: dict[str, Path] = {}
     for path in candidates:
-        unique[_rel_to_ip(ip, path)] = path
+        rel = _rel_to_ip(ip, path)
+        # Keep the manifest key logical: never record a ".oag/" prefix.
+        if rel.startswith(oag_paths.HIDDEN_DIR + "/"):
+            rel = rel[len(oag_paths.HIDDEN_DIR) + 1:]
+        unique[rel] = path
     fingerprints: list[dict[str, str]] = []
     for rel, path in sorted(unique.items()):
         fingerprints.append(
@@ -3213,22 +3387,22 @@ def _compile_input_fingerprints(ip: Path) -> list[dict[str, str]]:
 
 def _compile_outputs_present(ip: Path) -> bool:
     required = [
-        ip / TRUTH_GRAPH_REL,
-        ip / DESIGN_SPEC_REL,
-        ip / DESIGN_FACTS_REL,
-        ip / DOMAIN_CROSSING_MATRIX_REL,
-        ip / TB_METHODOLOGY_MATRIX_REL,
+        oag_paths.legacy_or_hidden(ip, str(TRUTH_GRAPH_REL)),
+        oag_paths.legacy_or_hidden(ip, str(DESIGN_SPEC_REL)),
+        oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL)),
+        oag_paths.legacy_or_hidden(ip, str(DOMAIN_CROSSING_MATRIX_REL)),
+        oag_paths.legacy_or_hidden(ip, str(TB_METHODOLOGY_MATRIX_REL)),
     ]
-    packets = ip / AUTHORING_PACKETS_REL
+    packets = oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL))
     return all(path.is_file() for path in required) and any(packets.glob("rtl__*.json")) and any(packets.glob("tb__*.json"))
 
 
 def _compile_manifest_path(ip: Path) -> Path:
-    return ip / COMPILE_MANIFEST_REL
+    return oag_paths.legacy_or_hidden(ip, str(COMPILE_MANIFEST_REL))
 
 
 def _compile_approval_record_paths(ip: Path) -> list[Path]:
-    records_dir = ip / "knowledge" / "records"
+    records_dir = oag_paths.legacy_or_hidden(ip, "knowledge/records")
     if not records_dir.is_dir():
         return []
     paths: list[Path] = []
@@ -3282,12 +3456,12 @@ def _fresh_compile_manifest(ip: Path, inputs: list[dict[str, str]]) -> dict[str,
 def _write_compile_manifest(ip: Path, *, inputs: list[dict[str, str]], graph: dict[str, Any], generated: dict[str, Any]) -> dict[str, Any]:
     outputs = []
     for rel in (TRUTH_GRAPH_REL, DESIGN_SPEC_REL, DESIGN_FACTS_REL, DOMAIN_CROSSING_MATRIX_REL, TB_METHODOLOGY_MATRIX_REL):
-        path = ip / rel
+        path = oag_paths.legacy_or_hidden(ip, str(rel))
         outputs.append({"path": str(rel), "sha256": _sha256(path) if path.is_file() else "missing"})
-    packets = ip / AUTHORING_PACKETS_REL
+    packets = oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL))
     if packets.is_dir():
         for path in sorted(packets.glob("*.json")):
-            outputs.append({"path": _rel_to_ip(ip, path), "sha256": _sha256(path) if path.is_file() else "missing"})
+            outputs.append({"path": f"{AUTHORING_PACKETS_REL.as_posix()}/{path.name}", "sha256": _sha256(path) if path.is_file() else "missing"})
     manifest = {
         "schema_version": "oag_compile_manifest.v1",
         "ip": ip.name,
@@ -3305,12 +3479,12 @@ def _write_compile_manifest(ip: Path, *, inputs: list[dict[str, str]], graph: di
 
 
 def _cached_compile_result(ip: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-    graph = _read_json_file(ip / TRUTH_GRAPH_REL)
+    graph = _read_json_file(oag_paths.legacy_or_hidden(ip, str(TRUTH_GRAPH_REL)))
     graph = graph if isinstance(graph, dict) else {}
     return {
         "schema_version": "oag_compile.v1",
         "ip": ip.name,
-        "path": str(ip / TRUTH_GRAPH_REL),
+        "path": str(oag_paths.legacy_or_hidden(ip, str(TRUTH_GRAPH_REL))),
         "status": str(graph.get("status") or manifest.get("status") or "pass"),
         "issues": graph.get("issues") if isinstance(graph.get("issues"), list) else [],
         "stats": graph.get("stats") if isinstance(graph.get("stats"), dict) else manifest.get("stats") or {},
@@ -3410,7 +3584,7 @@ def _compile_graph(arguments: dict[str, Any]) -> dict[str, Any]:
     issues.extend(str(issue) for issue in _as_list(design_facts.get("issues")))
 
     namespace_ids = _structure_namespace_ids(structure)
-    if (ip / STRUCTURE_REL).is_file():
+    if oag_paths.legacy_or_hidden(ip, str(STRUCTURE_REL)).is_file():
         structure_id = f"structure::{ip.name}"
         nodes.append(
             {
@@ -3677,7 +3851,7 @@ def _compile_graph(arguments: dict[str, Any]) -> dict[str, Any]:
             issues.append(f"{rid}: rtl language subset must allow generate")
         if "generate" in forbidden or "generate_for" in forbidden or "genvar" in forbidden:
             issues.append(f"{rid}: rtl language subset must not forbid generate constructs")
-        for construct in ("procedural_for", "procedural_while"):
+        for construct in ("procedural_for", "procedural_while", "function", "task"):
             if construct not in forbidden:
                 issues.append(f"{rid}: rtl language subset must forbid {construct}")
 
@@ -3736,22 +3910,22 @@ def _compile_graph(arguments: dict[str, Any]) -> dict[str, Any]:
         contracts=contracts,
         issues=issues,
     )
-    generated_views["design_facts_graph"] = str(ip / DESIGN_FACTS_REL)
+    generated_views["design_facts_graph"] = str(oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL)))
     generated_views["design_facts"] = {
-        "path": str(ip / DESIGN_FACTS_REL),
+        "path": str(oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL))),
         "status": design_facts.get("status") or "missing",
         "stats": design_facts.get("stats") or {},
         "extractor": design_facts.get("extractor") or {},
     }
     domain_matrix = _write_domain_crossing_matrix(ip)
     generated_views["domain_crossing_matrix"] = {
-        "path": str(ip / DOMAIN_CROSSING_MATRIX_REL),
+        "path": str(oag_paths.legacy_or_hidden(ip, str(DOMAIN_CROSSING_MATRIX_REL))),
         "status": domain_matrix.get("status") or "missing",
         "stats": domain_matrix.get("stats") or {},
     }
     tb_matrix = _write_tb_methodology_matrix(ip)
     generated_views["tb_methodology_matrix"] = {
-        "path": str(ip / TB_METHODOLOGY_MATRIX_REL),
+        "path": str(oag_paths.legacy_or_hidden(ip, str(TB_METHODOLOGY_MATRIX_REL))),
         "status": tb_matrix.get("status") or "missing",
         "stats": tb_matrix.get("stats") or {},
     }
@@ -3810,7 +3984,7 @@ def _compile_graph(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _stage_receipt_issues(ip: Path, *, require_any: bool = False) -> list[str]:
-    receipts_dir = ip / STAGE_RECEIPTS_REL
+    receipts_dir = oag_paths.legacy_or_hidden(ip, str(STAGE_RECEIPTS_REL))
     receipts = sorted(receipts_dir.glob("*.json")) if receipts_dir.is_dir() else []
     if require_any and not receipts:
         return [f"missing stage run receipt under {STAGE_RECEIPTS_REL}"]
@@ -3858,7 +4032,7 @@ def _evidence_file_hashes(ip: Path, files: list[Any]) -> list[dict[str, str]]:
 
 
 def _knowledge_records(ip: Path) -> list[dict[str, Any]]:
-    records_dir = ip / "knowledge" / "records"
+    records_dir = oag_paths.legacy_or_hidden(ip, "knowledge/records")
     records: list[dict[str, Any]] = []
     if not records_dir.is_dir():
         return records
@@ -3894,9 +4068,12 @@ def _record_index_summary(ip: Path, path: Path, record: dict[str, Any]) -> dict[
     if not validation:
         validation = rocev.get("validation") if isinstance(rocev.get("validation"), dict) else {}
     promotion = record.get("promotion") if isinstance(record.get("promotion"), dict) else {}
+    record_rel = path.relative_to(ip)
+    if record_rel.parts[:1] == (oag_paths.HIDDEN_DIR,):
+        record_rel = Path(*record_rel.parts[1:])
     return {
         "id": str(record.get("id") or path.stem),
-        "path": str(path.relative_to(ip)),
+        "path": str(record_rel),
         "ip": str(scope.get("ip") or ip.name),
         "stage": str(scope.get("stage") or record.get("stage") or "general"),
         "type": str(record.get("type") or "log"),
@@ -3924,7 +4101,7 @@ def _record_index_summary(ip: Path, path: Path, record: dict[str, Any]) -> dict[
 
 
 def _rebuild_knowledge_index(ip: Path) -> dict[str, Any]:
-    records_dir = ip / "knowledge" / "records"
+    records_dir = oag_paths.legacy_or_hidden(ip, "knowledge/records")
     summaries: list[dict[str, Any]] = []
     if records_dir.is_dir():
         paths = sorted([*records_dir.glob("*.json"), *records_dir.glob("*.yaml"), *records_dir.glob("*.yml")])
@@ -4020,6 +4197,10 @@ def _record_evidence_issues(ip: Path) -> list[str]:
             actual = _sha256(path)
             if actual != expected:
                 issues.append(f"{Path(str(record.get('_path'))).name}: evidence file stale: {rel}")
+        strength = _closure_evidence_report(ip, files)
+        if not strength.get("closure_grade"):
+            for issue in _as_list(strength.get("issues"))[:8]:
+                issues.append(f"{Path(str(record.get('_path'))).name}: weak closure evidence: {issue}")
     return issues
 
 
@@ -4106,6 +4287,9 @@ def _closed_record_links(ip: Path) -> list[dict[str, str]]:
             continue
         evidence = record.get("evidence") if isinstance(record.get("evidence"), dict) else {}
         if not (_as_list(evidence.get("files")) or _as_list(evidence.get("tests")) or str(evidence.get("commit") or "").strip()):
+            continue
+        strength = _closure_evidence_report(ip, _str_items(evidence.get("files")))
+        if not strength.get("closure_grade"):
             continue
         obligation = rocev.get("obligation") if isinstance(rocev.get("obligation"), dict) else {}
         contract = rocev.get("contract") if isinstance(rocev.get("contract"), dict) else {}
@@ -4237,7 +4421,7 @@ def _tb_methodology_issues(ip: Path, closure_matrix: dict[str, Any]) -> list[str
     issues: list[str] = []
     policies = _policy_doc(ip)
     tb_policy = policies.get("tb_methodology_policy") if isinstance(policies.get("tb_methodology_policy"), dict) else {}
-    tb_path = ip / TB_METHODOLOGY_REL
+    tb_path = oag_paths.legacy_or_hidden(ip, str(TB_METHODOLOGY_REL))
     tb_methodology = _tb_methodology_doc(ip)
     closed_contracts = _closed_contract_ids(ip, closure_matrix)
     scoreboard_rows = _scoreboard_rows(ip)
@@ -4305,7 +4489,7 @@ def _modeling_oracle_issues(ip: Path, closure_matrix: dict[str, Any]) -> list[st
     issues: list[str] = []
     policies = _policy_doc(ip)
     modeling_policy = policies.get("modeling_policy") if isinstance(policies.get("modeling_policy"), dict) else {}
-    modeling_path = ip / MODELING_REL
+    modeling_path = oag_paths.legacy_or_hidden(ip, str(MODELING_REL))
     modeling = _modeling_doc(ip)
 
     if not modeling_policy:
@@ -4418,7 +4602,7 @@ def _domain_intent_issues(ip: Path, closure_matrix: dict[str, Any]) -> list[str]
     policies = _policy_doc(ip)
     domain_policy = policies.get("domain_crossing_policy") if isinstance(policies.get("domain_crossing_policy"), dict) else {}
     structure = _structure_doc(ip)
-    domain_path = ip / DOMAIN_INTENT_REL
+    domain_path = oag_paths.legacy_or_hidden(ip, str(DOMAIN_INTENT_REL))
     domain_intent = _domain_intent_doc(ip)
     contracts = _yaml_items(ip, "ontology/contracts.yaml", "contracts")
     closed_contracts = _closed_contract_ids(ip, closure_matrix)
@@ -4584,7 +4768,7 @@ def _domain_intent_issues(ip: Path, closure_matrix: dict[str, Any]) -> list[str]
 
 
 def _metrics_history_path(ip: Path) -> Path:
-    return ip / METRICS_REL / "improvement_history.jsonl"
+    return oag_paths.legacy_or_hidden(ip, str(METRICS_REL / "improvement_history.jsonl"))
 
 
 def _latest_metrics_snapshot(ip: Path) -> dict[str, Any]:
@@ -4719,7 +4903,7 @@ def _auto_research_metrics(ip: Path) -> dict[str, Any]:
 
 def _run_metrics(ip: Path) -> dict[str, Any]:
     states: list[dict[str, Any]] = []
-    runs_dir = ip / RUNS_REL
+    runs_dir = oag_paths.legacy_or_hidden(ip, str(RUNS_REL))
     if runs_dir.is_dir():
         for path in sorted(runs_dir.glob("RUN_*/run_state.json")):
             data = _read_json_file(path)
@@ -4741,7 +4925,7 @@ def _run_metrics(ip: Path) -> dict[str, Any]:
 def _decision_metrics(ip: Path) -> dict[str, Any]:
     decisions = []
     reviewers = []
-    directory = ip / DECISION_RECEIPTS_REL
+    directory = oag_paths.legacy_or_hidden(ip, str(DECISION_RECEIPTS_REL))
     if directory.is_dir():
         for path in sorted(directory.glob("DEC_*.json")):
             data = _read_json_file(path)
@@ -4818,11 +5002,12 @@ def _improvement_metrics(
 
     truth_graph = _read_json_file(_truth_graph_path(ip))
     truth_stats = truth_graph.get("stats") if isinstance(truth_graph, dict) and isinstance(truth_graph.get("stats"), dict) else {}
-    design_facts = _read_json_file(ip / DESIGN_FACTS_REL)
+    design_facts = _read_json_file(oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL)))
     design_facts_stats = design_facts.get("stats") if isinstance(design_facts, dict) and isinstance(design_facts.get("stats"), dict) else {}
     design_rules = _yaml_items(ip, str(DESIGN_RULES_REL), "rules")
     design_rule_instances = _yaml_items(ip, str(DESIGN_RULES_REL), "instances")
-    receipts = sorted((ip / STAGE_RECEIPTS_REL).glob("*.json")) if (ip / STAGE_RECEIPTS_REL).is_dir() else []
+    _stage_receipts_dir = oag_paths.legacy_or_hidden(ip, str(STAGE_RECEIPTS_REL))
+    receipts = sorted(_stage_receipts_dir.glob("*.json")) if _stage_receipts_dir.is_dir() else []
     ledger_events = len(_ledger_entries(ip))
 
     total = int(matrix.get("total") or 0)
@@ -5448,8 +5633,8 @@ def _handoff_snapshot(arguments: dict[str, Any]) -> dict[str, Any]:
         artifacts=artifacts,
         ledger_event=ledger_event["event_hash"],
     )
-    _write_json(ip / metrics_latest_rel, metrics)
-    metrics_history_path = ip / metrics_history_rel
+    _write_json(oag_paths.state_path(ip, str(metrics_latest_rel)), metrics)
+    metrics_history_path = oag_paths.state_path(ip, str(metrics_history_rel))
     metrics_history_path.parent.mkdir(parents=True, exist_ok=True)
     with metrics_history_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(metrics, ensure_ascii=False, sort_keys=True) + "\n")
@@ -5466,7 +5651,7 @@ def _handoff_snapshot(arguments: dict[str, Any]) -> dict[str, Any]:
         "recorded": True,
         "path": str(ip / HANDOFF_READINESS_REL),
         "history": str(handoff_history_path),
-        "metrics_path": str(ip / metrics_latest_rel),
+        "metrics_path": str(oag_paths.state_path(ip, str(metrics_latest_rel))),
         "metrics_history": str(metrics_history_path),
         "ledger_event": ledger_event["event_hash"],
         "handoff": report,
@@ -5683,7 +5868,7 @@ def _inspect(arguments: dict[str, Any]) -> dict[str, Any]:
         for path in [
             ip / "req" / "locked_truth.md",
             ip / "req" / "requirements.yaml",
-            ip / "ontology" / "requirements.yaml",
+            oag_paths.legacy_or_hidden(ip, "ontology/requirements.yaml"),
             *sorted((ip / "req").glob("*requirements*.md")),
         ]
         if path.is_file()
@@ -5692,10 +5877,10 @@ def _inspect(arguments: dict[str, Any]) -> dict[str, Any]:
         [
             ip / "req" / "obligations.json",
             ip / "req" / "obligations.yaml",
-            ip / "ontology" / "obligations.yaml",
+            oag_paths.legacy_or_hidden(ip, "ontology/obligations.yaml"),
         ]
     )
-    obligation_path = obligation_paths[0] if obligation_paths else ip / "ontology" / "obligations.yaml"
+    obligation_path = obligation_paths[0] if obligation_paths else oag_paths.legacy_or_hidden(ip, "ontology/obligations.yaml")
     obligations = _read_json_file(obligation_path) if obligation_path.suffix == ".json" else None
     obligation_count = len(obligations) if isinstance(obligations, list) else 0
     if isinstance(obligations, dict):
@@ -5707,7 +5892,7 @@ def _inspect(arguments: dict[str, Any]) -> dict[str, Any]:
         [
             ip / "req" / "evidence_plan.json",
             ip / "req" / "evidence_plan.yaml",
-            ip / "ontology" / "contracts.yaml",
+            oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml"),
             ip / "verify" / "equivalence_goals.json",
         ]
     )
@@ -5721,7 +5906,7 @@ def _inspect(arguments: dict[str, Any]) -> dict[str, Any]:
     truth_graph = _read_json_file(_truth_graph_path(ip))
     truth_graph_present = isinstance(truth_graph, dict)
     truth_graph_status = str(truth_graph.get("status") or "present").lower() if truth_graph_present else "missing"
-    design_facts = _read_json_file(ip / DESIGN_FACTS_REL)
+    design_facts = _read_json_file(oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL)))
     design_facts_present = isinstance(design_facts, dict)
     design_facts_status = str(design_facts.get("status") or "present").lower() if design_facts_present else "missing"
     design_rules = _yaml_items(ip, str(DESIGN_RULES_REL), "rules")
@@ -5732,11 +5917,12 @@ def _inspect(arguments: dict[str, Any]) -> dict[str, Any]:
         obl_ids={str(item.get("id") or "") for item in _yaml_items(ip, "ontology/obligations.yaml", "obligations") if item.get("id")},
         contract_ids={str(item.get("id") or "") for item in _yaml_items(ip, "ontology/contracts.yaml", "contracts") if item.get("id")},
     )
-    design_spec_present = (ip / DESIGN_SPEC_REL).is_file()
-    authoring_packets_dir = ip / AUTHORING_PACKETS_REL
+    design_spec_present = oag_paths.legacy_or_hidden(ip, str(DESIGN_SPEC_REL)).is_file()
+    authoring_packets_dir = oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL))
     authoring_packets = sorted(authoring_packets_dir.glob("*.json")) if authoring_packets_dir.is_dir() else []
     receipt_issues = _stage_receipt_issues(ip)
-    receipt_count = len(sorted((ip / STAGE_RECEIPTS_REL).glob("*.json"))) if (ip / STAGE_RECEIPTS_REL).is_dir() else 0
+    _receipts_dir = oag_paths.legacy_or_hidden(ip, str(STAGE_RECEIPTS_REL))
+    receipt_count = len(sorted(_receipts_dir.glob("*.json"))) if _receipts_dir.is_dir() else 0
     closure_profile = _policy_profile(ip)
     scope_lock = _scope_lock_status(ip)
     protection_issues = _protection_issues(ip)
@@ -5828,41 +6014,41 @@ def _inspect(arguments: dict[str, Any]) -> dict[str, Any]:
             "design_facts_graph": {
                 "present": design_facts_present,
                 "status": design_facts_status,
-                "path": str(ip / DESIGN_FACTS_REL),
+                "path": str(oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL))),
                 "stats": design_facts.get("stats") if isinstance(design_facts, dict) else {},
                 "extractor": design_facts.get("extractor") if isinstance(design_facts, dict) else {},
             },
             "design_rules": {
-                "present": (ip / DESIGN_RULES_REL).is_file(),
-                "path": str(ip / DESIGN_RULES_REL),
+                "present": oag_paths.legacy_or_hidden(ip, str(DESIGN_RULES_REL)).is_file(),
+                "path": str(oag_paths.legacy_or_hidden(ip, str(DESIGN_RULES_REL))),
                 "count": len(design_rules),
                 "instances": len(design_rule_instances),
             },
             "structure": {
-                "present": (ip / STRUCTURE_REL).is_file(),
-                "path": str(ip / STRUCTURE_REL),
+                "present": oag_paths.legacy_or_hidden(ip, str(STRUCTURE_REL)).is_file(),
+                "path": str(oag_paths.legacy_or_hidden(ip, str(STRUCTURE_REL))),
                 "profile": decomposition_summary.get("profile") or "",
                 "issues": structure_issues,
             },
             "decomposition": {
-                "present": (ip / DECOMPOSITION_REL).is_file(),
-                "path": str(ip / DECOMPOSITION_REL),
+                "present": oag_paths.legacy_or_hidden(ip, str(DECOMPOSITION_REL)).is_file(),
+                "path": str(oag_paths.legacy_or_hidden(ip, str(DECOMPOSITION_REL))),
                 "modules": decomposition_summary.get("module_count") or 0,
                 "current_ip_modules": decomposition_summary.get("current_ip_module_count") or 0,
                 "legacy_sources": decomposition_summary.get("legacy_sources") or [],
             },
-            "design_spec": {"present": design_spec_present, "path": str(ip / DESIGN_SPEC_REL)},
+            "design_spec": {"present": design_spec_present, "path": str(oag_paths.legacy_or_hidden(ip, str(DESIGN_SPEC_REL)))},
             "authoring_packets": {
                 "present": bool(authoring_packets),
-                "path": str(ip / AUTHORING_PACKETS_REL),
+                "path": str(oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL))),
                 "count": len(authoring_packets),
                 "packets": [str(path) for path in authoring_packets],
             },
             "stage_receipts": {"present": receipt_count > 0, "count": receipt_count, "issues": receipt_issues},
             "scope_lock": scope_lock,
             "protection": {
-                "present": (ip / PROTECTION_REL).is_file(),
-                "path": str(ip / PROTECTION_REL),
+                "present": oag_paths.legacy_or_hidden(ip, str(PROTECTION_REL)).is_file(),
+                "path": str(oag_paths.legacy_or_hidden(ip, str(PROTECTION_REL))),
                 "protected_paths": _protected_paths(ip),
                 "issues": protection_issues,
             },
@@ -5889,11 +6075,13 @@ def _scaffold(arguments: dict[str, Any]) -> dict[str, Any]:
         ip,
         force=bool(arguments.get("force")),
         owner=str(arguments.get("owner") or "unassigned"),
+        layout=str(arguments.get("layout") or "legacy"),
     )
     return {
         "schema_version": "oag_scaffold_result.v1",
         "ip": manifest["ip"],
         "path": manifest["path"],
+        "layout": manifest.get("layout", "legacy"),
         "directories": manifest["directories"],
         "written_files": manifest["written_files"],
         "skipped_files": manifest["skipped_files"],
@@ -5934,11 +6122,11 @@ def _suggest_actions(gaps: list[str]) -> list[str]:
 
 
 def _knowledge_index(ip: Path) -> Path:
-    return ip / "knowledge" / "_index.json"
+    return oag_paths.legacy_or_hidden(ip, "knowledge/_index.json")
 
 
 def _ensure_knowledge(ip: Path) -> dict[str, Any]:
-    records = ip / "knowledge" / "records"
+    records = oag_paths.state_path(ip, "knowledge/records")
     records.mkdir(parents=True, exist_ok=True)
     ledger = _ledger_path(ip)
     ledger.parent.mkdir(parents=True, exist_ok=True)
@@ -5960,7 +6148,7 @@ def _ensure_knowledge(ip: Path) -> dict[str, Any]:
             + "\n",
             encoding="utf-8",
         )
-    return {"schema_version": "oag_init.v1", "ip": ip.name, "knowledge_dir": str(ip / "knowledge"), "index": str(index), "ledger": str(ledger)}
+    return {"schema_version": "oag_init.v1", "ip": ip.name, "knowledge_dir": str(oag_paths.state_path(ip, "knowledge")), "index": str(index), "ledger": str(ledger)}
 
 
 def _now() -> str:
@@ -5976,13 +6164,30 @@ def _slug(value: str) -> str:
     return (text or "RECORD")[:48].strip("_") or "RECORD"
 
 
+def _layout_issues(ip: Path) -> list[str]:
+    """Reject an unsafe mixed layout where ontology/ or knowledge/ exist BOTH at the
+    legacy top level and under <ip>/.oag/. The resolver reads .oag and silently
+    shadows the legacy copy, so the two diverge; migration via oag_migrate_layout.py
+    is atomic, so a mixed state is always a defect to be reconciled."""
+    if not oag_paths.oag_root(ip).is_dir():
+        return []
+    shadowed = [name for name in ("ontology", "knowledge") if (ip / name).is_dir()]
+    if not shadowed:
+        return []
+    return [
+        "mixed OAG layout: "
+        + ", ".join(sorted(shadowed))
+        + " exist both at the top level and under .oag/; finish the migration (oag_migrate_layout.py) so state is read from one location"
+    ]
+
+
 def _check(arguments: dict[str, Any], *, include_metrics: bool = True) -> dict[str, Any]:
     ip = _ip_dir(arguments)
     issues: list[str] = []
-    if not (ip / "knowledge").is_dir():
-        issues.append(f"missing knowledge directory: {ip / 'knowledge'}")
-    if not (ip / "knowledge" / "records").is_dir():
-        issues.append(f"missing records directory: {ip / 'knowledge' / 'records'}")
+    if not oag_paths.legacy_or_hidden(ip, "knowledge").is_dir():
+        issues.append(f"missing knowledge directory: {oag_paths.legacy_or_hidden(ip, 'knowledge')}")
+    if not oag_paths.legacy_or_hidden(ip, "knowledge/records").is_dir():
+        issues.append(f"missing records directory: {oag_paths.legacy_or_hidden(ip, 'knowledge/records')}")
     index = _knowledge_index(ip)
     if not index.is_file():
         issues.append(f"missing index: {index}")
@@ -5992,14 +6197,14 @@ def _check(arguments: dict[str, Any], *, include_metrics: bool = True) -> dict[s
             issues.append("index is not valid JSON object")
         elif data.get("schema_version") != "ip_knowledge_index.v1":
             issues.append("index schema_version mismatch")
-    policies = ip / "ontology" / "policies.yaml"
+    policies = oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml")
     if policies.is_file() and _policy_profile(ip) not in {"draft", "development", "signoff"}:
-        issues.append(f"invalid closure_profile in {policies.relative_to(ip)}")
-    stages = ip / "ontology" / "stages.yaml"
+        issues.append("invalid closure_profile in ontology/policies.yaml")
+    stages = oag_paths.legacy_or_hidden(ip, "ontology/stages.yaml")
     if stages.is_file() and not _yaml_items(ip, "ontology/stages.yaml", "stages"):
-        issues.append(f"{stages.relative_to(ip)} declares no stages")
-    if (ip / "ontology").is_dir():
-        design_rules_path = ip / DESIGN_RULES_REL
+        issues.append("ontology/stages.yaml declares no stages")
+    if oag_paths.legacy_or_hidden(ip, "ontology").is_dir():
+        design_rules_path = oag_paths.legacy_or_hidden(ip, str(DESIGN_RULES_REL))
         if not design_rules_path.is_file():
             issues.append(f"missing {DESIGN_RULES_REL}")
         else:
@@ -6057,7 +6262,7 @@ def _check(arguments: dict[str, Any], *, include_metrics: bool = True) -> dict[s
         issues.extend(_protection_issues(ip))
     closure_matrix = _closure_matrix(ip)
     issues.extend(closure_matrix["issues"])
-    if (ip / "ontology").is_dir():
+    if oag_paths.legacy_or_hidden(ip, "ontology").is_dir():
         issues.extend(_modeling_oracle_issues(ip, closure_matrix))
         issues.extend(_domain_intent_issues(ip, closure_matrix))
         issues.extend(_tb_methodology_issues(ip, closure_matrix))
@@ -6069,6 +6274,7 @@ def _check(arguments: dict[str, Any], *, include_metrics: bool = True) -> dict[s
         issues.extend([f"scoreboard_rows.v1: {issue}" for issue in _as_list(scoreboard.get("issues"))])
     issues.extend(_stage_receipt_issues(ip))
     issues.extend(_scope_lock_issues(ip))
+    issues.extend(_layout_issues(ip))
     result = {
         "schema_version": "oag_check.v1",
         "ip": ip.name,
@@ -6076,7 +6282,7 @@ def _check(arguments: dict[str, Any], *, include_metrics: bool = True) -> dict[s
         "issues": issues,
         "policy": {"closure_profile": _policy_profile(ip)},
         "scope_lock": _scope_lock_status(ip),
-        "structure": {"profile": _structure_profile(ip), "path": str(ip / STRUCTURE_REL), "decomposition": str(ip / DECOMPOSITION_REL)},
+        "structure": {"profile": _structure_profile(ip), "path": str(oag_paths.legacy_or_hidden(ip, str(STRUCTURE_REL))), "decomposition": str(oag_paths.legacy_or_hidden(ip, str(DECOMPOSITION_REL)))},
         "truth_graph": {"compiled": _truth_graph_compiled(ip), "path": str(_truth_graph_path(ip))},
         "ledger": {"path": str(_ledger_path(ip)), "events": len(_ledger_entries(ip))},
         "closure_matrix": closure_matrix,
@@ -6129,7 +6335,7 @@ def _context(arguments: dict[str, Any]) -> dict[str, Any]:
         lines.append("lock_rule=No lock, no RTL/TB/closure. Stay in draft/interview mode until the user says lock.")
     lines.append(
         f"structure_profile={structure_profile or 'missing'} modules={decomposition_summary.get('module_count') or 0} "
-        f"structure={'ok' if not structure_issues else 'issue'} authoring_packets={len(sorted((ip / AUTHORING_PACKETS_REL).glob('*.json'))) if (ip / AUTHORING_PACKETS_REL).is_dir() else 0}"
+        f"structure={'ok' if not structure_issues else 'issue'} authoring_packets={len(sorted(oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL)).glob('*.json'))) if oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL)).is_dir() else 0}"
     )
     lines.append(
         "metrics "
@@ -6160,9 +6366,9 @@ def _context(arguments: dict[str, Any]) -> dict[str, Any]:
             "profile": structure_profile,
             "issues": structure_issues,
             "decomposition": decomposition_summary,
-            "design_spec": str(ip / DESIGN_SPEC_REL),
-            "authoring_packets": str(ip / AUTHORING_PACKETS_REL),
-            "design_facts_graph": str(ip / DESIGN_FACTS_REL),
+            "design_spec": str(oag_paths.legacy_or_hidden(ip, str(DESIGN_SPEC_REL))),
+            "authoring_packets": str(oag_paths.legacy_or_hidden(ip, str(AUTHORING_PACKETS_REL))),
+            "design_facts_graph": str(oag_paths.legacy_or_hidden(ip, str(DESIGN_FACTS_REL))),
         },
         "improvement_metrics": metrics,
         "failure_tickets": [str(path) for path in tickets],
@@ -6210,9 +6416,12 @@ def _record(arguments: dict[str, Any]) -> dict[str, Any]:
         "promotion": {"state": "local"},
         "created_at": _now(),
     }
-    path = ip / "knowledge" / "records" / f"{record_id}.json"
+    record_rel = f"knowledge/records/{record_id}.json"
+    path = oag_paths.state_path(ip, record_rel)
     action = str(record["type"] or "record")
-    ledger_payload = {"record": record, "path": str(path.relative_to(ip))}
+    # Keep the ledger-recorded path LOGICAL so the hash chain never captures a
+    # ".oag/" prefix regardless of the active layout.
+    ledger_payload = {"record": record, "path": record_rel}
     _assert_ledger_append_allowed(ip, action=action, actor=record["actor"], payload=ledger_payload)
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _rebuild_knowledge_index(ip)
@@ -6253,7 +6462,7 @@ def _draft(arguments: dict[str, Any]) -> dict[str, Any]:
     ip = _ip_dir(arguments)
     _ensure_knowledge(ip)
     (ip / "req").mkdir(parents=True, exist_ok=True)
-    (ip / DRAFTS_REL).mkdir(parents=True, exist_ok=True)
+    oag_paths.state_path(ip, str(DRAFTS_REL)).mkdir(parents=True, exist_ok=True)
 
     stage = str(arguments.get("stage") or "req")
     title = str(arguments.get("title") or arguments.get("claim") or "Interview draft")
@@ -6301,9 +6510,9 @@ def _draft(arguments: dict[str, Any]) -> dict[str, Any]:
         "source": source,
         "promotion_state": "draft",
         "created_at": _now(),
-        "record": str(Path(record_response["path"]).relative_to(ip)),
+        "record": _logical_rel_to_ip(ip, Path(record_response["path"])),
     }
-    draft_path = ip / DRAFTS_REL / f"{record_id}.json"
+    draft_path = oag_paths.state_path(ip, f"ontology/drafts/{record_id}.json")
     draft_path.write_text(json.dumps(draft, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     md_path = ip / "req" / "interview_draft.md"
@@ -6384,7 +6593,7 @@ def _reviewer_required(ip: Path, action: str) -> bool:
 
 def _reviewer_receipts(ip: Path, action: str = "") -> list[dict[str, Any]]:
     receipts: list[dict[str, Any]] = []
-    directory = ip / DECISION_RECEIPTS_REL
+    directory = oag_paths.legacy_or_hidden(ip, str(DECISION_RECEIPTS_REL))
     if not directory.is_dir():
         return receipts
     for path in sorted(directory.glob("REV_*.json")):
@@ -6453,7 +6662,7 @@ def _write_reviewer_receipt(
 ) -> dict[str, Any]:
     receipt_id = f"REV_{_stamp()}_{_slug(action)}"
     rel = DECISION_RECEIPTS_REL / f"{receipt_id}.json"
-    path = ip / rel
+    path = oag_paths.state_path(ip, str(rel))
     path.parent.mkdir(parents=True, exist_ok=True)
     receipt = {
         "schema_version": "oag_reviewer_receipt.v1",
@@ -6561,7 +6770,7 @@ def _write_decision_receipt(
 ) -> dict[str, Any]:
     receipt_id = f"DEC_{_stamp()}_{_slug(action)}"
     rel = DECISION_RECEIPTS_REL / f"{receipt_id}.json"
-    path = ip / rel
+    path = oag_paths.state_path(ip, str(rel))
     path.parent.mkdir(parents=True, exist_ok=True)
     receipt = {
         "schema_version": "oag_decision_receipt.v1",
@@ -6690,7 +6899,7 @@ def _run_actor(arguments: dict[str, Any], *, surface: str) -> dict[str, str]:
 
 
 def _runs_dir(ip: Path) -> Path:
-    return ip / RUNS_REL
+    return oag_paths.legacy_or_hidden(ip, str(RUNS_REL))
 
 
 def _active_run_path(ip: Path) -> Path:
@@ -6776,6 +6985,7 @@ def _save_run_state(ip: Path, state: dict[str, Any]) -> None:
             "schema_version": "oag_active_run.v1",
             "ip": ip.name,
             "run_id": run_id,
+            "status": str(state.get("status") or ""),
             "path": str(_run_state_path(ip, run_id).relative_to(ip)),
             "updated_at": state["updated_at"],
         },
@@ -6948,12 +7158,23 @@ def _run_action_from_state(ip: Path, arguments: dict[str, Any], state: dict[str,
         evidence_refs.extend(_contract_expected_evidence(contract))
     evidence_refs = sorted(dict.fromkeys(evidence_refs))
     missing = [ref for ref in evidence_refs if _path_like_ref(ref) and not (ip / ref).is_file()]
+    evidence_strength: dict[str, Any] = {}
+    if evidence_refs and not missing:
+        evidence_strength = _closure_evidence_report(ip, evidence_refs)
     obligation = obligations.get(oid, {})
     blockers = []
     if not contract_ids:
         blockers.append({"id": "BLK_CONTRACT_MISSING", "text": f"{oid} has no bound contract"})
     if missing:
         blockers.append({"id": "BLK_EVIDENCE_MISSING", "text": "required evidence files are missing", "refs": missing})
+    if evidence_strength and not evidence_strength.get("closure_grade"):
+        blockers.append(
+            {
+                "id": "BLK_EVIDENCE_WEAK",
+                "text": "evidence files exist but are not closure-grade",
+                "issues": _as_list(evidence_strength.get("issues"))[:12],
+            }
+        )
     if not row.get("records"):
         blockers.append({"id": "BLK_VALIDATION_MISSING", "text": "no closed ROCEV validation record links the obligation to its contract"})
 
@@ -6965,6 +7186,9 @@ def _run_action_from_state(ip: Path, arguments: dict[str, Any], state: dict[str,
     summary = f"Close {oid} through explicit ROCEV evidence and validation."
     if missing:
         summary = f"Produce missing evidence for {oid}, then record a closed ROCEV validation."
+    elif evidence_strength and not evidence_strength.get("closure_grade"):
+        summary = f"Replace weak/static evidence for {oid} with live HDL/formal closure-grade evidence."
+    commands = [record_command] if not missing and (not evidence_strength or evidence_strength.get("closure_grade")) else []
     return {
         "schema_version": "oag_run_next_action.v1",
         "ip": ip.name,
@@ -6976,17 +7200,18 @@ def _run_action_from_state(ip: Path, arguments: dict[str, Any], state: dict[str,
         "active_contracts": contract_ids,
         "owner": owner,
         "next_action": {
-            "kind": "close_obligation",
+            "kind": "close_obligation" if commands else "strengthen_evidence",
             "summary": summary,
             "why": [
                 str(obligation.get("text") or ""),
                 f"contracts={', '.join(contract_ids) if contract_ids else 'missing'}",
                 f"records={', '.join(_str_items(row.get('records'))) if row.get('records') else 'none'}",
             ],
-            "commands": [record_command],
+            "commands": commands,
             "required_evidence": evidence_refs,
         },
         "blockers": blockers,
+        "evidence_strength": evidence_strength,
         "closure_matrix": matrix,
         "stop_condition": "oag.run.checkpoint allowed=true",
         "prompt_block": "",
@@ -7093,8 +7318,13 @@ def _run_next(arguments: dict[str, Any]) -> dict[str, Any]:
     ip = _ip_dir(arguments)
     state = _load_run_state(ip, str(arguments.get("run_id") or ""))
     status = str(state.get("status") or "")
-    if status in {"complete", "parked"}:
+    if status in TERMINAL_RUN_STATUSES:
         action = state.get("next_action") if isinstance(state.get("next_action"), dict) else {}
+        reason_by_status = {
+            "complete": "run_complete",
+            "parked": "run_parked",
+            "needs_human": "needs_human_decision",
+        }
         return {
             "schema_version": "oag_run_next.v1",
             "ip": ip.name,
@@ -7105,7 +7335,7 @@ def _run_next(arguments: dict[str, Any]) -> dict[str, Any]:
             "next_action": action,
             "prompt_block": "" if status == "complete" else str(action.get("prompt_block") or ""),
             "terminal": True,
-            "reason": "run_parked" if status == "parked" else "run_complete",
+            "reason": reason_by_status.get(status, "run_terminal"),
         }
     action_args = {**state, **arguments, "run_id": state["run_id"]}
     action = _run_action_from_state(ip, action_args, state)
@@ -7138,6 +7368,12 @@ def _run_record(arguments: dict[str, Any]) -> dict[str, Any]:
     contract = contracts[0] if contracts else ""
     evidence_files = _str_items(arguments.get("evidence_files") or arguments.get("files"))
     evidence_tests = _str_items(arguments.get("evidence_tests") or arguments.get("tests"))
+    rocev_arg = arguments.get("rocev") if isinstance(arguments.get("rocev"), dict) else {}
+    rocev_evidence = rocev_arg.get("evidence") if isinstance(rocev_arg.get("evidence"), dict) else {}
+    if not evidence_files and rocev_evidence:
+        evidence_files = _str_items(rocev_evidence.get("files"))
+    if not evidence_tests and rocev_evidence:
+        evidence_tests = _str_items(rocev_evidence.get("tests"))
     if not evidence_files:
         action = state.get("next_action") if isinstance(state.get("next_action"), dict) else {}
         next_action = action.get("next_action") if isinstance(action.get("next_action"), dict) else {}
@@ -7154,6 +7390,11 @@ def _run_record(arguments: dict[str, Any]) -> dict[str, Any]:
         and not commit
     ):
         raise ValueError("oag.run.record closed status requires evidence_files, evidence_tests, commit, or an explicit rocev object")
+    if status in CLOSED_STATUSES:
+        evidence_strength = _closure_evidence_report(ip, evidence_files)
+        if not evidence_strength.get("closure_grade"):
+            joined = "; ".join(_str_items(evidence_strength.get("issues"))[:8])
+            raise ValueError(f"oag.run.record cannot close weak evidence: {joined}")
     record_response = _record(
         {
             "ip_dir": str(ip),
@@ -7375,7 +7616,7 @@ def _stop_check(arguments: dict[str, Any]) -> dict[str, Any]:
 def _configure(arguments: dict[str, Any]) -> dict[str, Any]:
     ip = _ip_dir(arguments)
     _ensure_knowledge(ip)
-    policies_path = ip / "ontology" / "policies.yaml"
+    policies_path = oag_paths.legacy_or_hidden(ip, "ontology/policies.yaml")
     policies = _policy_doc(ip)
     if not policies:
         policies = {"schema": "oag_policy.v1", "ip": ip.name}
@@ -7442,7 +7683,7 @@ def _configure(arguments: dict[str, Any]) -> dict[str, Any]:
             "ledger_event": "",
         }
     ledger_payload = {
-        "path": str(policies_path.relative_to(ip)),
+        "path": _logical_rel_to_ip(ip, policies_path),
         "updates": changed,
         "approval": arguments.get("approval") if isinstance(arguments.get("approval"), dict) else {},
     }
@@ -7453,7 +7694,7 @@ def _configure(arguments: dict[str, Any]) -> dict[str, Any]:
         ip,
         action="policy_configure",
         actor=actor,
-        subject=str(policies_path.relative_to(ip)),
+        subject=_logical_rel_to_ip(ip, policies_path),
         payload=ledger_payload,
     )
     return {

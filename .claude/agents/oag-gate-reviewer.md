@@ -2,7 +2,7 @@
 name: oag-gate-reviewer
 description: Read-only final OAG gate reviewer for IP Dev Agent completion or signoff claims.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

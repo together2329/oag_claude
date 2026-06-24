@@ -52,6 +52,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "lifecycle_input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

@@ -13,6 +13,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
+
 
 CODEX_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = CODEX_ROOT.parent
@@ -53,6 +57,14 @@ CUSTOM_FINAL_TEXT_PATTERNS = (
 )
 
 
+_OAG_IN_SCOPE_ROOTS = ("ontology", "knowledge")
+
+
+def _is_oag_in_scope(rel: str | Path) -> bool:
+    parts = Path(rel).parts
+    return bool(parts) and parts[0] in _OAG_IN_SCOPE_ROOTS
+
+
 def issue(code: str, message: str, path: str | None = None) -> dict[str, str]:
     payload = {"code": code, "message": message}
     if path:
@@ -83,9 +95,16 @@ def display_path(ip_dir: Path, path: Path | None) -> str | None:
     if path is None:
         return None
     try:
-        return str(path.resolve().relative_to(ip_dir.resolve()))
+        rel = path.resolve().relative_to(ip_dir.resolve())
     except Exception:
         return str(path)
+    # Keep recorded/compared path identity logical: a file resolved under <ip>/.oag/
+    # must render as its legacy-relative form so gate-ledger keys, manifest entries,
+    # and validation_report references stay layout-stable.
+    parts = rel.parts
+    if parts and parts[0] == oag_paths.HIDDEN_DIR:
+        rel = Path(*parts[1:]) if len(parts) > 1 else Path()
+    return str(rel)
 
 
 def resolve_inside_ip(ip_dir: Path, raw: str | Path, code: str, issues: list[dict[str, str]]) -> Path | None:
@@ -107,7 +126,10 @@ def resolve_inside_ip(ip_dir: Path, raw: str | Path, code: str, issues: list[dic
 
 def find_default_report(ip_dir: Path, candidates: tuple[Path, ...], code: str, issues: list[dict[str, str]]) -> Path | None:
     for candidate in candidates:
-        path = resolve_inside_ip(ip_dir, candidate, code, issues)
+        if _is_oag_in_scope(candidate):
+            path = resolve_inside_ip(ip_dir, oag_paths.legacy_or_hidden(ip_dir, candidate), code, issues)
+        else:
+            path = resolve_inside_ip(ip_dir, candidate, code, issues)
         if path and path.is_file():
             return path
     return None
@@ -187,16 +209,28 @@ def validate_oag_development_closure(ip_dir: Path, issues: list[dict[str, str]])
             issues.append(issue("OAG_INSPECT_GAPS", "; ".join(str(item) for item in gaps[:8])))
 
 
+def _artifact_fs_path(ip_dir: Path, rel: Path) -> Path:
+    # In-scope ontology/knowledge artifacts may live under <ip>/.oag/; resolve
+    # the filesystem target there while callers keep the logical rel as identity.
+    if _is_oag_in_scope(rel):
+        return oag_paths.legacy_or_hidden(ip_dir, rel)
+    return ip_dir / rel
+
+
 def required_gate_artifacts(ip_dir: Path, validation_path: Path) -> list[str]:
-    paths = [validation_path]
-    paths.extend(ip_dir / rel for rel in DEVELOPMENT_CLOSURE_ARTIFACTS)
-    paths.extend(ip_dir / rel for rel in OPTIONAL_GATE_ARTIFACTS if (ip_dir / rel).is_file())
+    # (logical display path, filesystem path) pairs; identity stays logical so the
+    # gate ledger keys/hashes never carry the .oag/ prefix.
+    candidates: list[tuple[str | None, Path]] = [(display_path(ip_dir, validation_path), validation_path)]
+    for rel in DEVELOPMENT_CLOSURE_ARTIFACTS:
+        candidates.append((str(rel), ip_dir / rel))
+    for rel in OPTIONAL_GATE_ARTIFACTS:
+        fs_path = _artifact_fs_path(ip_dir, rel)
+        if fs_path.is_file():
+            candidates.append((str(rel), fs_path))
     result: list[str] = []
-    for path in paths:
-        if path.is_file():
-            rendered = display_path(ip_dir, path)
-            if rendered:
-                result.append(rendered)
+    for rendered, fs_path in candidates:
+        if fs_path.is_file() and rendered:
+            result.append(rendered)
     return sorted(set(result))
 
 
@@ -294,7 +328,11 @@ def validate_gate_report(
         issues.append(issue("GATE_HASHES_MISSING", "Gate decision must include checked_artifact_hashes.", display_path(ip_dir, path)))
         checked_hashes = {}
     for artifact in required_artifacts:
-        artifact_path = resolve_inside_ip(ip_dir, artifact, "GATE_HASH_PATH", issues)
+        # artifact stays the logical relative key; resolve the .oag-located file for hashing.
+        if _is_oag_in_scope(artifact):
+            artifact_path = resolve_inside_ip(ip_dir, oag_paths.legacy_or_hidden(ip_dir, artifact), "GATE_HASH_PATH", issues)
+        else:
+            artifact_path = resolve_inside_ip(ip_dir, artifact, "GATE_HASH_PATH", issues)
         if not artifact_path or not artifact_path.is_file():
             continue
         expected_hash = str(checked_hashes.get(artifact) or "")
@@ -329,7 +367,10 @@ def custom_json_claims_completion(payload: dict[str, Any]) -> bool:
 
 def scan_custom_completion_claims(ip_dir: Path, issues: list[dict[str, str]]) -> None:
     for receipt_dir in CUSTOM_RECEIPT_DIRS:
-        root = resolve_inside_ip(ip_dir, receipt_dir, "CUSTOM_RECEIPT_PATH", issues)
+        if _is_oag_in_scope(receipt_dir):
+            root = resolve_inside_ip(ip_dir, oag_paths.legacy_or_hidden(ip_dir, receipt_dir), "CUSTOM_RECEIPT_PATH", issues)
+        else:
+            root = resolve_inside_ip(ip_dir, receipt_dir, "CUSTOM_RECEIPT_PATH", issues)
         if not root or not root.exists():
             continue
         for path in sorted(p for p in root.rglob("*") if p.is_file()):

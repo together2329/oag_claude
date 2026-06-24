@@ -13,11 +13,16 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import tarfile
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
 
 
 SCHEMA_VERSION = "oag_portable_db.v1"
@@ -122,9 +127,29 @@ def _git_info(root: Path) -> dict[str, Any]:
 
 def _safe_rel(path: Path, root: Path) -> str:
     rel = path.resolve().relative_to(root.resolve())
-    rel_posix = rel.as_posix()
-    parts = PurePosixPath(rel_posix).parts
-    if not rel_posix or rel_posix.startswith("/") or ".." in parts:
+    parts = list(rel.parts)
+    # Preserve LOGICAL path identity: a migrated layout resolves
+    # ontology/knowledge reads under <ip>/.oag/, but the recorded manifest path
+    # and tar arcname must stay layout-neutral ("<ip>/ontology/...") so the
+    # package round-trips identically across legacy and .oag layouts. Strip the
+    # ".oag" segment that immediately precedes an OAG top-level state dir.
+    hidden = oag_paths.HIDDEN_DIR
+    normalized: list[str] = []
+    idx = 0
+    while idx < len(parts):
+        part = parts[idx]
+        if (
+            part == hidden
+            and idx + 1 < len(parts)
+            and parts[idx + 1] in oag_paths.OAG_TOP_LEVEL_DIRS
+        ):
+            idx += 1
+            continue
+        normalized.append(part)
+        idx += 1
+    rel_posix = PurePosixPath(*normalized).as_posix() if normalized else ""
+    parts_posix = PurePosixPath(rel_posix).parts
+    if not rel_posix or rel_posix.startswith("/") or ".." in parts_posix:
         raise ValueError(f"unsafe relative path: {rel_posix}")
     return rel_posix
 
@@ -151,7 +176,7 @@ def _discover_ips(root: Path) -> list[str]:
     for child in sorted(root.iterdir()):
         if not child.is_dir() or child.name.startswith("."):
             continue
-        if (child / "ontology" / "ip.yaml").is_file() or (child / "knowledge" / "_index.json").is_file():
+        if oag_paths.legacy_or_hidden(child, "ontology/ip.yaml").is_file() or oag_paths.legacy_or_hidden(child, "knowledge/_index.json").is_file():
             ips.append(child.name)
     return ips
 
@@ -170,7 +195,14 @@ def _collect_paths(
         if not ip_root.is_dir():
             raise FileNotFoundError(f"IP directory not found: {ip}")
         for rel in DEFAULT_IP_DIRS:
-            paths.extend(_iter_files(ip_root / rel))
+            if rel in ("ontology", "knowledge"):
+                # ip_state: ontology/knowledge live under <ip>/.oag/ on a migrated
+                # layout; resolve the glob TARGET there while the recorded arcname
+                # is normalized back to the logical "ontology/..."/"knowledge/..."
+                # form by _safe_rel (manifest/arcname must never carry ".oag/").
+                paths.extend(_iter_files(oag_paths.legacy_or_hidden(ip_root, rel)))
+            else:
+                paths.extend(_iter_files(ip_root / rel))
         if include_artifacts:
             for rel in ARTIFACT_DIRS:
                 paths.extend(_iter_files(ip_root / rel))

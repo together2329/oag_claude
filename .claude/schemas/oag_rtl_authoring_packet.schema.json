@@ -43,6 +43,12 @@
         "type": "string"
       }
     },
+    "lifecycle_input_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "behavior_refs_implemented_target": {
       "type": "array",
       "items": {

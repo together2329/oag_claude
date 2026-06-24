@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = ROOT.parent
 OAG = ROOT / "scripts" / "oag_cli.py"
 GRAPH = ROOT / "scripts" / "oag_graph.py"
+MIGRATE_LAYOUT = ROOT / "scripts" / "oag_migrate_layout.py"
 PORTABLE_DB = ROOT / "scripts" / "oag_portable_db.py"
 OKF = ROOT / "scripts" / "oag_okf.py"
 EVAL = ROOT / "scripts" / "oag_eval.py"
@@ -33,6 +34,8 @@ CODEX_CONFIG_DOCTOR = ROOT / "scripts" / "oag_claude_config_doctor.py"
 CLOSURE_CHECK = ROOT / "scripts" / "oag_closure_check.py"
 PACK_RELEASE_CHECK = ROOT / "scripts" / "oag_pack_release_check.py"
 DOMAIN_CROSSING_CHECK = ROOT / "scripts" / "oag_domain_crossing_check.py"
+PPA_CHECK = ROOT / "scripts" / "oag_ppa_check.py"
+OAG_PATHS = ROOT / "scripts" / "oag_paths.py"
 PYSLANG_LINT = ROOT / "scripts" / "oag_pyslang_lint.py"
 REQ_QUALITY_CHECK = ROOT / "scripts" / "oag_req_quality_check.py"
 LOCK_READINESS_CHECK = ROOT / "scripts" / "oag_lock_readiness_check.py"
@@ -41,6 +44,12 @@ AUTHORING_PACKET_CHECK = ROOT / "scripts" / "oag_authoring_packet_check.py"
 TRACE_GRAPH_CHECK = ROOT / "scripts" / "oag_trace_graph_check.py"
 DEEP_SEMANTIC_INTAKE = ROOT / "scripts" / "oag_deep_semantic_intake.py"
 DECISION_MATRIX_GENERATE = ROOT / "scripts" / "oag_decision_matrix_generate.py"
+LIFECYCLE_CHECK = ROOT / "scripts" / "oag_lifecycle_check.py"
+BASELINE_CHECK = ROOT / "scripts" / "oag_baseline_check.py"
+STALE_CHECK = ROOT / "scripts" / "oag_stale_check.py"
+BASELINE_CUT = ROOT / "scripts" / "oag_baseline_cut.py"
+BASELINE_VERIFY = ROOT / "scripts" / "oag_baseline_verify.py"
+IP_VERSION_CHECK = ROOT / "scripts" / "oag_ip_version_check.py"
 AGENT_CATALOG = ROOT / "oag" / "agent-catalog.toml"
 OAG_MODE_DIRECTIVE = ROOT / "oag" / "oag-mode-directive.md"
 SUBAGENT_WORKFLOWS = ROOT / "oag" / "subagent-workflows.md"
@@ -53,6 +62,11 @@ OAG_AUTHORING_PACKET_SKILL = ROOT / "skills" / "oag-authoring-packet" / "SKILL.m
 OAG_EVIDENCE_CLOSURE_SKILL = ROOT / "skills" / "oag-evidence-closure" / "SKILL.md"
 OAG_WAVEFRONT_SKILL = ROOT / "skills" / "oag-wavefront" / "SKILL.md"
 OAG_WAVEFRONT_TEMPLATE = ROOT / "oag" / "wavefront-templates" / "tb_common_then_scenario_fanout.yaml"
+OAG_DATA_LIFECYCLE_POLICY = ROOT / "oag" / "data-lifecycle-policy.md"
+OAG_BASELINE_GIT_POLICY = ROOT / "oag" / "baseline-git-policy.md"
+OAG_IP_VERSIONING_POLICY = ROOT / "oag" / "ip-versioning-policy.md"
+OAG_IP_VERSIONING_SKILL = ROOT / "skills" / "oag-ip-versioning" / "SKILL.md"
+OAG_IP_VERSIONING_RULES = ROOT / "rules" / "oag-ip-versioning.rules.md"
 STOP_GATE = ROOT / "hooks" / "claude_stop_gate.py"
 SUBAGENT_START = ROOT / "hooks" / "claude_subagent_oag_start.py"
 SUBAGENT_GATE = ROOT / "hooks" / "claude_subagent_oag_gate.py"
@@ -80,7 +94,11 @@ SCHEMA_FILES = [
     ROOT / "schemas" / "oag_wavefront_task_graph.schema.json",
     ROOT / "schemas" / "oag_ownership_locks.schema.json",
     ROOT / "schemas" / "oag_wavefront_event.schema.json",
+    ROOT / "schemas" / "oag_artifact_lifecycle.schema.json",
+    ROOT / "schemas" / "oag_baseline_manifest.schema.json",
+    ROOT / "schemas" / "oag_ip_version.schema.json",
 ]
+
 OAG_CALL_TIMEOUT_SECONDS = 180
 
 
@@ -135,6 +153,7 @@ def run_dev_validator(ip: Path) -> subprocess.CompletedProcess[str]:
         check=False,
         cwd=ROOT,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -177,6 +196,7 @@ def run_dispatch(*args: str, project_root: Path | None = None) -> subprocess.Com
         check=False,
         cwd=project_root or ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -191,6 +211,457 @@ def run_wavefront(*args: str, project_root: Path | None = None) -> subprocess.Co
         check=False,
         cwd=project_root or ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_lifecycle_check(*args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(LIFECYCLE_CHECK), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def test_oag_paths_resolver(tmp_root: Path) -> None:
+    assert OAG_PATHS.is_file(), OAG_PATHS
+
+    spec = importlib.util.spec_from_file_location("oag_paths_smoke", OAG_PATHS)
+    assert spec and spec.loader, spec
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    legacy_ip = tmp_root / "paths_legacy"
+    legacy_root = legacy_ip.resolve()
+    (legacy_ip / "ontology" / "generated").mkdir(parents=True)
+    (legacy_ip / "knowledge").mkdir(parents=True)
+    (legacy_ip / "ontology" / "contracts.yaml").write_text("contracts: []\n", encoding="utf-8")
+
+    assert module.state_path(legacy_ip, "knowledge/ledger.jsonl") == legacy_root / "knowledge" / "ledger.jsonl"
+    assert module.legacy_or_hidden(legacy_ip, "ontology/contracts.yaml") == legacy_root / "ontology" / "contracts.yaml"
+    assert module.generated_path(legacy_ip, "authoring_packets/rtl__demo.json") == legacy_root / "ontology" / "generated" / "authoring_packets" / "rtl__demo.json"
+
+    # anti-escape / normalization guard contract (the security core of the resolver).
+    def _expect_value_error(rel: str) -> None:
+        try:
+            module.state_path(legacy_ip, rel)
+        except ValueError:
+            return
+        raise AssertionError(f"expected ValueError for rel={rel!r}")
+
+    for bad in ("/abs/path", "../escape", "a/../b", "", ".", ".oag"):
+        _expect_value_error(bad)
+    # a single '.' is normalized away (not rejected) — pin the documented subtlety.
+    assert module.state_path(legacy_ip, "a/./b") == legacy_root / "a" / "b"
+
+    # oag_root() is public but otherwise only indirectly exercised via layout_status.
+    assert module.oag_root(legacy_ip) == legacy_root / ".oag"
+
+    # prefix-stripping idempotency: the with-prefix and without-prefix forms must agree.
+    assert module.ontology_path(legacy_ip, "ontology/scope_lock.json") == module.ontology_path(legacy_ip, "scope_lock.json")
+    assert module.evidence_path(legacy_ip, "evidence/sim/results.xml") == module.evidence_path(legacy_ip, "sim/results.xml")
+    assert module.generated_path(legacy_ip, "generated/x") == module.generated_path(legacy_ip, "x")
+    assert module.generated_path(legacy_ip, "ontology/generated/x") == module.generated_path(legacy_ip, "x")
+
+    # legacy_or_hidden write-base fallback when neither hidden nor legacy file exists (legacy layout).
+    assert module.legacy_or_hidden(legacy_ip, "knowledge/missing.txt") == legacy_root / "knowledge" / "missing.txt"
+
+    dot_ip = tmp_root / "paths_dot_oag"
+    dot_root = dot_ip.resolve()
+    (dot_ip / ".oag" / "ontology" / "generated").mkdir(parents=True)
+    (dot_ip / ".oag" / "knowledge").mkdir(parents=True)
+    (dot_ip / "ontology").mkdir(parents=True)
+    (dot_ip / ".oag" / "ontology" / "contracts.yaml").write_text("contracts: hidden\n", encoding="utf-8")
+    (dot_ip / "ontology" / "contracts.yaml").write_text("contracts: legacy\n", encoding="utf-8")
+
+    assert module.state_path(dot_ip, "knowledge/ledger.jsonl") == dot_root / ".oag" / "knowledge" / "ledger.jsonl"
+    assert module.legacy_or_hidden(dot_ip, "ontology/contracts.yaml") == dot_root / ".oag" / "ontology" / "contracts.yaml"
+    assert module.ontology_path(dot_ip, "scope_lock.json") == dot_root / ".oag" / "ontology" / "scope_lock.json"
+    assert module.evidence_path(dot_ip, "sim/results.xml") == dot_root / ".oag" / "evidence" / "sim" / "results.xml"
+    # fallback for a not-yet-existing file must resolve under .oag in the dot layout.
+    assert module.legacy_or_hidden(dot_ip, "knowledge/missing.txt") == dot_root / ".oag" / "knowledge" / "missing.txt"
+
+    legacy_cli = subprocess.run(
+        [sys.executable, str(OAG_PATHS), "--ip-dir", str(legacy_ip), "--json"],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+    assert legacy_cli.returncode == 0, legacy_cli.stderr or legacy_cli.stdout
+    legacy_result = json.loads(legacy_cli.stdout)
+    assert legacy_result["layout"] == "legacy", legacy_result
+    assert legacy_result["warnings"] == [], legacy_result
+    # lock the layout_status output, not just the layout label.
+    assert legacy_result["write_base"] == str(legacy_root), legacy_result
+    assert legacy_result["hidden_state"] == [], legacy_result
+    assert "knowledge" in legacy_result["legacy_state"] and "ontology" in legacy_result["legacy_state"], legacy_result
+
+    dot_cli = subprocess.run(
+        [sys.executable, str(OAG_PATHS), "--ip-dir", str(dot_ip), "--json"],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+    assert dot_cli.returncode == 0, dot_cli.stderr or dot_cli.stdout
+    dot_result = json.loads(dot_cli.stdout)
+    assert dot_result["layout"] == "dot_oag", dot_result
+    assert dot_result["warnings"] == ["mixed_layout: .oag exists with legacy top-level OAG state"], dot_result
+    # the dot layout must report .oag as the write base and surface hidden state.
+    assert dot_result["write_base"] == str(dot_root / ".oag"), dot_result
+    assert "knowledge" in dot_result["hidden_state"] and "ontology" in dot_result["hidden_state"], dot_result
+    assert dot_result["legacy_state"] == ["ontology"], dot_result
+
+
+def migrate_ip_to_dot_oag(ip: Path) -> None:
+    """Relocate ontology/ and knowledge/ under <ip>/.oag/ to emulate a migrated layout."""
+    hidden = ip / ".oag"
+    hidden.mkdir(exist_ok=True)
+    for sub in ("ontology", "knowledge"):
+        src = ip / sub
+        if src.exists():
+            src.rename(hidden / sub)
+
+
+def _req_quality_json(ip: Path) -> dict:
+    proc = subprocess.run(
+        [sys.executable, str(REQ_QUALITY_CHECK), "--ip-dir", str(ip), "--json"],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+    return {"rc": proc.returncode, "data": json.loads(proc.stdout) if proc.stdout.strip() else {}}
+
+
+def _run_check_script(script: Path, ip: Path, *extra: str) -> tuple[int, str]:
+    proc = subprocess.run(
+        [sys.executable, str(script), "--ip-dir", str(ip), *extra, "--json"],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+    try:
+        status = str(json.loads(proc.stdout).get("status", ""))
+    except Exception:
+        status = ""
+    return proc.returncode, status
+
+
+def _graph_build_rc(ip: Path, out: Path) -> int:
+    return subprocess.run(
+        [sys.executable, str(GRAPH), "build", "--ip-dir", str(ip), "--json-out", str(out)],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    ).returncode
+
+
+def test_dot_oag_layout_state_scripts(tmp_root: Path) -> None:
+    """Wave 2 layout transparency: IP-state scripts must behave identically whether
+    ontology/ and knowledge/ live at the legacy top level or under <ip>/.oag/.
+
+    Builds a full locked IP (legacy), captures baseline behavior, relocates
+    ontology/ + knowledge/ under .oag/, and asserts resolver-routed scripts read
+    and write the hidden state with no behavior change. Before Wave 2 conversion
+    this fails because scripts hard-code <ip>/ontology and <ip>/knowledge.
+    """
+    ip = make_ip(tmp_root / "dot_oag_state")
+
+    # Baseline on the legacy layout (assert layout transparency, not closure completeness).
+    legacy_check = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"]
+    legacy_ok = legacy_check["ok"]
+    legacy_issue_set = sorted(legacy_check.get("issues", []))
+    legacy_rq = _req_quality_json(ip)
+    legacy_checks = {
+        "lock_readiness": _run_check_script(LOCK_READINESS_CHECK, ip),
+        "stale": _run_check_script(STALE_CHECK, ip),
+    }
+    legacy_graph_rc = _graph_build_rc(ip, tmp_root / "graph_legacy.json")
+
+    # Relocate ontology/ + knowledge/ under .oag/.
+    migrate_ip_to_dot_oag(ip)
+    assert not (ip / "ontology").exists(), "legacy ontology/ should be relocated"
+    assert not (ip / "knowledge").exists(), "legacy knowledge/ should be relocated"
+    assert (ip / ".oag" / "ontology" / "scope_lock.json").is_file(), "ontology under .oag"
+    assert (ip / ".oag" / "knowledge" / "ledger.jsonl").is_file(), "knowledge under .oag"
+
+    # oag.check must produce the SAME verdict + issues under .oag; no missing-state issues (the Wave 2 RED gap).
+    dot_check = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"]
+    dot_issues = dot_check.get("issues", [])
+    assert dot_check["ok"] == legacy_ok, (legacy_check, dot_check)
+    assert sorted(dot_issues) == legacy_issue_set, (legacy_issue_set, dot_issues)
+    for needle in ("missing knowledge directory", "missing records directory", "missing index", "missing ontology"):
+        assert not any(needle in issue for issue in dot_issues), (needle, dot_issues)
+
+    # req_quality must match legacy status and requirement count across layouts.
+    dot_rq = _req_quality_json(ip)
+    assert dot_rq["rc"] == legacy_rq["rc"], (legacy_rq, dot_rq)
+    assert dot_rq["data"].get("status") == legacy_rq["data"].get("status"), (legacy_rq, dot_rq)
+    assert dot_rq["data"].get("counts", {}).get("requirements") == legacy_rq["data"].get("counts", {}).get("requirements"), (legacy_rq, dot_rq)
+
+    # Standalone checkers (incl. requirement_atom + verification_plan via lock_readiness) match across layouts.
+    for name, const in (("lock_readiness", LOCK_READINESS_CHECK), ("stale", STALE_CHECK)):
+        assert _run_check_script(const, ip) == legacy_checks[name], (name, legacy_checks[name], _run_check_script(const, ip))
+
+    # graph build must read ontology/knowledge under .oag with the same outcome as legacy.
+    dot_graph_rc = _graph_build_rc(ip, tmp_root / "graph_dot.json")
+    assert dot_graph_rc == legacy_graph_rc, (legacy_graph_rc, dot_graph_rc)
+
+    # oag.inspect must read hidden ontology state.
+    inspected = call({"tool": "oag.inspect", "arguments": {"ip_dir": str(ip), "stage": "rtl", "intent": "dot-oag layout inspect"}})
+    assert inspected.get("result"), inspected
+
+    # A new ROCEV record must append into .oag/knowledge and keep the ledger chain valid.
+    recorded = call(
+        {
+            "tool": "oag.record",
+            "arguments": {
+                "ip_dir": str(ip),
+                "stage": "sim",
+                "claim": "dot-oag layout ledger append",
+                "actor": {"kind": "ai", "id": "claude", "surface": "smoke"},
+                "rocev": {
+                    "obligation": {"id": "OBL_DOT_OAG_LEDGER", "text": "ledger append under .oag", "status": "open"},
+                    "contract": {"id": "CONTRACT_DOT_OAG_LEDGER", "method": "scoreboard"},
+                    "evidence": {"files": ["sim/results.xml"], "tests": [], "commit": ""},
+                    "validation": {"status": "open", "verdict": "pending", "rationale": "layout transparency"},
+                },
+            },
+        }
+    )
+    assert recorded["result"].get("ledger_event"), recorded
+    assert (ip / ".oag" / "knowledge" / "ledger.jsonl").is_file(), recorded
+    assert not (ip / "knowledge").exists(), "record must not recreate legacy knowledge/"
+
+    # Ledger integrity (hash chain + protected snapshot) must hold under .oag.
+    post_issues = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"].get("issues", [])
+    for bad in ("mismatch", "missing knowledge", "missing records", "missing ontology", "missing index", "protected fields changed"):
+        assert not any(bad in issue.lower() for issue in post_issues), (bad, post_issues)
+
+
+def test_dot_oag_scaffold_layout(tmp_root: Path) -> None:
+    """Wave 3: oag.scaffold with layout=dot_oag creates ontology/ and knowledge/
+    under <ip>/.oag/ while human-facing dirs stay top-level, and IP-state scripts
+    operate on the freshly scaffolded hidden state via the resolver."""
+    ip = tmp_root / "dot_oag_scaffold"
+    res = call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(ip), "owner": "smoke", "layout": "dot_oag"}})
+    assert res["ok"] is True, res
+    assert res["result"].get("layout") == "dot_oag", res
+
+    # ontology/ + knowledge/ live under .oag/ ...
+    assert (ip / ".oag" / "ontology" / "ip.yaml").is_file(), res
+    assert (ip / ".oag" / "ontology" / "scope_lock.json").is_file(), res
+    assert (ip / ".oag" / "ontology" / "contracts.yaml").is_file(), res
+    assert (ip / ".oag" / "knowledge" / "ledger.jsonl").is_file(), res
+    assert (ip / ".oag" / "knowledge" / "_index.json").is_file(), res
+    # ... and not at the legacy top level.
+    assert not (ip / "ontology").exists(), "no top-level ontology/ under dot_oag scaffold"
+    assert not (ip / "knowledge").exists(), "no top-level knowledge/ under dot_oag scaffold"
+    # human-facing surfaces stay top-level.
+    for top in ("req", "rtl", "tb", "list", "scripts", "doc", "sdc", "sim"):
+        assert (ip / top).is_dir(), f"{top}/ should stay top-level"
+
+    # resolver reports a clean dot_oag layout (no mixed-layout warning).
+    layout = json.loads(
+        subprocess.run(
+            [sys.executable, str(OAG_PATHS), "--ip-dir", str(ip), "--json"],
+            text=True, capture_output=True, check=False, cwd=ROOT,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
+        ).stdout
+    )
+    assert layout["layout"] == "dot_oag", layout
+    assert layout["warnings"] == [], layout
+
+    # IP-state scripts operate on the freshly scaffolded .oag IP via the resolver.
+    chk = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"]
+    assert not any("missing knowledge directory" in i for i in chk.get("issues", [])), chk
+    assert not any("missing ontology" in i for i in chk.get("issues", [])), chk
+    assert _req_quality_json(ip)["rc"] == 0, "req_quality runs on the .oag-scaffolded IP"
+
+
+def _hash_tree(root: Path) -> dict:
+    import hashlib
+
+    return {
+        p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted(root.rglob("*"))
+        if p.is_file()
+    }
+
+
+def _run_migrate(*args: str) -> tuple[int, dict]:
+    proc = subprocess.run(
+        [sys.executable, str(MIGRATE_LAYOUT), *args, "--json"],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+    return proc.returncode, (json.loads(proc.stdout) if proc.stdout.strip() else {"_stderr": proc.stderr[-300:]})
+
+
+def test_dot_oag_migration_tool(tmp_root: Path) -> None:
+    """Wave 4: oag_migrate_layout.py moves ontology/ and knowledge/ into <ip>/.oag/
+    (dry-run by default), preserves file hashes, writes a receipt, keeps IP-state
+    scripts working, and rolls back losslessly."""
+    ip = tmp_root / "mig_ip"
+    sc = call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(ip), "owner": "smoke"}})
+    assert sc["ok"] is True, sc
+    assert (ip / "ontology").is_dir() and (ip / "knowledge").is_dir(), "legacy scaffold expected"
+    pre = {"ontology": _hash_tree(ip / "ontology"), "knowledge": _hash_tree(ip / "knowledge")}
+
+    # dry-run must change nothing.
+    rc, dry = _run_migrate("--ip-dir", str(ip), "--to-dot-oag")
+    assert rc == 0 and dry.get("applied") is False, dry
+    assert (ip / "ontology").is_dir() and not (ip / ".oag").exists(), "dry-run must not move"
+
+    # apply moves into .oag, preserves hashes, writes a receipt.
+    rc, ap = _run_migrate("--ip-dir", str(ip), "--to-dot-oag", "--apply")
+    assert rc == 0 and ap.get("applied") is True, ap
+    assert (ip / ".oag" / "ontology").is_dir() and (ip / ".oag" / "knowledge").is_dir(), ap
+    assert not (ip / "ontology").exists() and not (ip / "knowledge").exists(), "top-level cleared"
+    assert _hash_tree(ip / ".oag" / "ontology") == pre["ontology"], "ontology hashes preserved"
+    assert _hash_tree(ip / ".oag" / "knowledge") == pre["knowledge"], "knowledge hashes preserved"
+    receipt = ip / ap["receipt"]
+    assert receipt.is_file(), ap
+
+    # migrated IP still resolves via the resolver.
+    chk = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"]
+    assert not any(("missing knowledge" in i) or ("missing ontology" in i) for i in chk.get("issues", [])), chk
+
+    # rollback restores the legacy layout losslessly.
+    rc, rb = _run_migrate("--rollback", str(receipt))
+    assert rc == 0, rb
+    assert (ip / "ontology").is_dir() and (ip / "knowledge").is_dir(), "rollback restores top-level"
+    assert not (ip / ".oag" / "ontology").exists(), "rollback clears .oag ontology"
+    assert _hash_tree(ip / "ontology") == pre["ontology"], "rollback preserves ontology hashes"
+
+
+def test_dot_oag_mixed_layout_rejected(tmp_root: Path) -> None:
+    """Wave 5 enforcement: oag.check fails on an unsafe mixed layout where
+    ontology/ or knowledge/ exist both at the top level and under .oag/. Clean
+    legacy and clean .oag layouts do not trip the gate."""
+    ip = tmp_root / "mixed_ip"
+    assert call({"tool": "oag.scaffold", "arguments": {"ip_dir": str(ip), "owner": "smoke"}})["ok"] is True
+
+    # clean legacy layout: no mixed-layout issue.
+    issues = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"].get("issues", [])
+    assert not any("mixed OAG layout" in i for i in issues), issues
+
+    # migrate to a clean .oag layout: still no mixed-layout issue.
+    rc, ap = _run_migrate("--ip-dir", str(ip), "--to-dot-oag", "--apply")
+    assert rc == 0 and ap.get("applied") is True, ap
+    issues = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"].get("issues", [])
+    assert not any("mixed OAG layout" in i for i in issues), issues
+
+    # a stray legacy top-level ontology/ alongside .oag is an unsafe mixed state.
+    (ip / "ontology").mkdir(parents=True, exist_ok=True)
+    (ip / "ontology" / "stray.yaml").write_text("stray: true\n", encoding="utf-8")
+    res = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"]
+    assert res["ok"] is False, res
+    assert any(("mixed OAG layout" in i) and ("ontology" in i) for i in res.get("issues", [])), res
+
+    # removing the stray legacy dir clears the gate.
+    (ip / "ontology" / "stray.yaml").unlink()
+    (ip / "ontology").rmdir()
+    issues = call({"tool": "oag.check", "arguments": {"ip_dir": str(ip)}})["result"].get("issues", [])
+    assert not any("mixed OAG layout" in i for i in issues), issues
+
+
+def run_baseline_check(*args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(BASELINE_CHECK), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_authoring_packet_check(*args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(AUTHORING_PACKET_CHECK), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_stale_check(*args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(STALE_CHECK), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_baseline_cut(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(BASELINE_CUT), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=cwd or ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_baseline_verify(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(BASELINE_VERIFY), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=cwd or ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_ip_version_check(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(IP_VERSION_CHECK), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=cwd or ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -205,6 +676,7 @@ def run_main_write_gate(ip: Path, *, project_root: Path | None = None) -> subpro
         check=False,
         cwd=project_root or ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -215,6 +687,7 @@ def run_validate_json(schema: Path, document: Path) -> subprocess.CompletedProce
         capture_output=True,
         check=False,
         cwd=ROOT.parent,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -225,6 +698,7 @@ def run_agent_catalog_check() -> subprocess.CompletedProcess[str]:
         capture_output=True,
         check=False,
         cwd=ROOT,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -235,6 +709,7 @@ def run_closure_check(ip: Path, *extra: str) -> subprocess.CompletedProcess[str]
         capture_output=True,
         check=False,
         cwd=ROOT,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -245,6 +720,7 @@ def run_pack_release_check() -> subprocess.CompletedProcess[str]:
         capture_output=True,
         check=False,
         cwd=ROOT,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -260,6 +736,7 @@ def stop_gate(payload: dict, extra_env: dict[str, str] | None = None) -> subproc
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -275,6 +752,7 @@ def subagent_gate(payload: dict, extra_env: dict[str, str] | None = None) -> sub
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -290,6 +768,7 @@ def subagent_start(payload: dict, extra_env: dict[str, str] | None = None) -> su
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -303,6 +782,7 @@ def context_hook(payload: dict) -> subprocess.CompletedProcess[str]:
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -316,6 +796,7 @@ def oag_mode_trigger(payload: dict) -> subprocess.CompletedProcess[str]:
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -329,6 +810,7 @@ def native_subagent_guard(payload: dict) -> subprocess.CompletedProcess[str]:
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -344,6 +826,7 @@ def session_start_hook(payload: dict, extra_env: dict[str, str] | None = None) -
         check=False,
         cwd=ROOT.parent,
         env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
     )
 
 
@@ -550,6 +1033,7 @@ def test_pyslang_lint_runner() -> None:
             capture_output=True,
             check=False,
             cwd=ROOT,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert proc.returncode == 0, proc.stderr or proc.stdout
         result = json.loads((ip / "lint" / "dut_lint.json").read_text(encoding="utf-8"))
@@ -914,6 +1398,603 @@ def test_wavefront_scheduler(tmp_root: Path) -> None:
     assert any(item["code"] == "STALE_PATH_CHANGED" for item in json.loads(stale_claim.stdout)["issues"]), stale_claim.stdout
 
 
+def test_artifact_lifecycle_checker(tmp_root: Path) -> None:
+    ip = tmp_root / "lifecycle_ip"
+    (ip / "ontology").mkdir(parents=True)
+
+    missing = run_lifecycle_check("--ip-dir", str(ip), "--require", "--json")
+    assert missing.returncode != 0, missing.stdout
+    assert any(item["code"] == "LIFECYCLE_MISSING" for item in json.loads(missing.stdout)["issues"]), missing.stdout
+
+    lifecycle = {
+        "schema_version": "oag_artifact_lifecycle.v1",
+        "artifacts": [
+            {
+                "id": "ontology/contracts.yaml",
+                "path": "ontology/contracts.yaml",
+                "granularity": "file",
+                "processing_stage": "canonical",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/contracts_review.json",
+                "derived_from": ["ontology/requirements.yaml"],
+                "allowed_consumers": ["rtl_authoring_packet", "tb_authoring_packet"],
+            },
+            {
+                "id": "ontology/decision_matrix.yaml:D001",
+                "path": "ontology/decision_matrix.yaml",
+                "object_id": "D001",
+                "granularity": "object",
+                "processing_stage": "canonical",
+                "approval_state": "candidate",
+                "validity_state": "current",
+                "derived_from": ["req/source_claims.yaml:SRC001"],
+                "allowed_consumers": ["clarification_agent"],
+            },
+        ],
+    }
+    path = ip / "ontology" / "artifact_lifecycle.json"
+    path.write_text(json.dumps(lifecycle, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    valid = run_lifecycle_check("--ip-dir", str(ip), "--consumer", "rtl_authoring_packet", "--json")
+    assert valid.returncode == 0, valid.stderr or valid.stdout
+    valid_result = json.loads(valid.stdout)
+    assert valid_result["status"] == "pass", valid_result
+
+    denied = run_lifecycle_check(
+        "--ip-dir",
+        str(ip),
+        "--artifact-id",
+        "ontology/decision_matrix.yaml:D001",
+        "--consumer",
+        "rtl_authoring_packet",
+        "--json",
+    )
+    assert denied.returncode != 0, denied.stdout
+    denied_codes = {item["code"] for item in json.loads(denied.stdout)["issues"]}
+    assert "LIFECYCLE_CONSUMER_FORBIDDEN" in denied_codes
+    assert "LIFECYCLE_APPROVAL_STATE" in denied_codes
+
+    bad = lifecycle.copy()
+    bad["artifacts"] = [
+        {
+            "id": "ontology/generated/authoring_packets/rtl__demo.json",
+            "path": "ontology/generated/authoring_packets/rtl__demo.json",
+            "granularity": "file",
+            "processing_stage": "serving",
+            "approval_state": "approved",
+            "validity_state": "current",
+            "allowed_consumers": ["rtl_agent"],
+        }
+    ]
+    path.write_text(json.dumps(bad, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    bad_result = run_lifecycle_check("--ip-dir", str(ip), "--json")
+    assert bad_result.returncode != 0, bad_result.stdout
+    bad_codes = {item["code"] for item in json.loads(bad_result.stdout)["issues"]}
+    assert "LIFECYCLE_DERIVED_FROM" in bad_codes
+    assert "LIFECYCLE_APPROVAL_REF" in bad_codes
+
+
+def test_authoring_packet_lifecycle_firewall(tmp_root: Path) -> None:
+    ip = tmp_root / "packet_lifecycle_ip"
+    packet_dir = ip / "ontology" / "generated" / "authoring_packets"
+    packet_dir.mkdir(parents=True)
+    (ip / "ontology").mkdir(exist_ok=True)
+    lifecycle = {
+        "schema_version": "oag_artifact_lifecycle.v1",
+        "artifacts": [
+            {
+                "id": "ontology/contracts.yaml",
+                "path": "ontology/contracts.yaml",
+                "granularity": "file",
+                "processing_stage": "canonical",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/contracts_review.json",
+                "derived_from": ["ontology/requirements.yaml"],
+                "allowed_consumers": ["rtl_authoring_packet", "tb_authoring_packet"],
+            },
+            {
+                "id": "ontology/decision_matrix.yaml:D001",
+                "path": "ontology/decision_matrix.yaml",
+                "object_id": "D001",
+                "granularity": "object",
+                "processing_stage": "canonical",
+                "approval_state": "candidate",
+                "validity_state": "current",
+                "derived_from": ["req/source_claims.yaml:SRC001"],
+                "allowed_consumers": ["clarification_agent"],
+            },
+            {
+                "id": "rtl/top.sv",
+                "path": "rtl/top.sv",
+                "granularity": "file",
+                "processing_stage": "serving",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/rtl_review.json",
+                "derived_from": ["ontology/generated/authoring_packets/rtl__demo.json"],
+                "allowed_consumers": ["rtl_agent"],
+            },
+        ],
+    }
+    (ip / "ontology" / "artifact_lifecycle.json").write_text(
+        json.dumps(lifecycle, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    rtl_packet = {
+        "schema_version": "oag_rtl_authoring_packet.v1",
+        "packet_type": "rtl_authoring_packet",
+        "ip": "packet_lifecycle_ip",
+        "allowed_truth_sources": ["ontology/contracts.yaml"],
+        "forbidden_sources": ["tb", "sim", "dut_output"],
+        "contract_refs_to_implement": ["CONTRACT_DEMO"],
+        "behavior_refs_implemented_target": ["behavior_model.demo"],
+        "ppa_notes_required": True,
+        "cdc_rdc_notes_required": True,
+        "lifecycle_input_refs": ["ontology/contracts.yaml"],
+    }
+    tb_packet = {
+        "schema_version": "oag_tb_authoring_packet.v1",
+        "packet_type": "tb_authoring_packet",
+        "ip": "packet_lifecycle_ip",
+        "expected_source_policy": "contract_oracle_only",
+        "forbidden_expected_sources": ["dut_output", "rtl_expression", "post_hoc_simulation"],
+        "contract_refs": ["CONTRACT_DEMO"],
+        "scenario_refs": ["SCN_DEMO"],
+        "scoreboard_row_refs": ["EVT_DEMO"],
+        "lifecycle_input_refs": ["ontology/contracts.yaml"],
+    }
+    rtl_path = packet_dir / "rtl__demo.json"
+    tb_path = packet_dir / "tb__demo.json"
+    rtl_path.write_text(json.dumps(rtl_packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tb_path.write_text(json.dumps(tb_packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    good = run_authoring_packet_check("--ip-dir", str(ip), "--require-packets", "--require-lifecycle", "--json")
+    assert good.returncode == 0, good.stderr or good.stdout
+    assert json.loads(good.stdout)["status"] == "pass", good.stdout
+
+    rtl_packet["lifecycle_input_refs"] = ["ontology/decision_matrix.yaml:D001"]
+    rtl_path.write_text(json.dumps(rtl_packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    bad_rtl = run_authoring_packet_check("--ip-dir", str(ip), "--require-packets", "--require-lifecycle", "--json")
+    assert bad_rtl.returncode != 0, bad_rtl.stdout
+    assert any(
+        item["code"] == "PACKET_LIFECYCLE_BLOCKED"
+        for item in json.loads(bad_rtl.stdout)["issues"]
+    ), bad_rtl.stdout
+
+    rtl_packet["lifecycle_input_refs"] = ["ontology/contracts.yaml"]
+    rtl_path.write_text(json.dumps(rtl_packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tb_packet["lifecycle_input_refs"] = ["rtl/top.sv"]
+    tb_path.write_text(json.dumps(tb_packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    bad_tb = run_authoring_packet_check("--ip-dir", str(ip), "--require-packets", "--require-lifecycle", "--json")
+    assert bad_tb.returncode != 0, bad_tb.stdout
+    assert any(
+        item["code"] == "TB_PACKET_RTL_DERIVED_LIFECYCLE_INPUT"
+        for item in json.loads(bad_tb.stdout)["issues"]
+    ), bad_tb.stdout
+
+
+def test_stale_propagation_checker(tmp_root: Path) -> None:
+    ip = tmp_root / "stale_ip"
+    (ip / "ontology" / "generated" / "authoring_packets").mkdir(parents=True)
+    (ip / "sim").mkdir(parents=True)
+    req_path = ip / "ontology" / "requirements.yaml"
+    contracts_path = ip / "ontology" / "contracts.yaml"
+    rtl_packet_path = ip / "ontology" / "generated" / "authoring_packets" / "rtl__demo.json"
+    evidence_path = ip / "sim" / "results.xml"
+    req_path.write_text("requirements:\n- id: REQ_DEMO\n  text: changed\n", encoding="utf-8")
+    contracts_path.write_text("contracts:\n- contract_id: CONTRACT_DEMO\n", encoding="utf-8")
+    rtl_packet_path.write_text("{}\n", encoding="utf-8")
+    evidence_path.write_text("<testsuite tests=\"1\" failures=\"0\"/>\n", encoding="utf-8")
+
+    lifecycle = {
+        "schema_version": "oag_artifact_lifecycle.v1",
+        "artifacts": [
+            {
+                "id": "ontology/requirements.yaml",
+                "path": "ontology/requirements.yaml",
+                "granularity": "file",
+                "processing_stage": "canonical",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/req_review.json",
+                "derived_from": ["req/source_claims.yaml"],
+                "allowed_consumers": ["contract_projection"],
+                "hash": {
+                    "content_sha256": "sha256:" + ("0" * 64),
+                    "hash_mode": "raw_bytes",
+                    "size_bytes": 1,
+                },
+            },
+            {
+                "id": "ontology/contracts.yaml",
+                "path": "ontology/contracts.yaml",
+                "granularity": "file",
+                "processing_stage": "canonical",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/contracts_review.json",
+                "derived_from": ["ontology/requirements.yaml"],
+                "allowed_consumers": ["rtl_authoring_packet", "tb_authoring_packet"],
+            },
+            {
+                "id": "ontology/generated/authoring_packets/rtl__demo.json",
+                "path": "ontology/generated/authoring_packets/rtl__demo.json",
+                "granularity": "file",
+                "processing_stage": "serving",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/rtl_packet_review.json",
+                "derived_from": ["ontology/contracts.yaml"],
+                "allowed_consumers": ["rtl_agent"],
+            },
+            {
+                "id": "sim/results.xml",
+                "path": "sim/results.xml",
+                "granularity": "file",
+                "processing_stage": "serving",
+                "approval_state": "approved",
+                "validity_state": "current",
+                "approval_ref": "ontology/validations/sim_review.json",
+                "derived_from": ["ontology/generated/authoring_packets/rtl__demo.json"],
+                "allowed_consumers": ["gate"],
+            },
+        ],
+    }
+    lifecycle_path = ip / "ontology" / "artifact_lifecycle.json"
+    lifecycle_path.write_text(json.dumps(lifecycle, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    stale = run_stale_check("--ip-dir", str(ip), "--json")
+    assert stale.returncode != 0, stale.stdout
+    result = json.loads(stale.stdout)
+    codes = {item["code"] for item in result["issues"]}
+    assert "STALE_HASH_MISMATCH_CURRENT" in codes
+    assert "STALE_DEPENDENT_CURRENT" in codes
+    stale_ids = set(result["stale_artifacts"])
+    assert "ontology/contracts.yaml" in stale_ids
+    assert "ontology/generated/authoring_packets/rtl__demo.json" in stale_ids
+    assert "sim/results.xml" in stale_ids
+
+    lifecycle["artifacts"][0]["hash"] = {
+        "content_sha256": "sha256:" + hashlib.sha256(req_path.read_bytes()).hexdigest(),
+        "hash_mode": "raw_bytes",
+        "size_bytes": req_path.stat().st_size,
+    }
+    lifecycle_path.write_text(json.dumps(lifecycle, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    clean = run_stale_check("--ip-dir", str(ip), "--json")
+    assert clean.returncode == 0, clean.stderr or clean.stdout
+    assert json.loads(clean.stdout)["status"] == "pass", clean.stdout
+
+
+def test_baseline_manifest_checker(tmp_root: Path) -> None:
+    import yaml  # type: ignore
+
+    ip = tmp_root / "baseline_ip"
+    for rel in (
+        "ontology/baselines",
+        "ontology/gates",
+        "ontology/validations",
+        "ontology",
+        "rtl",
+        "sim",
+    ):
+        (ip / rel).mkdir(parents=True, exist_ok=True)
+    files = {
+        "ontology/contracts.yaml": "schema_version: contracts.v1\ncontracts: []\n",
+        "rtl/top.sv": "module top; endmodule\n",
+        "sim/results.xml": "<testsuite tests=\"1\" failures=\"0\"/>\n",
+        "ontology/validations/validation.json": "{\"status\":\"pass\"}\n",
+        "ontology/gates/closure_gate.json": "{\"decision\":\"pass\"}\n",
+    }
+    for rel, text in files.items():
+        (ip / rel).write_text(text, encoding="utf-8")
+
+    def hash_entry(rel: str) -> dict[str, object]:
+        data = (ip / rel).read_bytes()
+        return {
+            "content_sha256": f"sha256:{hashlib.sha256(data).hexdigest()}",
+            "hash_mode": "raw_bytes",
+            "size_bytes": len(data),
+        }
+
+    manifest = {
+        "schema_version": "oag_baseline_manifest.v1",
+        "baseline_id": "baseline_ip.golden.v0.1.0",
+        "ip": "baseline_ip",
+        "baseline": {"class": "golden", "version": "0.1.0", "state": "active", "supersedes": None},
+        "approval": {"state": "approved", "approval_ref": "ontology/gates/closure_gate.json"},
+        "git": {"tag": "oag/baseline_ip/v0.1.0", "commit": "resolved_by_tag", "tag_type": "annotated"},
+        "tracked_artifacts": {
+            "truth": ["ontology/contracts.yaml"],
+            "implementation": ["rtl/top.sv"],
+            "evidence_summary": ["sim/results.xml"],
+            "gate": ["ontology/validations/validation.json", "ontology/gates/closure_gate.json"],
+        },
+        "hashes": {rel: hash_entry(rel) for rel in files},
+        "gate": {
+            "gate_ref": "ontology/gates/closure_gate.json",
+            "validation_ref": "ontology/validations/validation.json",
+            "decision": "pass",
+        },
+    }
+    manifest_path = ip / "ontology" / "baselines" / "baseline_ip_golden_v0.1.0.yaml"
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
+
+    good = run_baseline_check("--manifest", str(manifest_path), "--json")
+    assert good.returncode == 0, good.stderr or good.stdout
+    assert json.loads(good.stdout)["status"] == "pass", good.stdout
+
+    (ip / "sim/results.xml").write_text("<testsuite tests=\"1\" failures=\"1\"/>\n", encoding="utf-8")
+    mismatch = run_baseline_check("--manifest", str(manifest_path), "--json")
+    assert mismatch.returncode != 0, mismatch.stdout
+    assert any(item["code"] == "BASELINE_HASH_MISMATCH" for item in json.loads(mismatch.stdout)["issues"]), mismatch.stdout
+
+    broken = manifest.copy()
+    broken["git"] = {"tag": "", "commit": "abc123", "tag_type": "lightweight"}
+    broken["tracked_artifacts"] = {"truth": ["ontology/missing.yaml"]}
+    broken_path = ip / "ontology" / "baselines" / "broken.yaml"
+    broken_path.write_text(yaml.safe_dump(broken, sort_keys=False), encoding="utf-8")
+    bad = run_baseline_check("--manifest", str(broken_path), "--json")
+    assert bad.returncode != 0, bad.stdout
+    bad_codes = {item["code"] for item in json.loads(bad.stdout)["issues"]}
+    assert "BASELINE_GIT_TAG" in bad_codes
+    assert "BASELINE_TAG_TYPE" in bad_codes
+    assert "BASELINE_SELF_COMMIT" in bad_codes
+    assert "BASELINE_TRACKED_FILE_MISSING" in bad_codes
+
+    (ip / "sim" / "waves.fst").write_text("waveform bytes\n", encoding="utf-8")
+    forbidden = manifest.copy()
+    forbidden["tracked_artifacts"] = {"evidence_summary": ["sim/waves.fst"]}
+    forbidden["hashes"] = {"sim/waves.fst": hash_entry("sim/waves.fst")}
+    forbidden_path = ip / "ontology" / "baselines" / "forbidden.yaml"
+    forbidden_path.write_text(yaml.safe_dump(forbidden, sort_keys=False), encoding="utf-8")
+    forbidden_result = run_baseline_check("--manifest", str(forbidden_path), "--json")
+    assert forbidden_result.returncode != 0, forbidden_result.stdout
+    assert any(
+        item["code"] == "BASELINE_TRACKED_FORBIDDEN"
+        for item in json.loads(forbidden_result.stdout)["issues"]
+    ), forbidden_result.stdout
+
+    external_bad = manifest.copy()
+    external_bad["external_artifacts"] = [
+        {
+            "id": "WAVES",
+            "kind": "waveform",
+            "uri": "artifacts://baseline_ip/v0.1.0/waves.fst",
+            "required_for": "debug_only",
+            "retention": "optional",
+        }
+    ]
+    external_path = ip / "ontology" / "baselines" / "external_bad.yaml"
+    external_path.write_text(yaml.safe_dump(external_bad, sort_keys=False), encoding="utf-8")
+    external_result = run_baseline_check("--manifest", str(external_path), "--json")
+    assert external_result.returncode != 0, external_result.stdout
+    assert any(
+        item["code"] == "BASELINE_EXTERNAL_SHA"
+        for item in json.loads(external_result.stdout)["issues"]
+    ), external_result.stdout
+
+
+def test_baseline_cut_helper(tmp_root: Path) -> None:
+    ip = tmp_root / "baseline_cut_ip"
+    (ip / "ontology" / "baselines").mkdir(parents=True)
+    (ip / "ontology" / "gates").mkdir(parents=True)
+    (ip / "ontology" / "validations").mkdir(parents=True)
+    (ip / "rtl").mkdir()
+    (ip / "sim").mkdir()
+    (ip / "ontology" / "requirements.yaml").write_text("requirements: []\n", encoding="utf-8")
+    (ip / "rtl" / "top.sv").write_text("module top; endmodule\n", encoding="utf-8")
+    (ip / "sim" / "results.xml").write_text("<testsuite tests=\"1\" failures=\"0\"/>\n", encoding="utf-8")
+    (ip / "ontology" / "gates" / "closure_gate.json").write_text("{\"decision\":\"pass\"}\n", encoding="utf-8")
+    (ip / "ontology" / "validations" / "validation.json").write_text("{\"status\":\"pass\"}\n", encoding="utf-8")
+    manifest = ip / "ontology" / "baselines" / "baseline_cut.yaml"
+    cut = run_baseline_cut(
+        "--ip-dir",
+        str(ip),
+        "--baseline-id",
+        "baseline_cut_ip.candidate.v0.1.0",
+        "--version",
+        "0.1.0",
+        "--approval-ref",
+        "ontology/validations/validation.json",
+        "--gate-ref",
+        "ontology/gates/closure_gate.json",
+        "--validation-ref",
+        "ontology/validations/validation.json",
+        "--tracked-artifact",
+        "truth:ontology/requirements.yaml",
+        "--tracked-artifact",
+        "implementation:rtl/top.sv",
+        "--tracked-artifact",
+        "evidence_summary:sim/results.xml",
+        "--tracked-artifact",
+        "gate:ontology/gates/closure_gate.json",
+        "--output",
+        str(manifest),
+        "--allow-dirty",
+        "--json",
+    )
+    assert cut.returncode == 0, cut.stderr or cut.stdout
+    assert json.loads(cut.stdout)["status"] == "pass", cut.stdout
+    assert manifest.is_file(), manifest
+
+    generated = run_baseline_check("--manifest", str(manifest), "--json")
+    assert generated.returncode == 0, generated.stderr or generated.stdout
+    assert json.loads(generated.stdout)["status"] == "pass", generated.stdout
+
+    repo = tmp_root / "dirty_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, text=True, capture_output=True, check=True)
+    dirty_ip = repo / "dirty_ip"
+    (dirty_ip / "ontology" / "baselines").mkdir(parents=True)
+    (dirty_ip / "ontology" / "requirements.yaml").write_text("requirements: []\n", encoding="utf-8")
+    dirty = run_baseline_cut(
+        "--ip-dir",
+        str(dirty_ip),
+        "--baseline-id",
+        "dirty_ip.candidate.v0.1.0",
+        "--version",
+        "0.1.0",
+        "--approval-ref",
+        "ontology/validations/validation.json",
+        "--gate-ref",
+        "ontology/gates/closure_gate.json",
+        "--validation-ref",
+        "ontology/validations/validation.json",
+        "--tracked-artifact",
+        "truth:ontology/requirements.yaml",
+        "--output",
+        str(dirty_ip / "ontology" / "baselines" / "dirty.yaml"),
+        "--json",
+        cwd=repo,
+    )
+    assert dirty.returncode != 0, dirty.stdout
+    assert any(
+        item["code"] == "BASELINE_CUT_DIRTY_TREE"
+        for item in json.loads(dirty.stdout)["issues"]
+    ), dirty.stdout
+
+
+def test_baseline_verify_git_tag(tmp_root: Path) -> None:
+    repo = tmp_root / "verify_repo"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, text=True, capture_output=True, check=True)
+    ip = repo / "verify_ip"
+    (ip / "ontology" / "baselines").mkdir(parents=True)
+    (ip / "ontology" / "gates").mkdir(parents=True)
+    (ip / "ontology" / "validations").mkdir(parents=True)
+    (ip / "rtl").mkdir()
+    (ip / "sim").mkdir()
+    (ip / "ontology" / "requirements.yaml").write_text("requirements: []\n", encoding="utf-8")
+    (ip / "rtl" / "top.sv").write_text("module top; endmodule\n", encoding="utf-8")
+    (ip / "sim" / "results.xml").write_text("<testsuite tests=\"1\" failures=\"0\"/>\n", encoding="utf-8")
+    (ip / "ontology" / "gates" / "closure_gate.json").write_text("{\"decision\":\"pass\"}\n", encoding="utf-8")
+    (ip / "ontology" / "validations" / "validation.json").write_text("{\"status\":\"pass\"}\n", encoding="utf-8")
+    tag = "oag/verify_ip/v0.1.0"
+    manifest = ip / "ontology" / "baselines" / "verify.yaml"
+    cut = run_baseline_cut(
+        "--ip-dir",
+        str(ip),
+        "--baseline-id",
+        "verify_ip.golden.v0.1.0",
+        "--version",
+        "0.1.0",
+        "--baseline-class",
+        "golden",
+        "--baseline-state",
+        "active",
+        "--approval-state",
+        "approved",
+        "--approval-ref",
+        "ontology/validations/validation.json",
+        "--gate-ref",
+        "ontology/gates/closure_gate.json",
+        "--validation-ref",
+        "ontology/validations/validation.json",
+        "--tag",
+        tag,
+        "--tracked-artifact",
+        "truth:ontology/requirements.yaml",
+        "--tracked-artifact",
+        "implementation:rtl/top.sv",
+        "--tracked-artifact",
+        "evidence_summary:sim/results.xml",
+        "--tracked-artifact",
+        "gate:ontology/gates/closure_gate.json",
+        "--tracked-artifact",
+        "gate:ontology/validations/validation.json",
+        "--output",
+        str(manifest),
+        "--allow-dirty",
+        "--json",
+        cwd=repo,
+    )
+    assert cut.returncode == 0, cut.stderr or cut.stdout
+    subprocess.run(["git", "add", "."], cwd=repo, text=True, capture_output=True, check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=Smoke", "-c", "user.email=smoke@example.com", "commit", "-m", "baseline"],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    manifest_sha = "sha256:" + hashlib.sha256(manifest.read_bytes()).hexdigest()
+    subprocess.run(["git", "tag", "-a", tag, "-m", f"manifest_sha256: {manifest_sha}"], cwd=repo, text=True, capture_output=True, check=True)
+
+    good = run_baseline_verify("--manifest", str(manifest), "--verify-git-tag", "--json", cwd=repo)
+    assert good.returncode == 0, good.stderr or good.stdout
+    assert json.loads(good.stdout)["status"] == "pass", good.stdout
+
+    manifest.write_text(manifest.read_text(encoding="utf-8") + "# local edit after tag\n", encoding="utf-8")
+    stale = run_baseline_verify("--manifest", str(manifest), "--verify-git-tag", "--json", cwd=repo)
+    assert stale.returncode != 0, stale.stdout
+    codes = {item["code"] for item in json.loads(stale.stdout)["issues"]}
+    assert "BASELINE_VERIFY_MANIFEST_TREE_MISMATCH" in codes
+
+
+def test_ip_version_policy_checker(tmp_root: Path) -> None:
+    ip = tmp_root / "version_ip"
+    (ip / "ontology").mkdir(parents=True)
+    (ip / "ontology" / "baselines").mkdir(parents=True)
+    (ip / "ontology" / "validations").mkdir(parents=True)
+    (ip / "ontology" / "baselines" / "version_ip_golden_v0.1.1.yaml").write_text(
+        "schema_version: oag_baseline_manifest.v1\n",
+        encoding="utf-8",
+    )
+    (ip / "ontology" / "validations" / "version_review.json").write_text("{\"status\":\"approved\"}\n", encoding="utf-8")
+    ledger = {
+        "schema_version": "oag_ip_version.v1",
+        "ip": "version_ip",
+        "current_version": "0.1.1",
+        "version_policy": {
+            "git_scope": "ip_local_repo",
+            "tag_prefix": "oag/version_ip/",
+        },
+        "versions": [
+            {
+                "version": "0.1.0",
+                "baseline_class": "golden",
+                "state": "superseded",
+                "change_class": "minor",
+                "functional_truth_changed": True,
+                "baseline_manifest": "ontology/baselines/version_ip_golden_v0.1.0.yaml",
+                "git_tag": "oag/version_ip/v0.1.0",
+                "approval_ref": "ontology/validations/version_review.json",
+            },
+            {
+                "version": "0.1.1",
+                "baseline_class": "golden",
+                "state": "active",
+                "change_class": "patch",
+                "functional_truth_changed": False,
+                "baseline_manifest": "ontology/baselines/version_ip_golden_v0.1.1.yaml",
+                "git_tag": "oag/version_ip/v0.1.1",
+                "approval_ref": "ontology/validations/version_review.json",
+            },
+        ],
+    }
+    version_path = ip / "ontology" / "ip_version.yaml"
+    import yaml  # type: ignore
+
+    version_path.write_text(yaml.safe_dump(ledger, sort_keys=False), encoding="utf-8")
+
+    no_git = run_ip_version_check("--ip-dir", str(ip), "--require-ip-git", "--json")
+    assert no_git.returncode != 0, no_git.stdout
+    assert any(item["code"] == "IP_VERSION_LOCAL_GIT_MISSING" for item in json.loads(no_git.stdout)["issues"]), no_git.stdout
+
+    subprocess.run(["git", "init"], cwd=ip, text=True, capture_output=True, check=True)
+    good = run_ip_version_check("--ip-dir", str(ip), "--require-ip-git", "--json")
+    assert good.returncode == 0, good.stderr or good.stdout
+    assert json.loads(good.stdout)["status"] == "pass", good.stdout
+
+    ledger["versions"][1]["functional_truth_changed"] = True
+    version_path.write_text(yaml.safe_dump(ledger, sort_keys=False), encoding="utf-8")
+    bad_patch = run_ip_version_check("--ip-dir", str(ip), "--require-ip-git", "--json")
+    assert bad_patch.returncode != 0, bad_patch.stdout
+    assert any(item["code"] == "IP_VERSION_PATCH_TRUTH_CHANGE" for item in json.loads(bad_patch.stdout)["issues"]), bad_patch.stdout
+
+
 def write_stage_receipt(ip: Path, stage: str) -> None:
     receipt = {
         "schema_version": "stage_run_receipt.v1",
@@ -1053,7 +2134,10 @@ def main() -> int:
         assert user_hooks[2]["command"] == "python3 .claude/hooks/claude_context_inject.py", hooks
         assert user_hooks[3]["command"] == "python3 .claude/hooks/claude_draft_pressure.py", hooks
         stop_hooks = hooks["hooks"]["Stop"][0]["hooks"]
-        assert stop_hooks[0]["command"] == "python3 .claude/hooks/claude_stop_gate.py", hooks
+        stop_command = stop_hooks[0]["command"]
+        assert "claude_stop_gate.py" in stop_command, hooks
+        assert "PYTHONDONTWRITEBYTECODE=1" in stop_command, hooks
+        assert "|| exit 0" in stop_command, hooks
         subagent_start_hooks = hooks["hooks"]["SubagentStart"][0]
         assert subagent_start_hooks["matcher"] == "^oag-", hooks
         assert subagent_start_hooks["hooks"][0]["command"] == "python3 .claude/hooks/claude_subagent_oag_start.py", hooks
@@ -1080,6 +2164,13 @@ def main() -> int:
         assert SPEC_RTL_LOOP.is_file(), SPEC_RTL_LOOP
         test_pyslang_lint_runner()
         test_wavefront_scheduler(Path(tmp))
+        test_artifact_lifecycle_checker(Path(tmp))
+        test_authoring_packet_lifecycle_firewall(Path(tmp))
+        test_stale_propagation_checker(Path(tmp))
+        test_baseline_manifest_checker(Path(tmp))
+        test_baseline_cut_helper(Path(tmp))
+        test_baseline_verify_git_tag(Path(tmp))
+        test_ip_version_policy_checker(Path(tmp))
         assert DISPATCH.is_file(), DISPATCH
         assert WAVEFRONT.is_file(), WAVEFRONT
         assert MAIN_WRITE_GATE.is_file(), MAIN_WRITE_GATE
@@ -1089,6 +2180,11 @@ def main() -> int:
         assert CLOSURE_CHECK.is_file(), CLOSURE_CHECK
         assert PACK_RELEASE_CHECK.is_file(), PACK_RELEASE_CHECK
         assert DOMAIN_CROSSING_CHECK.is_file(), DOMAIN_CROSSING_CHECK
+        test_oag_paths_resolver(Path(tmp))
+        test_dot_oag_layout_state_scripts(Path(tmp))
+        test_dot_oag_scaffold_layout(Path(tmp))
+        test_dot_oag_migration_tool(Path(tmp))
+        test_dot_oag_mixed_layout_rejected(Path(tmp))
         assert PYSLANG_LINT.is_file(), PYSLANG_LINT
         assert REQ_QUALITY_CHECK.is_file(), REQ_QUALITY_CHECK
         assert LOCK_READINESS_CHECK.is_file(), LOCK_READINESS_CHECK
@@ -1097,6 +2193,12 @@ def main() -> int:
         assert TRACE_GRAPH_CHECK.is_file(), TRACE_GRAPH_CHECK
         assert DEEP_SEMANTIC_INTAKE.is_file(), DEEP_SEMANTIC_INTAKE
         assert DECISION_MATRIX_GENERATE.is_file(), DECISION_MATRIX_GENERATE
+        assert LIFECYCLE_CHECK.is_file(), LIFECYCLE_CHECK
+        assert BASELINE_CHECK.is_file(), BASELINE_CHECK
+        assert STALE_CHECK.is_file(), STALE_CHECK
+        assert BASELINE_CUT.is_file(), BASELINE_CUT
+        assert BASELINE_VERIFY.is_file(), BASELINE_VERIFY
+        assert IP_VERSION_CHECK.is_file(), IP_VERSION_CHECK
         assert AGENT_CATALOG.is_file(), AGENT_CATALOG
         assert OAG_MODE_DIRECTIVE.is_file(), OAG_MODE_DIRECTIVE
         assert SUBAGENT_WORKFLOWS.is_file(), SUBAGENT_WORKFLOWS
@@ -1109,6 +2211,11 @@ def main() -> int:
         assert OAG_EVIDENCE_CLOSURE_SKILL.is_file(), OAG_EVIDENCE_CLOSURE_SKILL
         assert OAG_WAVEFRONT_SKILL.is_file(), OAG_WAVEFRONT_SKILL
         assert OAG_WAVEFRONT_TEMPLATE.is_file(), OAG_WAVEFRONT_TEMPLATE
+        assert OAG_DATA_LIFECYCLE_POLICY.is_file(), OAG_DATA_LIFECYCLE_POLICY
+        assert OAG_BASELINE_GIT_POLICY.is_file(), OAG_BASELINE_GIT_POLICY
+        assert OAG_IP_VERSIONING_POLICY.is_file(), OAG_IP_VERSIONING_POLICY
+        assert OAG_IP_VERSIONING_SKILL.is_file(), OAG_IP_VERSIONING_SKILL
+        assert OAG_IP_VERSIONING_RULES.is_file(), OAG_IP_VERSIONING_RULES
         for schema_file in SCHEMA_FILES:
             assert schema_file.is_file(), schema_file
             schema_payload = json.loads(schema_file.read_text(encoding="utf-8"))
@@ -1119,15 +2226,80 @@ def main() -> int:
         assert agent_catalog_check.returncode == 0, agent_catalog_check.stderr or agent_catalog_check.stdout
         agent_catalog_result = json.loads(agent_catalog_check.stdout)
         assert agent_catalog_result["status"] == "pass", agent_catalog_result
-        assert agent_catalog_result["counts"] == {"core": 14, "custom": 3, "total": 17, "markdown_files": 17}, agent_catalog_result
+        assert agent_catalog_result["counts"] == {"core": 15, "custom": 3, "total": 18, "markdown_files": 18}, agent_catalog_result
         assert agent_catalog_result["completion_authority"] == ["oag-gate-reviewer"], agent_catalog_result
         assert agent_catalog_result["final_decision_authority"] == ["oag-gate-reviewer"], agent_catalog_result
         pack_release_check = run_pack_release_check()
         assert pack_release_check.returncode == 0, pack_release_check.stderr or pack_release_check.stdout
         pack_release_result = json.loads(pack_release_check.stdout)
         assert pack_release_result["status"] == "pass", pack_release_result
-        assert pack_release_result["counts"]["agent_markdowns"] == 17, pack_release_result
+        assert pack_release_result["counts"]["agent_markdowns"] == 18, pack_release_result
         assert pack_release_result["counts"]["schemas"] >= 4, pack_release_result
+        ppa_bad_ip = Path(tmp) / "ppa_bad_function"
+        (ppa_bad_ip / "rtl").mkdir(parents=True)
+        (ppa_bad_ip / "list").mkdir(parents=True)
+        (ppa_bad_ip / "list" / "rtl.f").write_text("rtl/bad_function.sv\n", encoding="utf-8")
+        (ppa_bad_ip / "rtl" / "bad_function.sv").write_text(
+            "\n".join(
+                [
+                    "module bad_function(input logic a, output logic y);",
+                    "  function logic helper;",
+                    "    input logic in;",
+                    "    begin",
+                    "      helper = in;",
+                    "    end",
+                    "  endfunction",
+                    "  assign y = helper(a);",
+                    "endmodule",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        ppa_bad = subprocess.run(
+            [sys.executable, str(PPA_CHECK), "--ip-dir", str(ppa_bad_ip), "--json"],
+            text=True,
+            capture_output=True,
+            check=False,
+            cwd=ROOT,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
+        )
+        assert ppa_bad.returncode == 1, ppa_bad.stderr or ppa_bad.stdout
+        ppa_bad_result = json.loads(ppa_bad.stdout)
+        assert ppa_bad_result["status"] == "fail", ppa_bad_result
+        assert ppa_bad_result["scanned_files"] == ["rtl/bad_function.sv"], ppa_bad_result
+        assert any(issue["code"] == "FUNCTION" for issue in ppa_bad_result["issues"]), ppa_bad_result
+        ppa_good_ip = Path(tmp) / "ppa_good_generate"
+        (ppa_good_ip / "rtl").mkdir(parents=True)
+        (ppa_good_ip / "list").mkdir(parents=True)
+        (ppa_good_ip / "list" / "rtl.f").write_text("rtl/good_generate.sv\n", encoding="utf-8")
+        (ppa_good_ip / "rtl" / "good_generate.sv").write_text(
+            "\n".join(
+                [
+                    "module good_generate(input logic [1:0] a, output logic [1:0] y);",
+                    "  genvar gi;",
+                    "  generate",
+                    "    for (gi = 0; gi < 2; gi = gi + 1) begin : gen_bits",
+                    "      assign y[gi] = a[gi];",
+                    "    end",
+                    "  endgenerate",
+                    "endmodule",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        ppa_good = subprocess.run(
+            [sys.executable, str(PPA_CHECK), "--ip-dir", str(ppa_good_ip), "--json"],
+            text=True,
+            capture_output=True,
+            check=False,
+            cwd=ROOT,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
+        )
+        assert ppa_good.returncode == 0, ppa_good.stderr or ppa_good.stdout
+        ppa_good_result = json.loads(ppa_good.stdout)
+        assert ppa_good_result["status"] == "pass", ppa_good_result
         subagent_workflows = SUBAGENT_WORKFLOWS.read_text(encoding="utf-8")
         assert "multi_agent_v1.spawn_agent" in subagent_workflows, subagent_workflows
         assert "agent_type" in subagent_workflows, subagent_workflows
@@ -1185,10 +2357,12 @@ def main() -> int:
         assert "RULE-PACKET-ROLE-001" in rule_index_text, rule_index_text
         assert "RULE-TRACE-001" in rule_index_text, rule_index_text
         assert "RULE-WAVE-001" in rule_index_text, rule_index_text
+        assert "RULE-IPVER-001" in rule_index_text, rule_index_text
         decision_skill_text = OAG_DECISION_MATRIX_SKILL.read_text(encoding="utf-8")
         contract_skill_text = OAG_CONTRACT_PROJECTION_SKILL.read_text(encoding="utf-8")
         packet_skill_text = OAG_AUTHORING_PACKET_SKILL.read_text(encoding="utf-8")
         wavefront_skill_text = OAG_WAVEFRONT_SKILL.read_text(encoding="utf-8")
+        ip_versioning_skill_text = OAG_IP_VERSIONING_SKILL.read_text(encoding="utf-8")
         closure_skill_text = OAG_EVIDENCE_CLOSURE_SKILL.read_text(encoding="utf-8")
         assert "oag_decision_matrix_generate.py" in decision_skill_text, decision_skill_text
         assert "lock_required: true" in decision_skill_text, decision_skill_text
@@ -1198,6 +2372,8 @@ def main() -> int:
         assert "oag_authoring_packet_check.py" in packet_skill_text, packet_skill_text
         assert "dependency" in wavefront_skill_text and "ownership" in wavefront_skill_text, wavefront_skill_text
         assert "oag_wavefront.py" in wavefront_skill_text, wavefront_skill_text
+        assert "oag_ip_version_check.py" in ip_versioning_skill_text, ip_versioning_skill_text
+        assert "IP-local" in ip_versioning_skill_text, ip_versioning_skill_text
         assert "oag_closure_check.py" in closure_skill_text, closure_skill_text
         assert "claim_complete" in closure_skill_text, closure_skill_text
         assert "Short IP requests are not implementation authorization" in agents_text, agents_text
@@ -1210,6 +2386,7 @@ def main() -> int:
         assert "oag_contract_strength_check.py" in agents_text, agents_text
         assert "oag_authoring_packet_check.py" in agents_text, agents_text
         assert "oag_wavefront.py" in agents_text, agents_text
+        assert "oag_ip_version_check.py" in agents_text, agents_text
         assert "oag_trace_graph_check.py" in agents_text, agents_text
         assert "oag_deep_semantic_intake.py" in agents_text, agents_text
         assert "oag_decision_matrix_generate.py" in agents_text, agents_text
@@ -1227,6 +2404,7 @@ def main() -> int:
         assert "oag_lock_readiness_check.py" in directive_text, directive_text
         assert "oag_contract_strength_check.py" in directive_text, directive_text
         assert "oag_authoring_packet_check.py" in directive_text, directive_text
+        assert "oag_ip_version_check.py" in directive_text, directive_text
         assert "oag_trace_graph_check.py" in directive_text, directive_text
         assert "oag_deep_semantic_intake.py" in directive_text, directive_text
         assert "oag_decision_matrix_generate.py" in directive_text, directive_text
@@ -1270,6 +2448,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=PROJECT_ROOT,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert exec_auto_research.returncode == 0, exec_auto_research.stderr or exec_auto_research.stdout
         exec_auto_research_result = json.loads(exec_auto_research.stdout)
@@ -1287,8 +2466,10 @@ def main() -> int:
         assert "built-in explorer-style native subagent" in prompt_text, prompt_text
         assert "not an OAG custom/write-capable role" in prompt_text, prompt_text
         assert "FINAL_AUTO_RESEARCH_SUMMARY" in prompt_text, prompt_text
-        gitignore_text = (PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
-        assert ".claude/runs/" in gitignore_text, gitignore_text
+        gitignore_path = PROJECT_ROOT / ".gitignore"
+        if gitignore_path.is_file():
+            gitignore_text = gitignore_path.read_text(encoding="utf-8")
+            assert ".claude/runs/" in gitignore_text, gitignore_text
 
         claude_home = Path(tmp) / "claude_home"
         claude_home.mkdir(parents=True, exist_ok=True)
@@ -1610,6 +2791,37 @@ def main() -> int:
         bad_verify_result = json.loads(bad_verify.stdout)
         assert any(item["code"] == "RECEIPT_PATH_MISMATCH" for item in bad_verify_result["issues"]), bad_verify_result
         assert any(item["code"] == "OWNED_PATH_OUT_OF_SCOPE" for item in bad_verify_result["issues"]), bad_verify_result
+        (hook_ip / "rtl" / "unrelated_concurrent.sv").write_text("module unrelated_concurrent; endmodule\n", encoding="utf-8")
+        concurrent_blocked_payload = json.loads(receipt.read_text(encoding="utf-8"))
+        concurrent_blocked_payload["status"] = "BLOCKED"
+        concurrent_blocked_payload["blockers"] = [
+            "oag_dispatch.py verify reports only ACTUAL_PATH_OUT_OF_SCOPE deltas from unrelated concurrent workspace edits."
+        ]
+        receipt.write_text(json.dumps(concurrent_blocked_payload, sort_keys=True) + "\n", encoding="utf-8")
+        concurrent_verify = run_dispatch(
+            "verify",
+            "--dispatch",
+            str(hook_cwd / dispatch["dispatch_path"]),
+            "--receipt",
+            str(receipt),
+            "--json",
+            project_root=hook_cwd,
+        )
+        assert concurrent_verify.returncode != 0, concurrent_verify.stdout
+        concurrent_verify_result = json.loads(concurrent_verify.stdout)
+        concurrent_codes = {item["code"] for item in concurrent_verify_result["issues"]}
+        assert concurrent_codes == {"ACTUAL_PATH_OUT_OF_SCOPE"}, concurrent_verify_result
+        concurrent_gate = subagent_gate(valid_payload, {"OAG_SUBAGENT_GATE_CACHE": str(Path(tmp) / "subagent_gate_cache_concurrent.json")})
+        assert concurrent_gate.returncode == 0, concurrent_gate.stderr or concurrent_gate.stdout
+        assert concurrent_gate.stdout == "", concurrent_gate.stdout
+        concurrent_unblocked_payload = {**concurrent_blocked_payload, "status": "RTL_HANDOFF_PASS"}
+        concurrent_unblocked_payload.pop("blockers", None)
+        receipt.write_text(json.dumps(concurrent_unblocked_payload, sort_keys=True) + "\n", encoding="utf-8")
+        unblocked_status_gate = subagent_gate(valid_payload, {"OAG_SUBAGENT_GATE_CACHE": str(Path(tmp) / "subagent_gate_cache_concurrent_bad_status.json")})
+        assert unblocked_status_gate.returncode == 0, unblocked_status_gate.stderr or unblocked_status_gate.stdout
+        unblocked_status_payload = json.loads(unblocked_status_gate.stdout)
+        assert unblocked_status_payload["decision"] == "block", unblocked_status_payload
+        assert "BLOCKED, INCONCLUSIVE, or FAIL" in unblocked_status_payload["reason"], unblocked_status_payload
 
         closure_ip = make_ip(Path(tmp) / "closure_check")
         close_demo_counter(closure_ip, claim="closure check smoke counter closed")
@@ -2375,6 +3587,7 @@ def main() -> int:
             check=False,
             cwd=ROOT,
             env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert graph_proc.returncode == 0, graph_proc.stderr or graph_proc.stdout
         graph_data = json.loads(graph_json.read_text(encoding="utf-8"))
@@ -2412,6 +3625,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=ROOT.parent,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert portable_export.returncode == 0, portable_export.stderr or portable_export.stdout
         portable_summary = json.loads(portable_export.stdout)
@@ -2423,6 +3637,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=ROOT.parent,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert portable_inspect.returncode == 0, portable_inspect.stderr or portable_inspect.stdout
         portable_manifest = json.loads(portable_inspect.stdout)
@@ -2442,6 +3657,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=ROOT.parent,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert portable_import.returncode == 0, portable_import.stderr or portable_import.stdout
         assert json.loads(portable_import.stdout)["changed"] == portable_summary["file_count"], portable_import.stdout
@@ -2476,6 +3692,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=ROOT.parent,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert okf_validate.returncode == 0, okf_validate.stderr or okf_validate.stdout
         okf_validation = json.loads(okf_validate.stdout)
@@ -2524,6 +3741,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=ROOT.parent,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert okf_obsidian_validate.returncode == 0, okf_obsidian_validate.stderr or okf_obsidian_validate.stdout
         okf_obsidian_validation = json.loads(okf_obsidian_validate.stdout)
@@ -2547,6 +3765,7 @@ def main() -> int:
             check=False,
             cwd=ROOT.parent,
             env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert okf_import.returncode == 0, okf_import.stderr or okf_import.stdout
         okf_import_summary = json.loads(okf_import.stdout)
@@ -2592,6 +3811,7 @@ def main() -> int:
             check=False,
             cwd=ROOT.parent,
             env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert okf_rtl_export.returncode == 0, okf_rtl_export.stderr or okf_rtl_export.stdout
         okf_rtl_validate = subprocess.run(
@@ -2600,6 +3820,7 @@ def main() -> int:
             capture_output=True,
             check=False,
             cwd=ROOT.parent,
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert okf_rtl_validate.returncode == 0, okf_rtl_validate.stderr or okf_rtl_validate.stdout
         module_page = okf_rtl_dir / "design" / "modules" / "demo_counter_cx1.md"
@@ -2613,6 +3834,7 @@ def main() -> int:
             check=False,
             cwd=ROOT.parent,
             env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert eval_proc.returncode == 0, eval_proc.stderr or eval_proc.stdout
         eval_report = json.loads(eval_proc.stdout)
@@ -2627,6 +3849,7 @@ def main() -> int:
             check=False,
             cwd=ROOT.parent,
             env={**os.environ, "OAG_DISABLE_BACKEND": "1"},
+            timeout=OAG_CALL_TIMEOUT_SECONDS,
         )
         assert answer_key_proc.returncode == 0, answer_key_proc.stderr or answer_key_proc.stdout
         answer_key_report = json.loads(answer_key_proc.stdout)
@@ -2883,7 +4106,7 @@ def main() -> int:
             1,
         )
         bad_lang_rules = bad_lang_rules.replace(
-            "    forbidden_constructs: [procedural_for, procedural_while, procedural_repeat, procedural_forever, always_ff, always_comb, always_latch, package, import, interface, modport, typedef, enum, struct, class, assertions, covergroups]",
+            "    forbidden_constructs: [procedural_for, procedural_while, procedural_repeat, procedural_forever, function, task, always_ff, always_comb, always_latch, package, import, interface, modport, typedef, enum, struct, class, program, clocking, bind, dpi, randomization, constraints, unique_priority, assertions, covergroups]",
             "    forbidden_constructs: [procedural_for, procedural_while, generate_for]",
             1,
         )
@@ -2898,6 +4121,12 @@ def main() -> int:
             "\n".join(
                 [
                     "module demo_counter_cx1(input logic clk);",
+                    "  function logic bad_helper;",
+                    "    input logic in;",
+                    "    begin",
+                    "      bad_helper = in;",
+                    "    end",
+                    "  endfunction",
                     "  always_ff @(posedge clk) begin",
                     "  end",
                     "endmodule",
@@ -2932,7 +4161,7 @@ def main() -> int:
                 "    language_policy: smoke_negative_subset",
                 "    rtl_compile_report: rtl/rtl_compile.json",
                 "    rtl_sources: [rtl/demo_counter_cx1.sv]",
-                "    forbidden_constructs_absent: [always_ff]",
+                "    forbidden_constructs_absent: [always_ff, function]",
                 "    evidence_refs:",
                 "      - rtl/demo_counter_cx1.sv",
                 "      - rtl/rtl_compile.json",
@@ -2943,6 +4172,7 @@ def main() -> int:
         bad_subset_compile = call({"tool": "oag.compile", "arguments": {"ip_dir": str(bad_subset_ip)}})
         assert bad_subset_compile["result"]["status"] == "fail", bad_subset_compile
         assert "INST_BAD_RTL_LANGUAGE_SUBSET: rtl/demo_counter_cx1.sv: forbidden RTL construct present: always_ff" in bad_subset_compile["result"]["issues"], bad_subset_compile
+        assert "INST_BAD_RTL_LANGUAGE_SUBSET: rtl/demo_counter_cx1.sv: forbidden RTL construct present: function" in bad_subset_compile["result"]["issues"], bad_subset_compile
         bad_protocol_ip = make_ip(Path(tmp) / "bad_protocol_report")
         (bad_protocol_ip / "signoff").mkdir(exist_ok=True)
         (bad_protocol_ip / "signoff" / "protocol_compliance_report.json").write_text(

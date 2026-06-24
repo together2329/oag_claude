@@ -145,14 +145,26 @@ rtl_policy:
     - logic
     - generate
   disallowed_constructs:
+    - function
+    - task
     - always_ff
     - always_comb
+    - always_latch
     - typedef
     - enum
     - struct
     - interface
+    - modport
     - package
+    - import
+    - program
+    - clocking
+    - bind
     - class
+    - dpi
+    - randomization
+    - constraints
+    - unique_priority
     - assertions
     - covergroups
 ppa_policy:

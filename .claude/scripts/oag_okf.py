@@ -27,6 +27,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import oag_cli  # noqa: E402
+import oag_paths  # noqa: E402
 
 try:
     import yaml  # type: ignore
@@ -89,7 +90,7 @@ def _sha256(path: Path) -> str:
 def _canonical_source_hashes(ip: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for rel in CANONICAL_IMPORT_GUARD_PATHS:
-        path = ip / rel
+        path = oag_paths.legacy_or_hidden(ip, rel) if rel.startswith("ontology/") else ip / rel
         if path.is_file():
             hashes[rel] = _sha256(path)
     return hashes
@@ -298,9 +299,9 @@ def _write_dir_index(out_dir: Path, title: str, entries: list[tuple[str, str, st
 
 
 def _export_rocev_objects(ip: Path, out: Path, profile: str) -> dict[str, int]:
-    reqs = _items(ip / "ontology" / "requirements.yaml", "requirements")
-    obligations = _items(ip / "ontology" / "obligations.yaml", "obligations")
-    contracts = _items(ip / "ontology" / "contracts.yaml", "contracts")
+    reqs = _items(oag_paths.legacy_or_hidden(ip, "ontology/requirements.yaml"), "requirements")
+    obligations = _items(oag_paths.legacy_or_hidden(ip, "ontology/obligations.yaml"), "obligations")
+    contracts = _items(oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml"), "contracts")
     counts = {"requirements": len(reqs), "obligations": len(obligations), "contracts": len(contracts)}
 
     req_entries: list[tuple[str, str, str]] = []
@@ -416,9 +417,9 @@ def _export_rocev_objects(ip: Path, out: Path, profile: str) -> dict[str, int]:
 
 def _available_rocev_ids(ip: Path) -> dict[str, set[str]]:
     return {
-        "requirements": {_text(item.get("id")) for item in _items(ip / "ontology" / "requirements.yaml", "requirements")},
-        "obligations": {_text(item.get("id")) for item in _items(ip / "ontology" / "obligations.yaml", "obligations")},
-        "contracts": {_text(item.get("id")) for item in _items(ip / "ontology" / "contracts.yaml", "contracts")},
+        "requirements": {_text(item.get("id")) for item in _items(oag_paths.legacy_or_hidden(ip, "ontology/requirements.yaml"), "requirements")},
+        "obligations": {_text(item.get("id")) for item in _items(oag_paths.legacy_or_hidden(ip, "ontology/obligations.yaml"), "obligations")},
+        "contracts": {_text(item.get("id")) for item in _items(oag_paths.legacy_or_hidden(ip, "ontology/contracts.yaml"), "contracts")},
     }
 
 
@@ -438,7 +439,7 @@ def _record_rocev_links(record: dict[str, Any], available: dict[str, set[str]], 
 
 def _export_records(ip: Path, out: Path, profile: str) -> int:
     entries: list[tuple[str, str, str]] = []
-    records_dir = ip / "knowledge" / "records"
+    records_dir = oag_paths.legacy_or_hidden(ip, "knowledge/records")
     available = _available_rocev_ids(ip)
     for path in sorted(records_dir.glob("IKL_*")) if records_dir.is_dir() else []:
         if path.suffix not in {".json", ".yaml", ".yml"}:
@@ -505,7 +506,7 @@ def _export_records(ip: Path, out: Path, profile: str) -> int:
 
 def _export_validations(ip: Path, out: Path, profile: str) -> int:
     entries: list[tuple[str, str, str]] = []
-    validations_dir = ip / "ontology" / "validations"
+    validations_dir = oag_paths.legacy_or_hidden(ip, "ontology/validations")
     for path in sorted(validations_dir.glob("*.json")) if validations_dir.is_dir() else []:
         data = _read_json(path)
         validation_id = _text(data.get("id") or path.stem)
@@ -557,7 +558,7 @@ def _export_validations(ip: Path, out: Path, profile: str) -> int:
 
 
 def _export_design_modules(ip: Path, out: Path, profile: str) -> int:
-    facts = _read_json(ip / "ontology" / "generated" / "design_facts_graph.json")
+    facts = _read_json(oag_paths.legacy_or_hidden(ip, "ontology/generated/design_facts_graph.json"))
     modules = facts.get("modules") if isinstance(facts, dict) else []
     if not isinstance(modules, list):
         modules = []

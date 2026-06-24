@@ -17,7 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import oag_cli
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import oag_cli  # noqa: E402
+import oag_paths  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -175,7 +179,8 @@ def _validator_report_gate(ip: Path) -> dict[str, Any]:
 
 def _stage_receipt_gate(ip: Path) -> dict[str, Any]:
     issues = oag_cli._stage_receipt_issues(ip, require_any=True)
-    receipts = sorted((ip / "ontology" / "evidence" / "stage_runs").glob("*.json")) if (ip / "ontology" / "evidence" / "stage_runs").is_dir() else []
+    stage_runs_dir = oag_paths.legacy_or_hidden(ip, "ontology/evidence/stage_runs")
+    receipts = sorted(stage_runs_dir.glob("*.json")) if stage_runs_dir.is_dir() else []
     return _gate(
         "stage_run_receipts",
         not issues,

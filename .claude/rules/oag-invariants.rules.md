@@ -21,7 +21,9 @@ Detailed reasoning lives under `.claude/oag/*.md`.
 12. RTL implementation agents may not modify ontology/spec truth unless an
     explicit human-approved decision receipt permits it.
 13. Default RTL uses Verilog-2001 plus `logic` and static `generate`
-    constructs; procedural loops outside generate are forbidden by default.
+    constructs; `function`, `task`, `always_ff`, `always_comb`,
+    `always_latch`, and procedural loops outside generate are forbidden by
+    default.
 14. PPA optimization must preserve locked behavior; it cannot justify protocol,
     timing, reset, priority, or address-map drift.
 15. Nontrivial RTL handoffs must record PPA intent or PPA notes covering

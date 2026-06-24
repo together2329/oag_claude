@@ -21,6 +21,9 @@ Primary assets:
 - `oag/decision-matrix-policy.md`
 - `oag/authoring-packet-policy.md`
 - `oag/traceability-policy.md`
+- `oag/data-lifecycle-policy.md`
+- `oag/baseline-git-policy.md`
+- `oag/ip-versioning-policy.md`
 - `oag/wavefront-policy.md`
 - `oag/wavefront-task-graph.md`
 - `oag/contract-projection.md`
@@ -51,6 +54,7 @@ Primary assets:
 - `rules/oag-rtl-ppa.rules.md`
 - `rules/oag-cdc-rdc.rules.md`
 - `rules/oag-tb-methodology.rules.md`
+- `rules/oag-ip-versioning.rules.md`
 - `skills/oag-ip-workflow/SKILL.md`
 - `skills/oag-deep-semantic-intake/SKILL.md`
 - `skills/oag-decision-matrix/SKILL.md`
@@ -58,6 +62,7 @@ Primary assets:
 - `skills/oag-authoring-packet/SKILL.md`
 - `skills/oag-evidence-closure/SKILL.md`
 - `skills/oag-wavefront/SKILL.md`
+- `skills/oag-ip-versioning/SKILL.md`
 - `rules/oag-rocev.rules.md`
 - `agents/oag-*.md`
 - `oag/agent-catalog.toml`
@@ -92,6 +97,12 @@ Primary assets:
 - `scripts/oag_lock_readiness_check.py`
 - `scripts/oag_contract_strength_check.py`
 - `scripts/oag_authoring_packet_check.py`
+- `scripts/oag_lifecycle_check.py`
+- `scripts/oag_baseline_check.py`
+- `scripts/oag_baseline_cut.py`
+- `scripts/oag_baseline_verify.py`
+- `scripts/oag_ip_version_check.py`
+- `scripts/oag_stale_check.py`
 - `scripts/oag_trace_graph_check.py`
 - `scripts/oag_wavefront.py`
 - `scripts/oag_deep_semantic_intake.py`
@@ -123,7 +134,14 @@ DUT boundary ownership, `oag/decision-matrix-policy.md` defines unresolved,
 proposed, decided, waived, and blocked product decisions before lock-ready
 implementation, `oag/authoring-packet-policy.md` defines role-specific
 `rtl__*.json` and `tb__*.json` packets, `oag/traceability-policy.md` defines
-source-to-contract-to-evidence ID governance, `oag/contract-projection.md`
+source-to-contract-to-evidence ID governance, `oag/data-lifecycle-policy.md`
+defines processing stage, approval state, validity state, and consumer
+firewall rules for deciding whether artifacts may feed RTL/TB/evidence
+packets, `oag/baseline-git-policy.md` defines how git commits, annotated tags,
+baseline manifests, and external artifacts form auditable baseline trust
+boundaries, `oag/ip-versioning-policy.md` defines IP-local `.git`, functional
+semantic version bumps, golden baseline lineage, and patch/minor/major
+eligibility, `oag/contract-projection.md`
 defines ROCEV projection,
 `oag/rtl-implementation.md` defines how generated RTL implements locked
 contract truth without inventing semantics, `oag/rtl-dialect-policy.md` defines
@@ -163,6 +181,8 @@ ambiguity, `oag-decision-matrix` for lock-blocking decisions,
 projection, `oag-authoring-packet` for role-specific `rtl__*.json` and
 `tb__*.json` packet handoff, `oag-wavefront` for dependency-aware parallel
 dispatch planning, ownership locks, barriers, and failure-triage fan-out, and
+`oag-ip-versioning` for IP-local functional semantic version, golden baseline,
+manifest/tag readiness, and patch/minor/major stewardship, and
 `oag-evidence-closure` for trace, scoreboard, coverage, validation, and gate
 readiness.
 `oag_claude_config_doctor.py --apply` removes known OAG MCP server registrations
@@ -173,8 +193,11 @@ execution.
 Use `.claude/scripts/oag_protected_receipt_audit.py` to audit protected
 post-lock IP artifacts in ignored/untracked product directories against
 dispatch-backed native subagent receipts.
-Use `.claude/scripts/oag_ppa_check.py <rtl-file> --json` as the lightweight
-PPA/dialect screen for generated RTL changes when RTL files are available.
+Use `.claude/scripts/oag_ppa_check.py --ip-dir <ip> --json` as the lightweight
+PPA/dialect screen for generated RTL changes when RTL files are available. It
+scans the RTL filelist and `rtl/` sources; the default RTL subset forbids
+`function`, `task`, `always_ff`, `always_comb`, `always_latch`, and procedural
+loops outside generate.
 Use `.claude/scripts/oag_pyslang_lint.py --ip-dir <ip> --json` as the optional
 pyslang syntax lint backend for `lint/dut_lint.json`. It complements Verilator
 lint and design-facts extraction; it does not prove behavior.
@@ -202,10 +225,35 @@ Use `.claude/scripts/oag_verification_plan_check.py --ip-dir <ip> --json` as the
 verification strategy screen for `ontology/verification_plan.yaml`. After lock,
 TB implementation should consume the verification plan rather than define the
 proof strategy it is trying to satisfy.
-Use `.claude/scripts/oag_authoring_packet_check.py --ip-dir <ip> --require-packets --json`
+Use `.claude/scripts/oag_authoring_packet_check.py --ip-dir <ip> --require-packets --require-lifecycle --json`
 before RTL/TB native subagent dispatch to ensure `oag.compile` produced
 role-specific `rtl__*.json` and `tb__*.json` packets with independent truth
-sources.
+sources and approved/current lifecycle inputs.
+Use `.claude/scripts/oag_lifecycle_check.py --ip-dir <ip> --consumer rtl_authoring_packet --json`
+or `--consumer tb_authoring_packet` before handing artifacts to RTL/TB workers.
+Lifecycle checks are fail-closed: draft/candidate/stale artifacts, missing
+approval references, missing derived-from links, or unlisted consumers cannot
+feed role-specific authoring packets.
+Use `.claude/scripts/oag_stale_check.py --ip-dir <ip> --json` after lifecycle
+hashes or upstream truth artifacts change. It follows `derived_from` reverse
+dependencies and blocks approved/current downstream artifacts until they are
+recomputed, revalidated, or marked stale.
+Use `.claude/scripts/oag_baseline_check.py --manifest <ip>/ontology/baselines/<baseline>.yaml --json`
+before committing or tagging an OAG baseline. Baseline manifests must use
+annotated tags resolved by tag, not concrete self commit hashes; every tracked
+artifact must exist and match a raw-bytes sha256/size entry.
+Use `.claude/scripts/oag_baseline_cut.py --ip-dir <ip> --baseline-id <id> --version <semver> ... --json`
+to generate a draft baseline manifest with raw-byte hashes. The helper does not
+create git tags automatically and refuses dirty IP trees unless `--allow-dirty`
+is explicitly used for draft review.
+Use `.claude/scripts/oag_baseline_verify.py --manifest <ip>/ontology/baselines/<baseline>.yaml --verify-git-tag --json`
+after committing a baseline and creating its annotated tag. Verification checks
+the manifest with `oag_baseline_check.py`, confirms the tag is annotated, and
+compares current manifest bytes with the manifest stored in the tag commit.
+Use `.claude/scripts/oag_ip_version_check.py --ip-dir <ip> --require-ip-git --json`
+before promoting or consuming an IP functional baseline. It validates
+`ontology/ip_version.yaml`, requires IP-local `.git` when requested, enforces
+one active version, and blocks patch bumps that mark functional truth changed.
 Use `.claude/scripts/oag_wavefront.py` when RTL/TB/sim work should be
 parallelized. It writes runtime state under `ontology/runs/<run_id>/` and
 `knowledge/wavefront/<run_id>/`; it consumes ontology truth and authoring
@@ -300,9 +348,15 @@ Before spawning a write-capable child, create a dispatch record with
 and receipt path in the spawn prompt. The child receipt must include those
 dispatch fields plus `changed_paths` and `generated_side_effects`. The
 `SubagentStop` hook calls `python3 .claude/scripts/oag_dispatch.py verify` and
-blocks receipts that fail schema validation, dispatch matching, or path scope
-checks. Use `python3 .claude/scripts/oag_validate_json.py` for direct schema
-validation when debugging records.
+blocks receipts that fail schema validation, dispatch matching, or child-owned
+path scope checks. In parallel waves, `ACTUAL_PATH_OUT_OF_SCOPE` can reflect
+other workers' legitimate post-dispatch changes under the same IP. Subagents
+must not mutate dispatch baselines, widen ownership, or absorb unrelated paths
+to force a pass. They should record `BLOCKED`, `INCONCLUSIVE`, or `FAIL` with
+the external delta blocker; parent orchestration handles routing or
+reconciliation. Successful handoff statuses still require verifier pass. Use
+`python3 .claude/scripts/oag_validate_json.py` for direct schema validation when
+debugging records.
 After user lock, main agent orchestrates; subagents implement and verify. The
 main agent must not directly create or substantially edit RTL, TB, sim, lint,
 coverage, formal, SDC, signoff, or implementation filelist artifacts. The Stop
@@ -431,7 +485,8 @@ common rules for same-cycle priority, event/state commit consistency,
 scoreboard evidence schema, contract-to-proof coverage, module file boundary,
 and RTL language subset. It also supports signoff-grade fault-model coverage for
 load-bearing coverage claims. The default subset allows `logic` and Verilog
-`generate`, while procedural `for`/`while` loops outside generate blocks are
+`generate`, while `function`, `task`, `always_ff`, `always_comb`,
+`always_latch`, and procedural `for`/`while` loops outside generate blocks are
 forbidden. Active instances must link to ROCEV objects and proof evidence as
 they mature.
 When a coverage point is load-bearing evidence, connect `coverage_refs` to

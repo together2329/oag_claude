@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_artifact_lifecycle.schema.json",
+  "title": "OAG Artifact Lifecycle Registry",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_artifact_lifecycle.v1"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "path",
+          "granularity",
+          "processing_stage",
+          "approval_state",
+          "validity_state",
+          "allowed_consumers"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "granularity": {
+            "enum": [
+              "file",
+              "object"
+            ]
+          },
+          "processing_stage": {
+            "enum": [
+              "raw_source",
+              "parsed",
+              "canonical",
+              "curated",
+              "serving"
+            ]
+          },
+          "approval_state": {
+            "enum": [
+              "draft",
+              "candidate",
+              "reviewed",
+              "approved"
+            ]
+          },
+          "validity_state": {
+            "enum": [
+              "current",
+              "stale",
+              "unknown",
+              "invalidated"
+            ]
+          },
+          "derived_from": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "approval_ref": {
+            "type": "string"
+          },
+          "allowed_consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "blocked_consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "hash": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "content_sha256": {
+                "type": "string"
+              },
+              "hash_mode": {
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

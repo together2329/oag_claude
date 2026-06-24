@@ -11,7 +11,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]  # .claude/
 PROJECT = ROOT.parent
-INACTIVE_RUN_STATUSES = {"complete", "parked"}
+INACTIVE_RUN_STATUSES = {"complete", "parked", "needs_human"}
 
 STAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "req": ("req", "requirement", "requirements", "interview", "locked truth"),

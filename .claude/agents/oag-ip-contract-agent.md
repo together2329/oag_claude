@@ -2,7 +2,7 @@
 name: oag-ip-contract-agent
 description: Derives per-IP evidence contracts, observables, monitor obligations, and owner routing without static profiles.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

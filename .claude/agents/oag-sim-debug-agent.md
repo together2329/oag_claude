@@ -2,8 +2,8 @@
 name: oag-sim-debug-agent
 description: Debugs failing simulation through scoreboard rows, logs, VCD/FST waves, and owner routing.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: simulation debug agent.

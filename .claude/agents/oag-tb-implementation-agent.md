@@ -2,7 +2,7 @@
 name: oag-tb-implementation-agent
 description: Builds TB, scenarios, monitors, scoreboards, and coverage evidence independent of TB framework choice.
 tools: Read, Glob, Grep, Bash, Edit, Write
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

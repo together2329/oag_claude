@@ -11,15 +11,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
-import smoke_test
-
-
 SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import oag_paths  # noqa: E402
+import smoke_test  # noqa: E402
+
+
 DEFAULT_SUITE = SCRIPT_DIR.parent / "evals" / "oag_control_cases.json"
 
 
@@ -84,7 +89,7 @@ def _compile_fresh_skip_case(case: dict[str, Any], root: Path) -> dict[str, Any]
     ip = smoke_test.make_ip(root / str(case["id"]))
     first = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
     second = smoke_test.call({"tool": "oag.compile", "arguments": {"ip_dir": str(ip)}})
-    manifest = ip / "ontology" / "generated" / "compile_manifest.json"
+    manifest = oag_paths.legacy_or_hidden(ip, "ontology/generated/compile_manifest.json")
     return {
         "ip": str(ip),
         "first_status": first["result"].get("status"),

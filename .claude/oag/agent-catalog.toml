@@ -80,6 +80,21 @@ forbidden_actions = ["implement RTL/TB", "define strategy by copying easy TB cas
 handoff_targets = ["oag-tb-implementation-agent", "oag-coverage-agent", "oag-mutation-guard-agent", "oag-evidence-validator"]
 
 [[agents]]
+id = "oag-ip-version-steward-agent"
+source_file = ".claude/agents/oag-ip-version-steward-agent.md"
+kind = "core"
+responsibility = "Review IP functional semantic versions, IP-local git readiness, golden baseline lineage, and baseline manifest/tag eligibility."
+may_modify_source = false
+may_write_evidence = true
+allowed_write_paths = ["knowledge/versioning/", "reports/"]
+may_claim_complete = false
+final_decision_authority = false
+requires_oag_context = true
+required_evidence = ["version bump recommendation", "baseline eligibility report", "git/tag readiness notes"]
+forbidden_actions = ["implement RTL/TB", "create golden/release tags without human approval", "claim closure or signoff"]
+handoff_targets = ["oag-evidence-validator", "oag-gate-reviewer"]
+
+[[agents]]
 id = "oag-rtl-implementation-agent"
 source_file = ".claude/agents/oag-rtl-implementation-agent.md"
 kind = "core"

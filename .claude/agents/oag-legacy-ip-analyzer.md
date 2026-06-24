@@ -2,7 +2,7 @@
 name: oag-legacy-ip-analyzer
 description: Analyzes legacy/reference IP, RTL, patterns, tests, and gaps as evidence for OAG-driven implementation.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

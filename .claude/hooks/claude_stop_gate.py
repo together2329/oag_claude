@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]  # .claude/
 PROJECT = ROOT.parent  # project root that holds the IP folders
 CACHE_PATH = Path(os.environ.get("OAG_STOP_GATE_CACHE") or ROOT / ".cache" / "stop_gate.json")
 sys.path.insert(0, str(ROOT / "scripts"))
-INACTIVE_RUN_STATUSES = {"complete", "parked"}
+INACTIVE_RUN_STATUSES = {"complete", "parked", "needs_human"}
 
 import oag_cli  # noqa: E402
 import oag_main_write_gate  # noqa: E402

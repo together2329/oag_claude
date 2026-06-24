@@ -2,8 +2,8 @@
 name: oag-custom-reviewer
 description: Dynamic OAG reviewer shard for one bounded artifact, evidence set, gap, waveform slice, or contract.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: dynamic custom reviewer.

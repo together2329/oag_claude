@@ -2,8 +2,8 @@
 name: oag-mutation-guard-agent
 description: Checks whether tests and scoreboards catch requirement-relevant RTL mutants for OAG evidence depth.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: mutation guard agent.

@@ -19,7 +19,7 @@ PROJECT_ROOT = CODEX_ROOT.parent
 AGENTS_DIR = CODEX_ROOT / "agents"
 CATALOG = CODEX_ROOT / "oag" / "agent-catalog.toml"
 
-EXPECTED_CORE = 14
+EXPECTED_CORE = 15
 EXPECTED_CUSTOM = 3
 
 REQUIRED_AGENT_FIELDS = {
@@ -81,6 +81,7 @@ XHIGH_REASONING_AGENTS = {
     "oag-tb-implementation-agent",
     "oag-evidence-validator",
     "oag-gate-reviewer",
+    "oag-ip-version-steward-agent",
 }
 
 NICKNAME_RE = re.compile(r"^[A-Za-z0-9 _-]+$")

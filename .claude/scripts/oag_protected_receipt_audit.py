@@ -23,6 +23,7 @@ PROJECT_ROOT = Path(os.environ.get("OAG_PROJECT_ROOT") or CODEX_ROOT.parent).exp
 SCHEMAS_DIR = CODEX_ROOT / "schemas"
 
 sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
 from oag_validate_json import validate_document  # pylint: disable=wrong-import-position
 
 
@@ -61,9 +62,16 @@ def schema_issues(schema_name: str, document: Any) -> list[dict[str, str]]:
 def project_rel(path: Path) -> str:
     resolved = path.expanduser().resolve(strict=False)
     try:
-        return resolved.relative_to(PROJECT_ROOT).as_posix()
+        rel = resolved.relative_to(PROJECT_ROOT)
     except ValueError as exc:
         raise ValueError(f"path escapes project root: {path}") from exc
+    # Preserve LOGICAL path identity: the .oag resolver may return targets under
+    # <ip>/.oag/..., but recorded keys (receipt _path, coverage/hash keys, error
+    # paths) must stay in their legacy logical form so cross-layout matching with
+    # receipt/dispatch-recorded relative paths keeps working. On legacy layout no
+    # .oag segment is present, so this is a no-op (byte-identical behavior).
+    parts = tuple(part for part in rel.parts if part != oag_paths.HIDDEN_DIR)
+    return Path(*parts).as_posix() if parts else ""
 
 
 def resolve_ip_dir(raw: str) -> Path:
@@ -133,7 +141,12 @@ def sha256(path: Path) -> str:
 def iter_protected_files(ip_dir: Path) -> list[Path]:
     files: list[Path] = []
     for rel in PROTECTED_REL_DIRS:
-        root = ip_dir / rel
+        # Only the ontology subtree migrates to .oag; all other protected dirs
+        # (rtl/tb/sim/lint/evidence/gate/scoreboard/reports) stay top-level.
+        if rel.parts and rel.parts[0] == "ontology":
+            root = oag_paths.legacy_or_hidden(ip_dir, rel.as_posix())
+        else:
+            root = ip_dir / rel
         if not root.exists():
             continue
         if root.is_file():
@@ -179,7 +192,7 @@ def hash_claims_from_payload(payload: dict[str, Any], ip_dir: Path) -> dict[str,
 
 def stage_receipt_hash_claims(ip_dir: Path, issues: list[dict[str, str]]) -> dict[str, str]:
     claims: dict[str, str] = {}
-    root = ip_dir / "ontology" / "evidence" / "stage_runs"
+    root = oag_paths.legacy_or_hidden(ip_dir, "ontology/evidence/stage_runs")
     if not root.is_dir():
         return claims
     for path in sorted(root.glob("*.json")):
@@ -194,7 +207,7 @@ def stage_receipt_hash_claims(ip_dir: Path, issues: list[dict[str, str]]) -> dic
 
 
 def load_receipts(ip_dir: Path, issues: list[dict[str, str]]) -> list[dict[str, Any]]:
-    receipt_dir = ip_dir / "knowledge" / "subagents"
+    receipt_dir = oag_paths.legacy_or_hidden(ip_dir, "knowledge/subagents")
     receipts: list[dict[str, Any]] = []
     if not receipt_dir.is_dir():
         issues.append(issue("RECEIPT_DIR_MISSING", "missing knowledge/subagents directory", project_rel(receipt_dir)))
@@ -241,7 +254,7 @@ def load_dispatch_for_receipt(receipt: dict[str, Any], ip_dir: Path, issues: lis
 
 
 def audit_dispatch_inventory(ip_dir: Path, receipt_paths: set[str], require_all: bool, issues: list[dict[str, str]], warnings: list[dict[str, str]]) -> None:
-    root = ip_dir / "knowledge" / "dispatches"
+    root = oag_paths.legacy_or_hidden(ip_dir, "knowledge/dispatches")
     if not root.is_dir():
         warnings.append(issue("DISPATCH_DIR_MISSING", "missing knowledge/dispatches directory", project_rel(root), severity="warning"))
         return
@@ -264,8 +277,12 @@ def audit(ip_dir_arg: str, *, strict_hashes: bool, require_all_dispatch_receipts
     issues: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     ip_dir = resolve_ip_dir(ip_dir_arg)
-    protected_files = [project_rel(path) for path in iter_protected_files(ip_dir)]
-    protected_hashes = {path: sha256(PROJECT_ROOT / path) for path in protected_files}
+    # iter_protected_files returns resolved filesystem paths (which may live under
+    # <ip>/.oag/...); key everything by the LOGICAL project_rel form but read the
+    # actual resolved path for hashing so .oag-layout files are found.
+    protected_resolved = iter_protected_files(ip_dir)
+    protected_files = [project_rel(path) for path in protected_resolved]
+    protected_hashes = {project_rel(path): sha256(path) for path in protected_resolved}
     receipts = load_receipts(ip_dir, issues)
     receipt_paths = {str(receipt.get("_path") or "") for receipt in receipts}
     audit_dispatch_inventory(ip_dir, receipt_paths, require_all_dispatch_receipts, issues, warnings)

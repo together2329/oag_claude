@@ -5,8 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
 
 
 CLOSURE_STATUSES = {"closed", "pass", "passed", "validated", "locked", "complete", "done", "signoff"}
@@ -91,7 +96,7 @@ def has_value(value: Any) -> bool:
 
 
 def is_locked(ip_dir: Path) -> bool:
-    scope = read_json(ip_dir / "ontology" / "scope_lock.json")
+    scope = read_json(oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json"))
     return scope.get("state") == "locked"
 
 
@@ -230,7 +235,7 @@ def check_contract(ip_dir: Path, contract: dict[str, Any], index: int, *, hard_g
 
 def check(ip_dir: Path, *, require_locked: bool = False) -> dict[str, Any]:
     hard_gate = require_locked or is_locked(ip_dir)
-    path = ip_dir / "ontology" / "contracts.yaml"
+    path = oag_paths.legacy_or_hidden(ip_dir, "ontology/contracts.yaml")
     doc = read_yaml(path)
     issues: list[dict[str, str]] = []
     if "__load_error__" in doc:

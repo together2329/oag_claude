@@ -13,6 +13,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+import oag_paths  # noqa: E402
 import oag_requirement_atom_check  # noqa: E402
 import oag_req_quality_check  # noqa: E402
 import oag_verification_plan_check  # noqa: E402
@@ -64,7 +65,7 @@ def issue(code: str, message: str, path: str = "") -> dict[str, str]:
 
 
 def is_locked(ip_dir: Path) -> bool:
-    scope = read_json(ip_dir / "ontology" / "scope_lock.json")
+    scope = read_json(oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json"))
     return scope.get("state") == "locked"
 
 
@@ -79,7 +80,7 @@ def has_value(value: Any) -> bool:
 
 
 def check_decisions(ip_dir: Path, *, hard_gate: bool) -> tuple[list[dict[str, str]], dict[str, int], list[str]]:
-    path = ip_dir / "ontology" / "decision_matrix.yaml"
+    path = oag_paths.legacy_or_hidden(ip_dir, "ontology/decision_matrix.yaml")
     doc = read_yaml(path)
     issues: list[dict[str, str]] = []
     blockers: list[str] = []

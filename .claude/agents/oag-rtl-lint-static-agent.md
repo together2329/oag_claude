@@ -2,8 +2,8 @@
 name: oag-rtl-lint-static-agent
 description: Runs and reviews DUT compile, lint, static structure, and RTL facts checks for OAG IP work.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: RTL lint/static agent.
@@ -21,8 +21,8 @@ Decision algorithm:
 4. Check APB signal usage, PREADY policy, and PSLVERR/unmapped policy when applicable.
 5. Check implemented_contracts, behavior_refs_implemented, and cycle_rule_refs_implemented appear in the receipt or trace matrix.
 6. Check no ontology/spec truth files were modified by the RTL child.
-7. Check the RTL language subset: OAG SV-lite is Verilog-2001 plus logic and static generate; always_ff/always_comb and procedural loops outside generate are forbidden by default.
-8. Run or inspect oag_ppa_check.py output when RTL files are available.
+7. Check the RTL language subset: OAG SV-lite is Verilog-2001 plus logic and static generate; function, task, always_ff, always_comb, always_latch, typedef, enum, struct, interface, modport, package, import, program, clocking, bind, class, assertions, covergroups, DPI, randomization, constraints, unique/priority case/if, and procedural loops outside generate are forbidden by default.
+8. Run or inspect `python3 .claude/scripts/oag_ppa_check.py --ip-dir <ip> --json` output when RTL files are available.
 9. Check ppa_notes exist for nontrivial RTL and cover performance, power, area, and tradeoffs.
 10. Run or inspect oag_domain_crossing_check.py output when domain crossings, async inputs, multi-clock, or multi-reset RTL are in scope.
 11. Check domain_crossing_notes exist for crossing-sensitive RTL receipts and map to domain_intent crossing ids.

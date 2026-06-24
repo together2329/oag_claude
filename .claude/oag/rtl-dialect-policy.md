@@ -13,14 +13,26 @@ rtl_policy:
     - logic
     - generate
   disallowed_constructs:
+    - function
+    - task
     - always_ff
     - always_comb
+    - always_latch
     - typedef
     - enum
     - struct
     - interface
+    - modport
     - package
+    - import
+    - program
+    - clocking
+    - bind
     - class
+    - dpi
+    - randomization
+    - constraints
+    - unique_priority
     - assertions
     - covergroups
 ```
@@ -37,13 +49,15 @@ rtl_policy:
 
 ## Disallowed By Default
 
-- `always_ff` and `always_comb`.
-- `typedef`, `enum`, `struct`, `interface`, `package`, `class`.
-- assertions, covergroups, DPI, randomization.
+- `function` and `task`.
+- `always_ff`, `always_comb`, and `always_latch`.
+- `typedef`, `enum`, `struct`, `interface`, `modport`, `package`, `import`,
+  `program`, `clocking`, `bind`, and `class`.
+- assertions, covergroups, DPI, randomization, constraints, and
+  `unique`/`priority` case/if.
 - procedural `for`, `while`, `repeat`, or `forever` loops outside generate.
 - manual clock gating unless a policy explicitly allows it.
 - behavioral delays in synthesizable RTL.
 
 The dialect can be widened by explicit policy, but widening the dialect does
 not weaken behavior, cycle, PPA, or evidence obligations.
-

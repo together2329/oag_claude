@@ -2,8 +2,8 @@
 name: oag-sim-execution-agent
 description: Runs bounded simulation and collects fresh executable evidence for OAG contracts.
 tools: Read, Glob, Grep, Bash, Edit, Write
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: simulation execution agent.

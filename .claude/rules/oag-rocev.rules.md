@@ -73,7 +73,7 @@ During IP work:
   for load-bearing coverage closure, link coverage_refs -> fault_models -> killed mutation_results, or record mutation_not_required with rationale
   for signoff-grade TB architecture, model UVM-style roles without requiring UVM: sequence, driver, monitor, reference_model, scoreboard, coverage, env, and test
   for signoff-grade domain closure, require concrete evidence refs for CDC/RDC, protocol, timing/STA, functional coverage, and reset/X-prop claims; timing/STA must declare target frequency or target clocks, derive SDC from target clocks plus CDC/RDC async groups/exceptions, and use 50% clock-period input/output delays by default; DFT and power are not OAG v1 default gates
-  keep the RTL language subset rule active: OAG SV-lite is Verilog-2001 baseline plus logic and static generate/genvar/generate-for; always_ff/always_comb and procedural for/while/repeat/forever loops outside generate blocks are forbidden by default
+  keep the RTL language subset rule active: OAG SV-lite is Verilog-2001 baseline plus logic and static generate/genvar/generate-for; function/task, always_ff/always_comb/always_latch, typedef/enum/struct, interface/modport/package/import/program/clocking/bind, class, assertions, covergroups, DPI, randomization, constraints, unique/priority case/if, and procedural for/while/repeat/forever loops outside generate blocks are forbidden by default
   use .claude/scripts/oag_ppa_check.py for lightweight generated-RTL PPA/dialect screening when RTL files are available
   model RTL structure through decomposition profiles, not blanket rules:
     small_leaf_single_file for tiny leaf IPs, greenfield_modular for new nontrivial IPs,

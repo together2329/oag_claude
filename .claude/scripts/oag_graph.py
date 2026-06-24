@@ -22,6 +22,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import oag_cli  # noqa: E402
+import oag_paths  # noqa: E402
 
 try:
     import yaml  # type: ignore
@@ -155,7 +156,7 @@ def _read_record(path: Path) -> dict[str, Any] | None:
 
 
 def load_records(ip_dir: Path) -> list[dict[str, Any]]:
-    records_dir = ip_dir / "knowledge" / "records"
+    records_dir = oag_paths.legacy_or_hidden(ip_dir, "knowledge/records")
     records: list[dict[str, Any]] = []
     if records_dir.is_dir():
         for path in sorted([*records_dir.glob("*.json"), *records_dir.glob("*.yaml"), *records_dir.glob("*.yml")]):
@@ -164,7 +165,7 @@ def load_records(ip_dir: Path) -> list[dict[str, Any]]:
                 records.append(record)
     if records:
         return records
-    index_path = ip_dir / "knowledge" / "_index.json"
+    index_path = oag_paths.legacy_or_hidden(ip_dir, "knowledge/_index.json")
     if index_path.is_file():
         try:
             index = json.loads(index_path.read_text(encoding="utf-8"))
@@ -274,7 +275,7 @@ def _yaml_id_items(path: Path, key: str) -> list[dict[str, Any]]:
 
 
 def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
-    policies = _read_yaml(ip_dir / "ontology" / "policies.yaml")
+    policies = _read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/policies.yaml"))
     profile = str(policies.get("closure_profile") or "")
     if profile:
         policy_id = graph.add_node(
@@ -282,12 +283,12 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="policy",
             label=profile,
             status="active",
-            data={"path": str(ip_dir / "ontology" / "policies.yaml"), "closure_profile": profile},
+            data={"path": "ontology/policies.yaml", "closure_profile": profile},
         )
         graph.add_edge(ip_id, policy_id, label="uses_policy")
 
     structure_policy = policies.get("structure_policy") if isinstance(policies.get("structure_policy"), dict) else {}
-    decomposition = _read_yaml(ip_dir / "ontology" / "decomposition.yaml")
+    decomposition = _read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/decomposition.yaml"))
     profile_doc = decomposition.get("profile") if isinstance(decomposition.get("profile"), dict) else {}
     structure_profile = str(profile_doc.get("mode") or structure_policy.get("default_profile") or "")
     if structure_profile:
@@ -296,11 +297,11 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="policy",
             label=structure_profile,
             status="active",
-            data={"path": str(ip_dir / "ontology" / "decomposition.yaml"), "profile": profile_doc, "structure_policy": structure_policy},
+            data={"path": "ontology/decomposition.yaml", "profile": profile_doc, "structure_policy": structure_policy},
         )
         graph.add_edge(ip_id, policy_id, label="uses_structure_profile")
 
-    structure = _read_yaml(ip_dir / "ontology" / "structure.yaml")
+    structure = _read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/structure.yaml"))
     structure_ids: set[str] = set()
     if structure:
         structure_id = graph.add_node(
@@ -308,7 +309,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="structure",
             label="structure namespace",
             status="declared",
-            data={"path": str(ip_dir / "ontology" / "structure.yaml"), **structure},
+            data={"path": "ontology/structure.yaml", **structure},
         )
         graph.add_edge(ip_id, structure_id, label="has_structure")
         for key in ("signals", "interfaces", "registers", "state", "derived_signals", "clock_domains", "reset_domains"):
@@ -327,7 +328,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                     type="structure_ref",
                     label=sid,
                     status=key,
-                    data={"path": str(ip_dir / "ontology" / "structure.yaml"), "section": key, **data},
+                    data={"path": "ontology/structure.yaml", "section": key, **data},
                 )
                 graph.add_edge(structure_id, ref_id, label="declares")
 
@@ -343,7 +344,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 type="module",
                 label=mid,
                 status=str(module.get("ownership") or "current_ip"),
-                data={"path": str(ip_dir / "ontology" / "decomposition.yaml"), **module},
+                data={"path": "ontology/decomposition.yaml", **module},
             )
             graph.add_edge(ip_id, module_id, label="has_module")
             for oid in _as_list(module.get("owned_obligations") or module.get("obligations")):
@@ -356,7 +357,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 if str(sid).strip():
                     graph.add_edge(module_id, _safe_id("structure_ref", sid), label="references_structure")
 
-    design_spec = ip_dir / "ontology" / "generated" / "design_spec.json"
+    design_spec = oag_paths.legacy_or_hidden(ip_dir, "ontology/generated/design_spec.json")
     if design_spec.is_file():
         data = _read_record(design_spec) or {}
         artifact_id = graph.add_node(
@@ -364,11 +365,12 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="artifact",
             label="generated design spec",
             status=str(data.get("status") or "present"),
-            data={"path": str(design_spec), "structure_profile": data.get("structure_profile"), "issues": data.get("issues") or []},
+            data={"path": "ontology/generated/design_spec.json", "structure_profile": data.get("structure_profile"), "issues": data.get("issues") or []},
         )
         graph.add_edge(ip_id, artifact_id, label="has_artifact")
 
-    design_facts = ip_dir / "ontology" / "generated" / "design_facts_graph.json"
+    design_facts = oag_paths.legacy_or_hidden(ip_dir, "ontology/generated/design_facts_graph.json")
+    design_facts_rel = "ontology/generated/design_facts_graph.json"
     if design_facts.is_file():
         data = _read_record(design_facts) or {}
         artifact_id = graph.add_node(
@@ -376,7 +378,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="artifact",
             label="design facts graph",
             status=str(data.get("status") or "present"),
-            data={"path": str(design_facts), "stats": data.get("stats") or {}, "extractor": data.get("extractor") or {}, "issues": data.get("issues") or []},
+            data={"path": design_facts_rel, "stats": data.get("stats") or {}, "extractor": data.get("extractor") or {}, "issues": data.get("issues") or []},
         )
         graph.add_edge(ip_id, artifact_id, label="has_artifact")
         for module in _as_list(data.get("modules")):
@@ -390,7 +392,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 type="design_fact_module",
                 label=name,
                 status="extracted",
-                data={"source": module.get("source") or {}, "path": str(design_facts)},
+                data={"source": module.get("source") or {}, "path": design_facts_rel},
             )
             graph.add_edge(artifact_id, fact_module_id, label="contains_fact")
             graph.add_edge(fact_module_id, _safe_id("module", name), label="implements_module")
@@ -437,7 +439,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                     if str(inst.get("module") or "").strip():
                         graph.add_edge(iid, _safe_id("design_fact_module", inst.get("module")), label="instantiates")
 
-    packets = ip_dir / "ontology" / "generated" / "authoring_packets"
+    packets = oag_paths.legacy_or_hidden(ip_dir, "ontology/generated/authoring_packets")
     if packets.is_dir():
         for path in sorted(packets.glob("*.json")):
             data = _read_record(path) or {}
@@ -448,13 +450,13 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 type="authoring_packet",
                 label=label,
                 status="editable" if (data.get("execution_policy") or {}).get("draft_allowed") else "locked",
-                data={"path": str(path), **{k: v for k, v in data.items() if k != "_path"}},
+                data={"path": f"ontology/generated/authoring_packets/{path.name}", **{k: v for k, v in data.items() if k != "_path"}},
             )
             graph.add_edge(ip_id, packet_id, label="has_authoring_packet")
             if label:
                 graph.add_edge(_safe_id("module", label), packet_id, label="authored_by_packet")
 
-    protection = _read_yaml(ip_dir / "ontology" / "protection.yaml")
+    protection = _read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/protection.yaml"))
     if protection:
         protected_paths = protection.get("protected_paths") if isinstance(protection.get("protected_paths"), list) else []
         protection_id = graph.add_node(
@@ -462,11 +464,11 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="protection",
             label="protected fields",
             status="declared",
-            data={"path": str(ip_dir / "ontology" / "protection.yaml"), "protected_paths": protected_paths, "protected_fields": protection.get("protected_fields") or []},
+            data={"path": "ontology/protection.yaml", "protected_paths": protected_paths, "protected_fields": protection.get("protected_fields") or []},
         )
         graph.add_edge(ip_id, protection_id, label="uses_protection")
 
-    ledger_path = ip_dir / "knowledge" / "ledger.jsonl"
+    ledger_path = oag_paths.legacy_or_hidden(ip_dir, "knowledge/ledger.jsonl")
     if ledger_path.is_file():
         event_count = sum(1 for line in ledger_path.read_text(encoding="utf-8", errors="ignore").splitlines() if line.strip())
         ledger_id = graph.add_node(
@@ -474,17 +476,17 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="ledger",
             label="append-only ledger",
             status="present",
-            data={"path": str(ledger_path), "events": event_count},
+            data={"path": "knowledge/ledger.jsonl", "events": event_count},
         )
         graph.add_edge(ip_id, ledger_id, label="has_ledger")
 
-    runs = ip_dir / "ontology" / "runs"
+    runs = oag_paths.legacy_or_hidden(ip_dir, "ontology/runs")
     active_run = _read_record(runs / "active_run.json") if runs.is_dir() else None
     active_run_id = str((active_run or {}).get("run_id") or "")
     if runs.is_dir():
-        for state_path in sorted(runs.glob("*/run_state.json")):
-            data = _read_record(state_path) or {}
-            run_id = str(data.get("run_id") or state_path.parent.name)
+        for run_state_path in sorted(runs.glob("*/run_state.json")):
+            data = _read_record(run_state_path) or {}
+            run_id = str(data.get("run_id") or run_state_path.parent.name)
             status = str(data.get("status") or "unknown")
             run_node = graph.add_node(
                 _safe_id("run", run_id),
@@ -492,7 +494,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 label=run_id,
                 status=status,
                 data={
-                    "path": str(state_path),
+                    "path": f"ontology/runs/{run_state_path.parent.name}/run_state.json",
                     "active": run_id == active_run_id,
                     **{k: v for k, v in data.items() if k != "_path"},
                 },
@@ -513,7 +515,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             if receipt.get("id"):
                 graph.add_edge(run_node, _safe_id("decision", receipt.get("id")), label="checkpointed_by")
 
-    compiled = ip_dir / "ontology" / "generated" / "design_truth_graph.json"
+    compiled = oag_paths.legacy_or_hidden(ip_dir, "ontology/generated/design_truth_graph.json")
     if compiled.is_file():
         data = _read_record(compiled) or {}
         artifact_id = graph.add_node(
@@ -521,11 +523,11 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="artifact",
             label="design truth graph",
             status=str(data.get("status") or "present"),
-            data={"path": str(compiled), "stats": data.get("stats") or {}, "issues": data.get("issues") or []},
+            data={"path": "ontology/generated/design_truth_graph.json", "stats": data.get("stats") or {}, "issues": data.get("issues") or []},
         )
         graph.add_edge(ip_id, artifact_id, label="has_artifact")
 
-    for stage in _yaml_id_items(ip_dir / "ontology" / "stages.yaml", "stages"):
+    for stage in _yaml_id_items(oag_paths.legacy_or_hidden(ip_dir, "ontology/stages.yaml"), "stages"):
         sid = str(stage.get("id") or "")
         if not sid:
             continue
@@ -542,7 +544,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             gate_id = graph.add_node(_safe_id("gate", gate), type="gate", label=gate, status="declared", data={"source": "ontology/stages.yaml"})
             graph.add_edge(stage_id, gate_id, label="gated_by")
 
-    for gate in _yaml_id_items(ip_dir / "ontology" / "gates" / "gate_self_test_registry.yaml", "gates"):
+    for gate in _yaml_id_items(oag_paths.legacy_or_hidden(ip_dir, "ontology/gates/gate_self_test_registry.yaml"), "gates"):
         gid = str(gate.get("id") or "")
         if not gid:
             continue
@@ -555,7 +557,8 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
         )
         graph.add_edge(ip_id, gate_id, label="has_gate")
 
-    rules = _yaml_id_items(ip_dir / "ontology" / "design_rules.yaml", "rules")
+    design_rules_path = oag_paths.legacy_or_hidden(ip_dir, "ontology/design_rules.yaml")
+    rules = _yaml_id_items(design_rules_path, "rules")
     rule_by_id = {str(rule.get("id") or ""): rule for rule in rules if rule.get("id")}
     for rule in rules:
         rid = str(rule.get("id") or "")
@@ -566,11 +569,11 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="rule",
             label=rid,
             status=str(rule.get("status") or "active"),
-            data={"path": str(ip_dir / "ontology" / "design_rules.yaml"), **rule},
+            data={"path": "ontology/design_rules.yaml", **rule},
         )
         graph.add_edge(ip_id, rule_id, label="uses_rule")
 
-    for instance in _yaml_id_items(ip_dir / "ontology" / "design_rules.yaml", "instances"):
+    for instance in _yaml_id_items(design_rules_path, "instances"):
         iid = str(instance.get("id") or "")
         if not iid:
             continue
@@ -579,14 +582,14 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
             type="rule_instance",
             label=iid,
             status=str(instance.get("status") or "open"),
-            data={"path": str(ip_dir / "ontology" / "design_rules.yaml"), **instance},
+            data={"path": "ontology/design_rules.yaml", **instance},
         )
         graph.add_edge(ip_id, inst_id, label="has_rule_instance")
         rid = str(instance.get("rule") or instance.get("rule_id") or "")
         if rid and rid in rule_by_id:
             graph.add_edge(_safe_id("rule", rid), inst_id, label="instantiated_by")
 
-    drafts = ip_dir / "ontology" / "drafts"
+    drafts = oag_paths.legacy_or_hidden(ip_dir, "ontology/drafts")
     if drafts.is_dir():
         for path in sorted(drafts.glob("*.json")):
             data = _read_record(path) or {}
@@ -595,11 +598,11 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 type="draft",
                 label=str(data.get("title") or path.stem),
                 status=str(data.get("promotion_state") or "draft"),
-                data={"path": str(path), **{k: v for k, v in data.items() if k != "_path"}},
+                data={"path": f"ontology/drafts/{path.name}", **{k: v for k, v in data.items() if k != "_path"}},
             )
             graph.add_edge(ip_id, draft_id, label="has_draft")
 
-    receipts = ip_dir / "ontology" / "evidence" / "stage_runs"
+    receipts = oag_paths.legacy_or_hidden(ip_dir, "ontology/evidence/stage_runs")
     if receipts.is_dir():
         for path in sorted(receipts.glob("*.json")):
             data = _read_record(path) or {}
@@ -608,11 +611,11 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 type="receipt",
                 label=path.stem,
                 status=str(data.get("status") or "present"),
-                data={"path": str(path), **{k: v for k, v in data.items() if k != "_path"}},
+                data={"path": f"ontology/evidence/stage_runs/{path.name}", **{k: v for k, v in data.items() if k != "_path"}},
             )
             graph.add_edge(ip_id, rid, label="has_receipt")
 
-    decisions = ip_dir / "ontology" / "validations"
+    decisions = oag_paths.legacy_or_hidden(ip_dir, "ontology/validations")
     if decisions.is_dir():
         for path in sorted(decisions.glob("*.json")):
             data = _read_record(path) or {}
@@ -621,7 +624,7 @@ def _add_ontology_control_nodes(graph: Graph, ip_id: str, ip_dir: Path) -> None:
                 type="decision",
                 label=str(data.get("action") or data.get("id") or path.stem),
                 status="allowed" if data.get("allowed") is True else str(data.get("reason") or "blocked"),
-                data={"path": str(path), **{k: v for k, v in data.items() if k != "_path"}},
+                data={"path": f"ontology/validations/{path.name}", **{k: v for k, v in data.items() if k != "_path"}},
             )
             graph.add_edge(ip_id, did, label="has_decision")
 

@@ -2,8 +2,8 @@
 name: oag-custom-researcher
 description: Dynamic OAG research shard for one bounded spec, reference, RTL, log, or evidence discovery task.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
-effort: medium
+model: opus
+effort: xhigh
 ---
 
 Role: dynamic custom researcher.

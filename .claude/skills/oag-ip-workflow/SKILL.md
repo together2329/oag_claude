@@ -24,6 +24,8 @@ task enters one of these lanes:
 - `oag-wavefront`: dependency-aware parallel work planning, ownership locks,
   barrier tokens, read-only triage, disjoint write shards, and single
   integration owners.
+- `oag-ip-versioning`: IP-local functional semantic versioning, golden baseline
+  lineage, manifest/tag readiness, and patch/minor/major stewardship.
 - `oag-evidence-closure`: scoreboard, coverage, validation, trace graph,
   freshness, gate, and `claim_complete` readiness.
 
@@ -31,6 +33,15 @@ Do not let this umbrella skill hide ownership. Intake and decisions are draft
 workflow. Contract projection prepares implementation truth. Authoring packets
 feed RTL/TB subagents. Wavefront scheduling opens only safe parallel work
 boundaries. Evidence closure audits proof strength and decision freshness.
+IP versioning governs whether an approved baseline lineage is safe to consume
+or promote; it does not create design truth.
+
+Use the version checker when an IP baseline or golden version is being promoted
+or consumed:
+
+```bash
+python3 .claude/scripts/oag_ip_version_check.py --ip-dir <ip> --require-ip-git --json
+```
 
 ## Start
 
@@ -323,7 +334,7 @@ For implementation splits:
 
 ```text
 multi_agent_v1.spawn_agent({
-  "message": "TASK: act as the OAG PPA-aware RTL implementation agent. DELIVERABLE: the smallest RTL change that implements assigned contracts plus rtl_dialect, changed paths, implemented_contracts, behavior_refs_implemented, cycle_rule_refs_implemented, ppa_notes, checks_run, blockers, and ROCEV links. SCOPE: rtl/<module>.sv only. DISPATCH: include dispatch_id, dispatch_path, allowed write paths, allowed tool side effects, and receipt path from oag_dispatch.py create. VERIFY: compile, run oag_ppa_check.py when applicable, run optional oag_pyslang_lint.py syntax lint when available, or return the exact blocker. Use OAG SV-lite: Verilog-2001 plus logic and static generate by default. Write a non-empty receipt with may_claim_complete=false and end with OAG_EVIDENCE_RECORDED: <relative-path>. Do not claim final completion.",
+  "message": "TASK: act as the OAG PPA-aware RTL implementation agent. DELIVERABLE: the smallest RTL change that implements assigned contracts plus rtl_dialect, changed paths, implemented_contracts, behavior_refs_implemented, cycle_rule_refs_implemented, ppa_notes, checks_run, blockers, and ROCEV links. SCOPE: rtl/<module>.sv only. DISPATCH: include dispatch_id, dispatch_path, allowed write paths, allowed tool side effects, and receipt path from oag_dispatch.py create. VERIFY: compile, run `python3 .claude/scripts/oag_ppa_check.py --ip-dir <ip> --json` when RTL files are available, run optional oag_pyslang_lint.py syntax lint when available, or return the exact blocker. Use OAG SV-lite: Verilog-2001 plus logic and static generate by default; function/task helper constructs are forbidden in RTL. Write a non-empty receipt with may_claim_complete=false and end with OAG_EVIDENCE_RECORDED: <relative-path>. Do not claim final completion.",
   "agent_type": "oag-rtl-implementation-agent",
   "fork_context": false
 })
@@ -673,8 +684,9 @@ in RTL structure; it must preserve locked behavior while considering critical
 paths, unnecessary switching, mux/register/memory growth, and synthesis-friendly
 structure. The default RTL subset is OAG SV-lite: Verilog-2001 baseline plus
 `logic` and static `generate`/`genvar`/`generate for`; `always_ff`,
-`always_comb`, and procedural `for`, `while`, `repeat`, or `forever` loops
-outside generate blocks are forbidden by default. Use
+`always_comb`, `always_latch`, `function`, `task`, and procedural `for`,
+`while`, `repeat`, or `forever` loops outside generate blocks are forbidden by
+default. Use
 `.claude/scripts/oag_ppa_check.py` for lightweight generated-RTL PPA/dialect
 screening when RTL files are available. Use
 `.claude/scripts/oag_domain_crossing_check.py` for lightweight development

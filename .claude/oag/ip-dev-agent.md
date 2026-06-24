@@ -127,8 +127,8 @@ OSVVM, UVVM, or PSS files unless the proof need justifies it.
   coverage, fault-model coverage, verification role decomposition, CDC/RDC
   crossing coverage, and RTL language subset. The default RTL subset is
   Verilog-2001 plus `logic` and static `generate` constructs; `always_ff`,
-  `always_comb`, and procedural loops outside generate are forbidden by
-  default. PPA notes should cover likely timing paths, high-toggle logic/state,
+  `always_comb`, `always_latch`, `function`, `task`, and procedural loops
+  outside generate are forbidden by default. PPA notes should cover likely timing paths, high-toggle logic/state,
   area-risk structures, and tradeoffs for nontrivial RTL. Domain crossing notes
   should cover clock/reset domains, CDC/RDC structures, and open blockers for
   crossing-sensitive RTL.

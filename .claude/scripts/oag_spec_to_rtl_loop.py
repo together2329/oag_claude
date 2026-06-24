@@ -21,7 +21,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import oag_dev_validator
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import oag_dev_validator  # noqa: E402
+import oag_paths  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -66,7 +70,14 @@ def _existing_refs(ip: Path, refs: list[str]) -> list[str]:
     out: list[str] = []
     for ref in refs:
         clean = str(ref or "").strip()
-        if clean and (ip / clean).is_file() and clean not in out:
+        if not clean:
+            continue
+        first = Path(clean).parts[0] if Path(clean).parts else ""
+        if first in ("ontology", "knowledge"):
+            target = oag_paths.legacy_or_hidden(ip, clean)
+        else:
+            target = ip / clean
+        if target.is_file() and clean not in out:
             out.append(clean)
     return out
 
@@ -148,7 +159,7 @@ def _copy_spec(ip: Path, spec: str, spec_rel: str) -> str:
 
 
 def _scaffold_if_needed(ip: Path, *, owner: str) -> dict[str, Any]:
-    if (ip / "ontology" / "ip.yaml").is_file():
+    if oag_paths.legacy_or_hidden(ip, "ontology/ip.yaml").is_file():
         return {"skipped": True, "reason": "ip already scaffolded"}
     return _call_oag("oag.scaffold", {"ip_dir": str(ip), "owner": owner})
 

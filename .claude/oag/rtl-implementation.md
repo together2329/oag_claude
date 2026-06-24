@@ -39,7 +39,8 @@ The RTL agent may choose:
   dialect policy;
 - address decode implementation style;
 - register update code style;
-- helper functions when accepted by the RTL subset;
+- localparams, direct expressions, continuous assignments, and small `always`
+  blocks instead of RTL helper functions/tasks;
 - `case` versus `if` structure;
 - masking implementation;
 - internal file organization within the assigned scope.
@@ -309,10 +310,14 @@ Allowed by default:
 
 Not allowed by default:
 
+- `function` and `task`;
 - `always_ff` and `always_comb`;
+- `always_latch`;
 - procedural `for`, `while`, `repeat`, or `forever` loops outside generate;
-- classes, randomization, interfaces, packages, DPI, assertions inside RTL
-  unless the IP profile and toolchain explicitly approve them;
+- typedefs, enums, structs, interfaces, modports, packages, imports, programs,
+  clocking blocks, bind statements, classes, randomization, constraints, DPI,
+  assertions, covergroups, and unique/priority case/if inside RTL unless the IP
+  profile and toolchain explicitly approve them;
 - behavioral delays in synthesizable RTL;
 - unsized or ambiguous width behavior where a contract width is known.
 

@@ -2,7 +2,7 @@
 name: oag-requirement-contract-agent
 description: Builds requirements, obligations, and structural/behavioral contracts for IP Dev Agent through OAG.
 tools: Read, Glob, Grep, Bash
-model: gpt-5.5
+model: opus
 effort: xhigh
 ---
 

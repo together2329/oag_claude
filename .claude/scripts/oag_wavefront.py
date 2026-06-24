@@ -20,6 +20,7 @@ SCHEMAS_DIR = CODEX_ROOT / "schemas"
 
 sys.path.insert(0, str(SCRIPTS_DIR))
 from oag_validate_json import validate_document  # pylint: disable=wrong-import-position
+import oag_paths  # noqa: E402
 
 
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -85,14 +86,13 @@ def ip_rel_path(raw: str, ip_dir: Path) -> str:
 
 
 def graph_paths(ip_dir: Path, run_id: str) -> dict[str, Path]:
-    run_dir = ip_dir / "ontology" / "runs" / run_id
     return {
-        "run_dir": run_dir,
-        "graph": run_dir / "wavefront_task_graph.json",
-        "locks": run_dir / "ownership_locks.json",
-        "barriers": run_dir / "barriers.json",
-        "claims": run_dir / "claims",
-        "events": ip_dir / "knowledge" / "wavefront" / run_id / "events.jsonl",
+        "run_dir": oag_paths.legacy_or_hidden(ip_dir, f"ontology/runs/{run_id}"),
+        "graph": oag_paths.legacy_or_hidden(ip_dir, f"ontology/runs/{run_id}/wavefront_task_graph.json"),
+        "locks": oag_paths.legacy_or_hidden(ip_dir, f"ontology/runs/{run_id}/ownership_locks.json"),
+        "barriers": oag_paths.legacy_or_hidden(ip_dir, f"ontology/runs/{run_id}/barriers.json"),
+        "claims": oag_paths.legacy_or_hidden(ip_dir, f"ontology/runs/{run_id}/claims"),
+        "events": oag_paths.legacy_or_hidden(ip_dir, f"knowledge/wavefront/{run_id}/events.jsonl"),
     }
 
 

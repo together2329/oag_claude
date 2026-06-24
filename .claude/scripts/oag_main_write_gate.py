@@ -13,6 +13,11 @@ from pathlib import Path
 from typing import Any
 
 
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import oag_paths  # noqa: E402
+
 CODEX_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = Path(os.environ.get("OAG_PROJECT_ROOT") or CODEX_ROOT.parent).expanduser().resolve()
 
@@ -127,7 +132,7 @@ def path_matches(path: str, patterns: tuple[str, ...] | list[str]) -> bool:
 
 def scope_locked(ip_dir: Path) -> bool:
     try:
-        payload = load_json(ip_dir / "ontology" / "scope_lock.json")
+        payload = load_json(oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json"))
     except Exception:
         return False
     return isinstance(payload, dict) and str(payload.get("state") or "").strip().lower() == "locked"
@@ -168,7 +173,7 @@ def implementation_changes(ip_dir: Path) -> list[str]:
 
 
 def human_waiver(ip_dir: Path) -> dict[str, Any] | None:
-    validations = ip_dir / "ontology" / "validations"
+    validations = oag_paths.legacy_or_hidden(ip_dir, "ontology/validations")
     for path in sorted(validations.glob("DEC_*.json"), reverse=True):
         try:
             receipt = load_json(path)
@@ -186,7 +191,7 @@ def human_waiver(ip_dir: Path) -> dict[str, Any] | None:
 def receipt_covered_paths(ip_dir: Path) -> tuple[set[str], list[dict[str, Any]]]:
     covered: set[str] = set()
     receipts: list[dict[str, Any]] = []
-    for path in sorted((ip_dir / "knowledge" / "subagents").glob("*.json")):
+    for path in sorted(oag_paths.legacy_or_hidden(ip_dir, "knowledge/subagents").glob("*.json")):
         try:
             receipt = load_json(path)
         except Exception:

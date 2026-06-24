@@ -6,8 +6,13 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
 
 
 def read_yaml(path: Path) -> dict[str, Any]:
@@ -113,7 +118,7 @@ def domain_intent_issues(intent: dict[str, Any], *, require_domain_intent: bool)
 
 
 def check(ip_dir: Path, rtl_files: list[Path], *, require_domain_intent: bool) -> dict[str, Any]:
-    intent_path = ip_dir / "ontology" / "domain_intent.yaml"
+    intent_path = oag_paths.legacy_or_hidden(ip_dir, "ontology/domain_intent.yaml")
     intent = read_yaml(intent_path)
     issues = domain_intent_issues(intent, require_domain_intent=require_domain_intent)
     inventory = rtl_clock_reset_inventory(rtl_files)

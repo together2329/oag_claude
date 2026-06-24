@@ -5,8 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
 
 
 CODEX_ROOT = Path(__file__).resolve().parents[1]
@@ -62,7 +67,7 @@ def load_profile(profile_id: str) -> dict[str, Any]:
 
 
 def existing_matrix(ip_dir: Path) -> dict[str, Any]:
-    matrix = read_yaml(ip_dir / "ontology" / "decision_matrix.yaml")
+    matrix = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/decision_matrix.yaml"))
     if not matrix or matrix.get("__load_error__"):
         return {"schema_version": "oag_decision_matrix.v1", "ip": ip_dir.name, "decisions": []}
     if not isinstance(matrix.get("decisions"), list):
@@ -106,7 +111,7 @@ def generate(ip_dir: Path, *, profile_id: str, owner: str, write: bool = False) 
         matrix["ip"] = matrix.get("ip") or ip_dir.name
         matrix.setdefault("policy", {"status": "draft", "purpose": "Profile-seeded lock decisions."})
         matrix["decisions"] = [*as_list(matrix.get("decisions")), *added]
-        write_yaml(ip_dir / "ontology" / "decision_matrix.yaml", matrix)
+        write_yaml(oag_paths.ontology_path(ip_dir, "decision_matrix.yaml"), matrix)
     return {
         "schema_version": "oag_decision_matrix_generate.v1",
         "status": "pass",

@@ -92,3 +92,23 @@ rules:
       draft: warn
       post_lock: block
       closure: block
+  - id: RULE-IPVER-001
+    text: Golden or release baseline promotion requires an IP-local git repository and a valid IP version ledger.
+    policy_refs:
+      - oag/ip-versioning-policy.md
+    checker_refs:
+      - scripts/oag_ip_version_check.py
+    severity:
+      draft: warn
+      post_lock: warn
+      closure: block
+  - id: RULE-IPVER-002
+    text: Patch versions must not carry functional design truth changes.
+    policy_refs:
+      - oag/ip-versioning-policy.md
+    checker_refs:
+      - scripts/oag_ip_version_check.py
+    severity:
+      draft: warn
+      post_lock: block
+      closure: block

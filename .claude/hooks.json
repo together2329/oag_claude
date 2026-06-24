@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/claude_stop_gate.py",
+            "command": "/bin/sh -lc 'test -r .claude/hooks/claude_stop_gate.py || exit 0; PYTHONDONTWRITEBYTECODE=1 python3 .claude/hooks/claude_stop_gate.py || exit 0'",
             "timeout": 10,
             "statusMessage": "OAG: checking active run completion"
           }

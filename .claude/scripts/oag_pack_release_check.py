@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import py_compile
-import re
 import sys
 import tempfile
 from pathlib import Path
@@ -58,6 +57,9 @@ REQUIRED_FILES = (
     CODEX_ROOT / "oag" / "decision-matrix-policy.md",
     CODEX_ROOT / "oag" / "authoring-packet-policy.md",
     CODEX_ROOT / "oag" / "traceability-policy.md",
+    CODEX_ROOT / "oag" / "data-lifecycle-policy.md",
+    CODEX_ROOT / "oag" / "baseline-git-policy.md",
+    CODEX_ROOT / "oag" / "ip-versioning-policy.md",
     CODEX_ROOT / "oag" / "wavefront-policy.md",
     CODEX_ROOT / "oag" / "wavefront-task-graph.md",
     CODEX_ROOT / "oag" / "oag-mode-directive.md",
@@ -91,6 +93,7 @@ REQUIRED_FILES = (
     CODEX_ROOT / "rules" / "oag-rtl-ppa.rules.md",
     CODEX_ROOT / "rules" / "oag-tb-methodology.rules.md",
     CODEX_ROOT / "rules" / "oag-wavefront.rules.md",
+    CODEX_ROOT / "rules" / "oag-ip-versioning.rules.md",
     CODEX_ROOT / "rules" / "oag-rocev.rules.md",
     CODEX_ROOT / "skills" / "oag-deep-semantic-intake" / "SKILL.md",
     CODEX_ROOT / "skills" / "oag-decision-matrix" / "SKILL.md",
@@ -98,6 +101,7 @@ REQUIRED_FILES = (
     CODEX_ROOT / "skills" / "oag-authoring-packet" / "SKILL.md",
     CODEX_ROOT / "skills" / "oag-evidence-closure" / "SKILL.md",
     CODEX_ROOT / "skills" / "oag-wavefront" / "SKILL.md",
+    CODEX_ROOT / "skills" / "oag-ip-versioning" / "SKILL.md",
     CODEX_ROOT / "skills" / "oag-ip-workflow" / "SKILL.md",
     SCRIPTS_DIR / "oag_agent_catalog_check.py",
     SCRIPTS_DIR / "oag_claude_config_doctor.py",
@@ -115,6 +119,12 @@ REQUIRED_FILES = (
     SCRIPTS_DIR / "oag_requirement_atom_check.py",
     SCRIPTS_DIR / "oag_contract_strength_check.py",
     SCRIPTS_DIR / "oag_authoring_packet_check.py",
+    SCRIPTS_DIR / "oag_lifecycle_check.py",
+    SCRIPTS_DIR / "oag_baseline_check.py",
+    SCRIPTS_DIR / "oag_baseline_cut.py",
+    SCRIPTS_DIR / "oag_baseline_verify.py",
+    SCRIPTS_DIR / "oag_ip_version_check.py",
+    SCRIPTS_DIR / "oag_stale_check.py",
     SCRIPTS_DIR / "oag_trace_graph_check.py",
     SCRIPTS_DIR / "oag_wavefront.py",
     SCRIPTS_DIR / "oag_deep_semantic_intake.py",
@@ -145,6 +155,9 @@ REQUIRED_FILES = (
     SCHEMAS_DIR / "oag_contract_v2.schema.json",
     SCHEMAS_DIR / "oag_rtl_authoring_packet.schema.json",
     SCHEMAS_DIR / "oag_tb_authoring_packet.schema.json",
+    SCHEMAS_DIR / "oag_artifact_lifecycle.schema.json",
+    SCHEMAS_DIR / "oag_baseline_manifest.schema.json",
+    SCHEMAS_DIR / "oag_ip_version.schema.json",
     SCHEMAS_DIR / "oag_wavefront_task_graph.schema.json",
     SCHEMAS_DIR / "oag_ownership_locks.schema.json",
     SCHEMAS_DIR / "oag_wavefront_event.schema.json",
@@ -172,6 +185,9 @@ JSON_FILES = (
     SCHEMAS_DIR / "oag_contract_v2.schema.json",
     SCHEMAS_DIR / "oag_rtl_authoring_packet.schema.json",
     SCHEMAS_DIR / "oag_tb_authoring_packet.schema.json",
+    SCHEMAS_DIR / "oag_artifact_lifecycle.schema.json",
+    SCHEMAS_DIR / "oag_baseline_manifest.schema.json",
+    SCHEMAS_DIR / "oag_ip_version.schema.json",
     SCHEMAS_DIR / "oag_wavefront_task_graph.schema.json",
     SCHEMAS_DIR / "oag_ownership_locks.schema.json",
     SCHEMAS_DIR / "oag_wavefront_event.schema.json",
@@ -220,13 +236,23 @@ REQUIRED_DOC_SNIPPETS = {
         "decision-matrix-policy.md",
         "authoring-packet-policy.md",
         "traceability-policy.md",
+        "data-lifecycle-policy.md",
+        "baseline-git-policy.md",
+        "ip-versioning-policy.md",
         "wavefront-policy.md",
         "oag_wavefront.py",
+        "oag_ip_version_check.py",
         "oag_requirement_atom_check.py",
         "oag_lock_readiness_check.py",
         "oag_verification_plan_check.py",
         "oag_contract_strength_check.py",
         "oag_authoring_packet_check.py",
+        "oag_lifecycle_check.py",
+        "oag_baseline_check.py",
+        "oag_baseline_cut.py",
+        "oag_baseline_verify.py",
+        "oag_ip_version_check.py",
+        "oag_stale_check.py",
         "oag_trace_graph_check.py",
         "oag_deep_semantic_intake.py",
         "oag_decision_matrix_generate.py",
@@ -235,6 +261,7 @@ REQUIRED_DOC_SNIPPETS = {
         "oag-contract-projection",
         "oag-authoring-packet",
         "oag-wavefront",
+        "oag-ip-versioning",
         "oag-evidence-closure",
         "oag-rule-index.yaml",
         "RULE-LOCK-003",
@@ -287,6 +314,7 @@ REQUIRED_DOC_SNIPPETS = {
         "oag_authoring_packet_check.py",
         "oag_trace_graph_check.py",
         "oag_wavefront.py",
+        "oag_ip_version_check.py",
         "oag_deep_semantic_intake.py",
         "oag_decision_matrix_generate.py",
         "oag-deep-semantic-intake",
@@ -294,6 +322,7 @@ REQUIRED_DOC_SNIPPETS = {
         "oag-contract-projection",
         "oag-authoring-packet",
         "oag-wavefront",
+        "oag-ip-versioning",
         "oag-evidence-closure",
         "oag_lock_readiness_check.py",
         "oag_verification_plan_check.py",
@@ -363,13 +392,16 @@ REQUIRED_DOC_SNIPPETS = {
         "oag_trace_graph_check.py",
         "oag_deep_semantic_intake.py",
         "oag_decision_matrix_generate.py",
+        "oag_ip_version_check.py",
         "oag-deep-semantic-intake",
         "oag-decision-matrix",
         "oag-contract-projection",
         "oag-authoring-packet",
         "oag-wavefront",
+        "oag-ip-versioning",
         "oag-evidence-closure",
         "oag_wavefront.py",
+        "oag_ip_version_check.py",
         "oag_verification_plan_check.py",
         "req/source_claims.yaml",
         "req/ambiguity_register.yaml",
@@ -442,16 +474,6 @@ def check_toml_files(issues: list[dict[str, str]]) -> None:
                 tomllib.load(fh)
         except Exception as exc:
             issues.append(issue("TOML_INVALID", f"Invalid TOML: {exc}", path))
-    for path in sorted((CODEX_ROOT / "agents").glob("*.toml")):
-        try:
-            with path.open("rb") as fh:
-                payload = tomllib.load(fh)
-        except Exception as exc:
-            issues.append(issue("AGENT_TOML_INVALID", f"Invalid agent TOML: {exc}", path))
-            continue
-        for field in ("name", "description", "developer_instructions", "sandbox_mode"):
-            if field not in payload:
-                issues.append(issue("AGENT_TOML_FIELD", f"Agent TOML missing {field}.", path))
 
 
 def check_python_compile(issues: list[dict[str, str]]) -> None:
@@ -586,8 +608,6 @@ def check_docs(issues: list[dict[str, str]]) -> None:
                 issues.append(issue("DOC_SNIPPET_MISSING", f"Document must mention {snippet!r}.", path))
         if "python3 scripts/" in text:
             issues.append(issue("DOC_STALE_SCRIPT_PATH", "Executable examples must use project-root .claude/scripts/... paths.", path))
-        if re.search(r"\.claude/agents/[^\s`\"']+\.toml", text):
-            issues.append(issue("DOC_STALE_AGENT_PATH", "Claude Code subagent docs must refer to .claude/agents/*.md markdown frontmatter files, not TOML agents.", path))
 
 
 def check_forbidden_strings(issues: list[dict[str, str]]) -> None:

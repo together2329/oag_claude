@@ -5,8 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import oag_paths  # noqa: E402
 
 
 VALID_STATUSES = {"draft", "planned", "ready", "blocked", "closed", "waived"}
@@ -90,7 +96,7 @@ def issue(code: str, message: str, path: str = "") -> dict[str, str]:
 
 
 def is_locked(ip_dir: Path) -> bool:
-    scope = read_json(ip_dir / "ontology" / "scope_lock.json")
+    scope = read_json(oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json"))
     return scope.get("state") == "locked"
 
 
@@ -133,8 +139,8 @@ def objective_needs_strong_proof(objective: dict[str, Any]) -> bool:
 def check(ip_dir: Path, *, require_locked: bool = False) -> dict[str, Any]:
     locked = is_locked(ip_dir)
     hard_gate = require_locked or locked
-    path = ip_dir / "ontology" / "verification_plan.yaml"
-    doc = read_yaml(path)
+    path = ip_dir / Path("ontology/verification_plan.yaml")
+    doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/verification_plan.yaml"))
     issues: list[dict[str, str]] = []
 
     if "__load_error__" in doc:
@@ -162,9 +168,9 @@ def check(ip_dir: Path, *, require_locked: bool = False) -> dict[str, Any]:
     if hard_gate and not objectives:
         issues.append(issue("VPLAN_OBJECTIVE_REQUIRED", "Locked or required verification work needs at least one verification objective.", "verification_objectives"))
 
-    requirement_ids = refs_from_yaml(ip_dir / "ontology" / "requirements.yaml", ("requirements",))
-    obligation_ids = refs_from_yaml(ip_dir / "ontology" / "obligations.yaml", ("obligations",))
-    contract_ids = refs_from_yaml(ip_dir / "ontology" / "contracts.yaml", ("contracts",))
+    requirement_ids = refs_from_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/requirements.yaml"), ("requirements",))
+    obligation_ids = refs_from_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/obligations.yaml"), ("obligations",))
+    contract_ids = refs_from_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/contracts.yaml"), ("contracts",))
 
     seen: set[str] = set()
     open_strategy_blockers = str_items(doc.get("open_strategy_blockers"))

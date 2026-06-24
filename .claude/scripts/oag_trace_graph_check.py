@@ -5,8 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+import oag_paths  # noqa: E402
 
 
 def read_yaml(path: Path) -> dict[str, Any]:
@@ -58,7 +63,7 @@ def issue(code: str, message: str, path: str = "") -> dict[str, str]:
 
 
 def is_locked(ip_dir: Path) -> bool:
-    scope = read_json(ip_dir / "ontology" / "scope_lock.json")
+    scope = read_json(oag_paths.legacy_or_hidden(ip_dir, "ontology/scope_lock.json"))
     return isinstance(scope, dict) and scope.get("state") == "locked"
 
 
@@ -67,7 +72,11 @@ def collect_ids(items: list[Any]) -> set[str]:
 
 
 def yaml_items(ip_dir: Path, rel: str, key: str) -> list[dict[str, Any]]:
-    doc = read_yaml(ip_dir / rel)
+    if rel.startswith("ontology/") or rel.startswith("knowledge/"):
+        path = oag_paths.legacy_or_hidden(ip_dir, rel)
+    else:
+        path = ip_dir / rel
+    doc = read_yaml(path)
     if not isinstance(doc, dict):
         return []
     return [item for item in as_list(doc.get(key)) if isinstance(item, dict)]

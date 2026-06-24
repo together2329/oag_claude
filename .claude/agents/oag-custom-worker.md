@@ -2,8 +2,8 @@
 name: oag-custom-worker
 description: Dynamic OAG worker shard for one bounded RTL, TB, script, testcase, or repair task.
 tools: Read, Glob, Grep, Bash, Edit, Write
-model: gpt-5.5
-effort: medium
+model: opus
+effort: xhigh
 ---
 
 Role: dynamic custom worker.

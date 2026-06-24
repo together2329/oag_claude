@@ -16,6 +16,11 @@ Before RTL code:
 During RTL code:
   preserve locked contract behavior
   use OAG SV-lite by default: Verilog-2001 plus logic and static generate
+  do not use function/task helper constructs in RTL by default
+  do not use always_ff/always_comb/always_latch, typedef/enum/struct,
+  interface/modport/package/import/program/clocking/bind, class, assertions,
+  covergroups, DPI, randomization, constraints, unique/priority case/if, or
+  procedural loops outside generate by default
   prefer simple decode for simple peripherals
   use explicit register write enables where applicable
   avoid unnecessary pipelines for simple leaf peripherals
@@ -24,7 +29,7 @@ During RTL code:
   keep reset limited to architecturally required state unless policy requires more
 
 After RTL code:
-  run or assign oag_ppa_check.py for lightweight heuristic review
+  run or assign `python3 .claude/scripts/oag_ppa_check.py --ip-dir <ip> --json` for lightweight heuristic review
   record rtl_dialect in the receipt
   record ppa_notes for nontrivial RTL
   record domain_crossing_notes for crossing-sensitive RTL

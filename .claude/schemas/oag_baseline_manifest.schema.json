@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_baseline_manifest.schema.json",
+  "title": "OAG Baseline Manifest",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "baseline_id",
+    "ip",
+    "baseline",
+    "approval",
+    "git",
+    "tracked_artifacts",
+    "hashes",
+    "gate"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_baseline_manifest.v1"
+    },
+    "baseline_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ip": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "class",
+        "version",
+        "state"
+      ],
+      "properties": {
+        "class": {
+          "enum": [
+            "candidate",
+            "golden",
+            "release",
+            "archived"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "draft",
+            "active",
+            "superseded",
+            "revoked"
+          ]
+        },
+        "supersedes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "state",
+        "approval_ref"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "none",
+            "reviewed",
+            "approved",
+            "rejected"
+          ]
+        },
+        "approval_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "tag",
+        "commit",
+        "tag_type"
+      ],
+      "properties": {
+        "tag": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "tag_type": {
+          "type": "string"
+        }
+      }
+    },
+    "tracked_artifacts": {
+      "type": "object"
+    },
+    "hashes": {
+      "type": "object"
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "gate_ref",
+        "validation_ref",
+        "decision"
+      ],
+      "properties": {
+        "gate_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validation_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked",
+            "waived"
+          ]
+        }
+      }
+    },
+    "external_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "kind",
+          "uri",
+          "sha256",
+          "required_for",
+          "retention"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_for": {
+            "enum": [
+              "audit",
+              "reproduce",
+              "debug_only",
+              "optional"
+            ]
+          },
+          "retention": {
+            "enum": [
+              "required",
+              "time_bound",
+              "optional",
+              "ephemeral"
+            ]
+          },
+          "size_bytes": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

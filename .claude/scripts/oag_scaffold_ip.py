@@ -87,7 +87,21 @@ def yaml_doc(*lines: str) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def scaffold(ip_path: Path, *, force: bool = False, owner: str = "unassigned") -> dict[str, Any]:
+SUPPORTED_LAYOUTS = ("legacy", "dot_oag")
+
+
+def _layout_target(ip_path: Path, rel: str, layout: str) -> Path:
+    """Map an IP-relative path to its on-disk location for the chosen layout.
+    In the dot_oag layout, the ontology/ and knowledge/ subtrees live under
+    <ip>/.oag/; all other (human-facing) subtrees stay at the top level."""
+    if layout == "dot_oag" and rel.split("/", 1)[0] in ("ontology", "knowledge"):
+        return ip_path / ".oag" / rel
+    return ip_path / rel
+
+
+def scaffold(ip_path: Path, *, force: bool = False, owner: str = "unassigned", layout: str = "legacy") -> dict[str, Any]:
+    if layout not in SUPPORTED_LAYOUTS:
+        raise ValueError(f"unsupported layout: {layout}")
     ip_name = slug(ip_path.name)
     if ip_path.name != ip_name and not ip_path.exists():
         ip_path = ip_path.parent / ip_name
@@ -96,7 +110,7 @@ def scaffold(ip_path: Path, *, force: bool = False, owner: str = "unassigned") -
     skipped_files: list[str] = []
 
     for rel in DEFAULT_DIRS:
-        path = ip_path / rel
+        path = _layout_target(ip_path, rel, layout)
         path.mkdir(parents=True, exist_ok=True)
         created_dirs.append(rel)
 
@@ -124,16 +138,16 @@ def scaffold(ip_path: Path, *, force: bool = False, owner: str = "unassigned") -
         "syn/reports/.gitkeep",
         "syn/netlist/.gitkeep",
     ]:
-        touch(ip_path / rel)
+        touch(_layout_target(ip_path, rel, layout))
 
     templates = build_templates(ip_name, owner)
     executable_files = {"scripts/run_lint.sh", "scripts/run_sim.sh"}
     for rel, content in templates.items():
-        changed = write(ip_path / rel, content, force=force, executable=rel in executable_files)
+        changed = write(_layout_target(ip_path, rel, layout), content, force=force, executable=rel in executable_files)
         (written_files if changed else skipped_files).append(rel)
 
     graph = build_seed_graph(ip_name)
-    changed = write(ip_path / "ontology" / "graph.json", json_text(graph), force=force)
+    changed = write(_layout_target(ip_path, "ontology/graph.json", layout), json_text(graph), force=force)
     (written_files if changed else skipped_files).append("ontology/graph.json")
 
     index = {
@@ -143,7 +157,7 @@ def scaffold(ip_path: Path, *, force: bool = False, owner: str = "unassigned") -
         "record_count": 0,
         "records": [],
     }
-    changed = write(ip_path / "knowledge" / "_index.json", json_text(index), force=force)
+    changed = write(_layout_target(ip_path, "knowledge/_index.json", layout), json_text(index), force=force)
     (written_files if changed else skipped_files).append("knowledge/_index.json")
 
     manifest = {
@@ -151,6 +165,7 @@ def scaffold(ip_path: Path, *, force: bool = False, owner: str = "unassigned") -
         "generated_at": now(),
         "ip": ip_name,
         "path": str(ip_path),
+        "layout": layout,
         "directories": created_dirs,
         "written_files": written_files,
         "skipped_files": skipped_files,
@@ -759,10 +774,10 @@ def build_templates(ip: str, owner: str) -> dict[str, str]:
             "    kind: rtl_language_subset",
             "    status: active",
             "    severity: block",
-            "    text: Generated RTL may use logic and Verilog generate for static elaboration; procedural loops remain forbidden outside generate blocks.",
+            "    text: Generated RTL may use logic and Verilog generate for static elaboration; function/task helper constructs, SV process sugar, type system constructs, assertions, covergroups, and procedural loops remain forbidden by default.",
             "    applies_when: RTL is authored, generated, repaired, linted, or promoted",
             "    allowed_constructs: [logic, generate, genvar, generate_for]",
-            "    forbidden_constructs: [procedural_for, procedural_while, procedural_repeat, procedural_forever, always_ff, always_comb, always_latch, package, import, interface, modport, typedef, enum, struct, class, assertions, covergroups]",
+            "    forbidden_constructs: [procedural_for, procedural_while, procedural_repeat, procedural_forever, function, task, always_ff, always_comb, always_latch, package, import, interface, modport, typedef, enum, struct, class, program, clocking, bind, dpi, randomization, constraints, unique_priority, assertions, covergroups]",
             "    requires: [rtl_compile_report, language_policy]",
             "instances:",
             "  - id: TEMPLATE_EVENT_STATE_COMMIT",
@@ -954,7 +969,7 @@ def build_templates(ip: str, owner: str) -> dict[str, str]:
             "  dialect: oag_sv_lite_v1",
             "  base: verilog_2001",
             "  allowed_extensions: [logic, generate]",
-            "  disallowed_constructs: [always_ff, always_comb, typedef, enum, struct, interface, package, class, assertions, covergroups]",
+            "  disallowed_constructs: [function, task, always_ff, always_comb, always_latch, typedef, enum, struct, interface, modport, package, import, program, clocking, bind, class, dpi, randomization, constraints, unique_priority, assertions, covergroups]",
             "ppa_policy:",
             "  mode: ppa_aware_correctness_first",
             "  require_ppa_notes_for_nontrivial_rtl: true",
@@ -1478,7 +1493,12 @@ def build_seed_graph(ip: str) -> dict[str, Any]:
 
 
 def cmd_create(args: argparse.Namespace) -> int:
-    manifest = scaffold(Path(args.ip_dir), force=args.force, owner=args.owner)
+    manifest = scaffold(
+        Path(args.ip_dir),
+        force=args.force,
+        owner=args.owner,
+        layout="dot_oag" if args.dot_oag else "legacy",
+    )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
     return 0
 
@@ -1490,6 +1510,7 @@ def build_parser() -> argparse.ArgumentParser:
     create.add_argument("ip_dir")
     create.add_argument("--owner", default="unassigned")
     create.add_argument("--force", action="store_true")
+    create.add_argument("--dot-oag", action="store_true", help="create ontology/ and knowledge/ under <ip>/.oag/")
     create.set_defaults(func=cmd_create)
     return parser
 

@@ -2,8 +2,8 @@
 name: oag-ontology-curator-agent
 description: Maintains IP Dev Agent ontology vocabulary, schemas, protected concepts, and ROCEV consistency.
 tools: Read, Glob, Grep, Bash, Edit, Write
-model: gpt-5.5
-effort: high
+model: opus
+effort: xhigh
 ---
 
 Role: ontology curator for IP Dev Agent.

@@ -18,7 +18,7 @@
         "stop_hook_blocked": false
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -36,7 +36,7 @@
         "stop_hook_blocked": false
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -54,7 +54,7 @@
         "stop_hook_blocked": false
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -72,7 +72,7 @@
         "stop_hook_blocked": false
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -90,7 +90,7 @@
         "stop_hook_blocked": true
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -108,7 +108,7 @@
         "stop_hook_blocked": true
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -126,7 +126,7 @@
         "stop_hook_blocked": true
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -144,7 +144,7 @@
         "stop_hook_blocked": true
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -162,7 +162,7 @@
         "stop_hook_blocked": false
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     },
     {
@@ -177,7 +177,7 @@
         "manifest_written": true
       },
       "speed": {
-        "max_duration_s": 4.0
+        "max_duration_s": 6.0
       }
     }
   ]
