@@ -1,9 +1,0 @@
-schema: ontology_actors.v1
-ip: mctp_tx_assembler
-actors:
-  - id: human-owner
-    kind: human
-    owner: happygrowth33
-  - id: claude
-    kind: ai
-    surface: cli

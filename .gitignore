@@ -2,6 +2,15 @@
 __pycache__/
 *.py[cod]
 
+# This repo only maintains the .claude OAG pack. IP workspaces (cortex_m7_systick,
+# mctp_tx_assembler, pl330_mem2mem_channel, sim, ...) are scratch/test artifacts
+# and must stay out of git. Ignore every top-level directory, then re-include only
+# the .claude pack. Top-level config files (CLAUDE.md, .mcp.json, .gitignore) are
+# files, not matched by /*/, so they stay tracked.
+/*/
+!/.claude/
+
+# .claude operational artifacts stay ignored even though .claude is tracked
 .claude/.cache/
 .claude/.tmp/
 .claude/tmp/
@@ -10,6 +19,5 @@ __pycache__/
 .claude/shell_snapshots/
 .claude/*.sqlite
 .claude/*.sqlite-*
-.omc/
-.omo/ulw-loop/evidence/
+
 oag_workflow_whole_db.md
