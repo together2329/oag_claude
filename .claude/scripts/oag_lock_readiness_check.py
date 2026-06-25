@@ -19,6 +19,7 @@ import oag_req_quality_check  # noqa: E402
 import oag_verification_plan_check  # noqa: E402
 import oag_contract_strength_check  # noqa: E402
 import oag_trace_graph_check  # noqa: E402
+from oag_validate_json import contextual_schema_issues  # noqa: E402
 
 
 LOCK_READY_STATUSES = {"decided", "waived"}
@@ -97,6 +98,14 @@ def check_decisions(ip_dir: Path, *, hard_gate: bool) -> tuple[list[dict[str, st
             issues.append(issue("DECISION_MATRIX_MISSING", "Locked or required scope needs ontology/decision_matrix.yaml.", str(path)))
         return issues, {"decisions": 0, "lock_required": 0, "unresolved_lock_blockers": 0}, blockers
 
+    issues.extend(
+        contextual_schema_issues(
+            "oag_decision_matrix.schema.json",
+            doc,
+            code_prefix="DECISION_MATRIX_SCHEMA",
+            document_path=str(path),
+        )
+    )
     if doc.get("schema_version") != "oag_decision_matrix.v1":
         issues.append(issue("DECISION_MATRIX_SCHEMA_VERSION", "decision_matrix.yaml must use schema_version oag_decision_matrix.v1.", str(path)))
 

@@ -15,6 +15,10 @@ from pathlib import Path
 from typing import Any
 
 
+CODEX_ROOT = Path(__file__).resolve().parents[1]
+SCHEMAS_DIR = CODEX_ROOT / "schemas"
+
+
 def _type_ok(expected: str, value: Any) -> bool:
     if expected == "object":
         return isinstance(value, dict)
@@ -115,6 +119,39 @@ def validate_document(schema: dict[str, Any], document: Any) -> list[dict[str, s
 
 def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def schema_issues(schema_name: str, document: Any) -> list[dict[str, str]]:
+    try:
+        schema = load_json(SCHEMAS_DIR / schema_name)
+        return validate_document(schema, document)
+    except Exception as exc:
+        return [_issue("SCHEMA_LOAD_ERROR", "$", str(exc))]
+
+
+def contextual_schema_issues(
+    schema_name: str,
+    document: Any,
+    *,
+    code_prefix: str,
+    document_path: str = "",
+    path_prefix: str = "",
+) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    for item in schema_issues(schema_name, document):
+        schema_path = str(item.get("path") or "$")
+        if path_prefix:
+            schema_path = f"{path_prefix}{schema_path.removeprefix('$')}"
+        if document_path:
+            schema_path = f"{document_path}:{schema_path}"
+        issues.append(
+            {
+                "code": f"{code_prefix}_{item.get('code', 'SCHEMA')}",
+                "path": schema_path,
+                "message": f"{schema_name}: {item.get('message', 'schema validation failed')}",
+            }
+        )
+    return issues
 
 
 def build_result(schema_path: Path, document_path: Path) -> dict[str, Any]:

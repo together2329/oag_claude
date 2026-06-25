@@ -14,6 +14,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import oag_paths  # noqa: E402
+from oag_validate_json import contextual_schema_issues  # noqa: E402
 
 
 CLOSURE_CONTRACT_TYPES = {
@@ -99,8 +100,8 @@ def atom_has_observable_phenomena(atom: dict[str, Any]) -> bool:
 
 def check_atoms(ip_dir: Path, *, require_locked: bool) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
-    path = ip_dir / Path("ontology/requirement_atoms.yaml")
-    atoms_doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/requirement_atoms.yaml"))
+    path = oag_paths.legacy_or_hidden(ip_dir, "ontology/requirement_atoms.yaml")
+    atoms_doc = read_yaml(path)
     req_doc = read_yaml(oag_paths.legacy_or_hidden(ip_dir, "ontology/requirements.yaml"))
     req_ids = {item_id(item) for item in as_list(req_doc.get("requirements")) if isinstance(item, dict)}
     locked = require_locked or is_locked(ip_dir)
@@ -111,6 +112,14 @@ def check_atoms(ip_dir: Path, *, require_locked: bool) -> list[dict[str, str]]:
         if locked:
             return [issue("ATOM_FILE_MISSING", "Locked scope requires ontology/requirement_atoms.yaml.", str(path))]
         return []
+    issues.extend(
+        contextual_schema_issues(
+            "oag_requirement_atom.schema.json",
+            atoms_doc,
+            code_prefix="ATOM_SCHEMA",
+            document_path=str(path),
+        )
+    )
     if atoms_doc.get("schema_version") != "oag_requirement_atoms.v1":
         issues.append(issue("ATOM_SCHEMA_VERSION", "requirement_atoms.yaml must use schema_version oag_requirement_atoms.v1.", str(path)))
     atoms = [item for item in as_list(atoms_doc.get("requirement_atoms")) if isinstance(item, dict)]

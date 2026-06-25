@@ -13,6 +13,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 import oag_paths  # noqa: E402
 from oag_lifecycle_check import check as lifecycle_check  # noqa: E402
+from oag_validate_json import contextual_schema_issues  # noqa: E402
 
 
 PACKET_DIR = Path("ontology/generated/authoring_packets")
@@ -84,6 +85,14 @@ def check_rtl_packet(path: Path, data: dict[str, Any], *, ip_dir: Path, hard_gat
     rel = str(path)
     if data.get("__load_error__"):
         return [issue("PACKET_INVALID_JSON", f"Cannot read packet: {data['__load_error__']}", rel)]
+    issues.extend(
+        contextual_schema_issues(
+            "oag_rtl_authoring_packet.schema.json",
+            data,
+            code_prefix="RTL_PACKET_SCHEMA",
+            document_path=rel,
+        )
+    )
     if data.get("schema_version") != "oag_rtl_authoring_packet.v1":
         issues.append(issue("RTL_PACKET_SCHEMA", "RTL packet must use schema_version oag_rtl_authoring_packet.v1.", rel))
     if data.get("packet_type") != "rtl_authoring_packet":
@@ -114,6 +123,14 @@ def check_tb_packet(path: Path, data: dict[str, Any], *, ip_dir: Path, hard_gate
     rel = str(path)
     if data.get("__load_error__"):
         return [issue("PACKET_INVALID_JSON", f"Cannot read packet: {data['__load_error__']}", rel)]
+    issues.extend(
+        contextual_schema_issues(
+            "oag_tb_authoring_packet.schema.json",
+            data,
+            code_prefix="TB_PACKET_SCHEMA",
+            document_path=rel,
+        )
+    )
     if data.get("schema_version") != "oag_tb_authoring_packet.v1":
         issues.append(issue("TB_PACKET_SCHEMA", "TB packet must use schema_version oag_tb_authoring_packet.v1.", rel))
     if data.get("packet_type") != "tb_authoring_packet":

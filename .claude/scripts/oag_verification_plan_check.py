@@ -13,6 +13,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import oag_paths  # noqa: E402
+from oag_validate_json import contextual_schema_issues  # noqa: E402
 
 
 VALID_STATUSES = {"draft", "planned", "ready", "blocked", "closed", "waived"}
@@ -161,6 +162,14 @@ def check(ip_dir: Path, *, require_locked: bool = False) -> dict[str, Any]:
             "next_actions": ["Create ontology/verification_plan.yaml before TB implementation."] if issues else ["Draft has no verification plan yet."],
         }
 
+    issues.extend(
+        contextual_schema_issues(
+            "oag_verification_plan.schema.json",
+            doc,
+            code_prefix="VPLAN_SCHEMA",
+            document_path=str(path),
+        )
+    )
     if doc.get("schema_version") != "oag_verification_plan.v1":
         issues.append(issue("VPLAN_SCHEMA_VERSION", "verification_plan.yaml must use schema_version oag_verification_plan.v1.", str(path)))
 

@@ -12,6 +12,7 @@ from typing import Any
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 import oag_paths  # noqa: E402
+from oag_validate_json import contextual_schema_issues  # noqa: E402
 
 
 CLOSURE_STATUSES = {"closed", "pass", "passed", "validated", "locked", "complete", "done", "signoff"}
@@ -175,11 +176,19 @@ def guarantee_mentions_ordering(contract: dict[str, Any]) -> bool:
     return any(term in blob for term in ("before", "after", "last", "ordering", "visible", "commit", "valid"))
 
 
-def check_contract(ip_dir: Path, contract: dict[str, Any], index: int, *, hard_gate: bool) -> list[dict[str, str]]:
+def check_contract(
+    ip_dir: Path,
+    contract: dict[str, Any],
+    index: int,
+    *,
+    hard_gate: bool,
+    document_path: Path,
+) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     cid = item_id(contract, index)
     base = f"contracts[{index}]"
     ctype = contract_type(contract)
+    strong_check = needs_strong_check(contract, hard_gate=hard_gate)
 
     if not text(contract.get("id") or contract.get("contract_id")):
         issues.append(issue("CONTRACT_ID_MISSING", f"{cid} missing id.", base))
@@ -188,7 +197,18 @@ def check_contract(ip_dir: Path, contract: dict[str, Any], index: int, *, hard_g
     if not ctype:
         issues.append(issue("CONTRACT_TYPE_MISSING", f"{cid} missing contract_type.", base))
 
-    if not needs_strong_check(contract, hard_gate=hard_gate):
+    if strong_check:
+        issues.extend(
+            contextual_schema_issues(
+                "oag_contract_v2.schema.json",
+                contract,
+                code_prefix="CONTRACT_V2_SCHEMA",
+                document_path=str(document_path),
+                path_prefix=base,
+            )
+        )
+
+    if not strong_check:
         return issues
 
     variables = contract.get("variables") if isinstance(contract.get("variables"), dict) else {}
@@ -251,7 +271,7 @@ def check(ip_dir: Path, *, require_locked: bool = False) -> dict[str, Any]:
         issues.append(issue("CONTRACT_REQUIRED", "Locked scope needs at least one contract.", "contracts"))
 
     for index, contract in enumerate(contracts):
-        issues.extend(check_contract(ip_dir, contract, index, hard_gate=hard_gate))
+        issues.extend(check_contract(ip_dir, contract, index, hard_gate=hard_gate, document_path=path))
 
     next_actions: list[str] = []
     if issues:

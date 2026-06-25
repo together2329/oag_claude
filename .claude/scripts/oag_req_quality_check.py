@@ -13,6 +13,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import oag_paths  # noqa: E402
+from oag_validate_json import contextual_schema_issues  # noqa: E402
 
 
 LOCK_READY_AMBIGUITY_STATUSES = {"resolved", "waived"}
@@ -91,6 +92,14 @@ def check_source_claims(ip_dir: Path, *, hard_gate: bool) -> tuple[list[dict[str
         if hard_gate:
             issues.append(issue("SOURCE_CLAIMS_MISSING", "Locked or required scope needs req/source_claims.yaml.", str(path)))
         return issues, claim_ids, counts
+    issues.extend(
+        contextual_schema_issues(
+            "oag_source_claims.schema.json",
+            doc,
+            code_prefix="SOURCE_CLAIMS_SCHEMA",
+            document_path=str(path),
+        )
+    )
     if doc.get("schema_version") != "oag_source_claims.v1":
         issues.append(issue("SOURCE_CLAIMS_SCHEMA_VERSION", "source_claims.yaml must use schema_version oag_source_claims.v1.", str(path)))
 
@@ -131,6 +140,14 @@ def check_ambiguities(ip_dir: Path, *, hard_gate: bool) -> tuple[list[dict[str, 
         if hard_gate:
             issues.append(issue("AMBIGUITY_REGISTER_MISSING", "Locked or required scope needs req/ambiguity_register.yaml.", str(path)))
         return issues, ambiguity_ids, counts, blockers
+    issues.extend(
+        contextual_schema_issues(
+            "oag_ambiguity_register.schema.json",
+            doc,
+            code_prefix="AMBIGUITY_SCHEMA",
+            document_path=str(path),
+        )
+    )
     if doc.get("schema_version") != "oag_ambiguity_register.v1":
         issues.append(issue("AMBIGUITY_SCHEMA_VERSION", "ambiguity_register.yaml must use schema_version oag_ambiguity_register.v1.", str(path)))
 
