@@ -6,6 +6,70 @@ of letting implementers re-interpret a spec from prose.
 
 Enter OAG mode with the explicit `oag` keyword. See [`CLAUDE.md`](CLAUDE.md) for the operating rules.
 
+## What This Repository Is
+
+This repo is the **Claude Code port** of the OAG pack originally developed for Codex under
+`ip_dev/.codex`. The same ontology-first methodology is re-expressed using Claude Code's native
+surfaces — subagents, skills (slash commands), hooks, and `settings.json` — under `.claude/`.
+
+The repository tracks **only the pack**. Individual IP workspaces (e.g. `cortex_m7_systick/`,
+`mctp_tx_assembler/`) are scratch/test artifacts and are gitignored; the only tracked paths are
+`.claude/`, `CLAUDE.md`, `.mcp.json`, `.gitignore`, and this README.
+
+- Pack source of truth: `.claude/`
+- Agent operating rules: [`CLAUDE.md`](CLAUDE.md) and [`.claude/AGENTS.md`](.claude/AGENTS.md)
+- Counterpart pack (Codex): `ip_dev/.codex` — changes are ported here, not authored twice.
+
+## The Problem OAG Solves
+
+When an LLM implements hardware IP directly from a prose spec, it silently re-interprets the
+requirements: it invents timing, reset values, address maps, priorities, or protocol semantics, then
+"proves" them with tests it also wrote. OAG breaks that loop by separating **design truth** from
+**implementation** from **evidence**, and by forcing every "done" claim to trace back through
+Requirement → Obligation → Contract → Evidence → Validation → Decision (ROCEV). Generated work inputs
+are read-only; closure requires independent evidence, not green tests.
+
+## Repository Layout
+
+```text
+ip_dev_claude/
+├── CLAUDE.md            # project operating rules (loaded every session)
+├── README.md           # this file
+├── .mcp.json           # MCP config (OAG registers none by default)
+├── .gitignore          # tracks only the pack; ignores all IP workspaces
+└── .claude/            # the OAG pack
+    ├── AGENTS.md           # agent-facing directive / entry rules
+    ├── settings.json       # permissions + hook wiring
+    ├── config.toml         # native-subagent feature flags
+    ├── agents/    (18)     # OAG subagent roles (frontmatter-defined)
+    ├── skills/    (8)      # invocable workflows = slash commands
+    ├── scripts/   (56)     # oag_cli.py + checkers / generators / validators
+    ├── hooks/              # session / prompt / stop / subagent hooks
+    ├── rules/     (14)     # hard rule packs (invariants, CDC/RDC, lock, …)
+    ├── oag/       (38)     # reasoning / policy docs (the "why")
+    └── schemas/   (20)     # JSON Schemas for evidence / receipts
+```
+
+IP workspaces such as `cortex_m7_systick/` may exist on disk for testing but are not tracked.
+
+## Claude Code Integration
+
+OAG is script-, skill-, hook-, and subagent-based; it does not register MCP servers by default.
+
+| Surface | Where | Role |
+|---|---|---|
+| Project rules | `CLAUDE.md`, `.claude/rules/*.md` | OAG-mode behavior + hard invariants |
+| Skills (slash commands) | `.claude/skills/<name>/SKILL.md` | invocable workflows, e.g. `/oag-ip-workflow` |
+| Subagents | `.claude/agents/*.md` | bounded OAG roles (RTL, TB, sim, gate, …) |
+| Hooks | `.claude/hooks/`, `.claude/settings.json` | inject context, draft-pressure guard, stop gate, subagent gating |
+| Policy / reasoning | `.claude/oag/*.md` | modeling, contracts, CDC/RDC, PPA, coverage, evidence |
+| Scripts | `.claude/scripts/*.py` | `oag_cli.py` tools + readiness / closure checkers |
+| Schemas | `.claude/schemas/*` | validate receipts, scoreboard rows, evidence |
+
+Hooks fire on `SessionStart`, `UserPromptSubmit` (auto-inject `oag.context` and a draft-pressure
+guard), `Stop` (closure / stop gate), `SubagentStart` / `SubagentStop` (OAG subagent gating), and
+`PostCompact`.
+
 ## Completion Standard (ROCEV)
 
 Every meaningful IP claim must flow through:
