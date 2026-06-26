@@ -187,32 +187,51 @@ most of them.
 - **Wavefront** — only when work is parallelized across agents.
 - **Dispatch / Receipt** — only when write-capable subagents act; read-only analysis can skip it.
 
-### Why split it this way
+The practical consequence: a single task or early draft does not need all 8; a locked IP
+implementation makes Ontology + Projection + Gates effectively mandatory; parallel subagent
+implementation adds Wavefront + Dispatch/Receipt; any closure/signoff claim makes
+Evidence/Closure/Decision non-negotiable.
 
-Responsibility separation is the point:
+## Non-Negotiable Boundaries
 
-- Wavefront must not create ontology.
-- Dispatch must not change contracts.
-- Evidence must not define new requirements.
-- No "complete" without a Decision.
+Responsibility separation is the whole point — every layer may read its inputs, but none may rewrite
+another layer's truth:
 
-So in practice: a single task or early draft does not need all 8; a locked IP implementation makes
-Ontology + Projection + Gates effectively mandatory; parallel subagent implementation adds Wavefront
-+ Dispatch/Receipt; any closure/signoff claim makes Evidence/Closure/Decision non-negotiable.
+- **Wavefront must not create or modify ontology truth.** It only schedules ready work over existing truth, packets, dependencies, and ownership rules.
+- **Dispatch must not widen scope silently.** It grants bounded write authority and verifies receipts against the dispatch baseline.
+- **Generated ontology outputs are read-only work inputs.** If a generated packet is wrong, fix the authored ontology and recompile — never hand-edit.
+- **Evidence does not define new requirements.** It proves or fails existing obligations and contracts.
+- **Tests passing is not completion.** Completion requires explicit validation, fresh evidence, closure checks, and a recorded decision.
+- **After scope lock, RTL/TB/verification writes require native subagent dispatch and receipt** — unless there is an explicit human waiver.
 
-## Quick start
+## Common Commands
+
+These walk the same path as the 8 layers — bootstrap, lock, compile, gate, parallelize, close.
 
 ```bash
-# Bootstrap OAG context for an IP
+# 1. Bootstrap context + check the scope lock (layers 1–2)
 python3 .claude/scripts/oag_cli.py call --json '{"tool":"oag.inspect","arguments":{"ip_dir":"<ip>","stage":"<stage>","intent":"<task>"}}'
+python3 .claude/scripts/oag_cli.py call --json '{"tool":"oag.lock_status","arguments":{"ip_dir":"<ip>"}}'
+
+# 2. Compile ontology truth into read-only work inputs (layer 3)
 python3 .claude/scripts/oag_cli.py call --json '{"tool":"oag.compile","arguments":{"ip_dir":"<ip>"}}'
 
-# After lock — readiness gates (layer 4)
+# 3. After lock — readiness gates (layer 4)
 python3 .claude/scripts/oag_req_quality_check.py        --ip-dir <ip> --json
 python3 .claude/scripts/oag_requirement_atom_check.py   --ip-dir <ip> --json
 python3 .claude/scripts/oag_contract_strength_check.py  --ip-dir <ip> --json
 python3 .claude/scripts/oag_lock_readiness_check.py     --ip-dir <ip> --json
 python3 .claude/scripts/oag_verification_plan_check.py  --ip-dir <ip> --json
+python3 .claude/scripts/oag_authoring_packet_check.py   --ip-dir <ip> --require-packets --json
+
+# 4. Plan and claim dependency-safe parallel work (layer 6)
+python3 .claude/scripts/oag_wavefront.py plan  --ip-dir <ip> --run-id <run> --template .claude/oag/wavefront-templates/tb_common_then_scenario_fanout.yaml --json
+python3 .claude/scripts/oag_wavefront.py ready --ip-dir <ip> --run-id <run> --json
+python3 .claude/scripts/oag_wavefront.py claim --ip-dir <ip> --run-id <run> --task-id <task> --json
+
+# 5. Closure — evidence, gate, decision (layer 8)
+python3 .claude/scripts/oag_cli.py call --json '{"tool":"oag.check","arguments":{"ip_dir":"<ip>"}}'
+python3 .claude/scripts/oag_closure_check.py            --ip-dir <ip>
 ```
 
 Use `/oag-ip-workflow` as the umbrella workflow, and the narrower skills (`oag-deep-semantic-intake`,
