@@ -15,8 +15,11 @@ locked ontology truth
     -> wavefront task graph
       -> dispatch + ownership lock
         -> subagent receipt
-          -> evidence validation
-            -> gate decision
+          -> review_pending
+            -> reviewer decision
+              -> handoff_pass
+                -> evidence validation
+                  -> gate decision
 ```
 
 ## Boundaries
@@ -38,10 +41,17 @@ A task is ready only when:
 3. no active ownership lock conflicts with its write paths;
 4. the task keeps `may_claim_complete=false`.
 
+`handoff_pass` is not a worker self-claim. A worker receipt moves a task to
+`review_pending`. Only an approved `oag_wavefront_decision.v1` review record
+may move `review_pending` to `handoff_pass` and unlock downstream barriers.
+
 ## Worker Language
 
 Wavefront workers may say `HANDOFF_PASS`, `BLOCKED`, `FAIL`, or
 `INCONCLUSIVE`. They must not say completion, signoff, release, or closure.
+Parent orchestration records worker `HANDOFF_PASS` receipts as
+`review_pending` until `oag-custom-reviewer` or a narrower reviewer approves
+the handoff rationale.
 
 ## TB Barrier Pattern
 

@@ -16,6 +16,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = ROOT.parent
 OAG = ROOT / "scripts" / "oag_cli.py"
+LOOP_HOOK = ROOT / "scripts" / "oag_loop_hook.py"
+LOOP_RUNNER = ROOT / "scripts" / "oag_loop_runner.py"
 GRAPH = ROOT / "scripts" / "oag_graph.py"
 MIGRATE_LAYOUT = ROOT / "scripts" / "oag_migrate_layout.py"
 PORTABLE_DB = ROOT / "scripts" / "oag_portable_db.py"
@@ -27,6 +29,7 @@ SPEC_RTL_LOOP = ROOT / "scripts" / "oag_spec_to_rtl_loop.py"
 EXEC_AUTO_RESEARCH = ROOT / "scripts" / "oag_exec_auto_research.py"
 DISPATCH = ROOT / "scripts" / "oag_dispatch.py"
 WAVEFRONT = ROOT / "scripts" / "oag_wavefront.py"
+DECISION_HARNESS = ROOT / "scripts" / "oag_decision_harness.py"
 MAIN_WRITE_GATE = ROOT / "scripts" / "oag_main_write_gate.py"
 VALIDATE_JSON = ROOT / "scripts" / "oag_validate_json.py"
 AGENT_CATALOG_CHECK = ROOT / "scripts" / "oag_agent_catalog_check.py"
@@ -134,6 +137,32 @@ def call_process(payload: dict) -> subprocess.CompletedProcess[str]:
     )
 
 
+def run_loop_hook(*args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(LOOP_HOOK), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_loop_runner(*args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    return subprocess.run(
+        [sys.executable, str(LOOP_RUNNER), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=ROOT,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
 def run_dev_validator(ip: Path) -> subprocess.CompletedProcess[str]:
     env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
     return subprocess.run(
@@ -206,6 +235,21 @@ def run_wavefront(*args: str, project_root: Path | None = None) -> subprocess.Co
         env["OAG_PROJECT_ROOT"] = str(project_root)
     return subprocess.run(
         [sys.executable, str(WAVEFRONT), *args],
+        text=True,
+        capture_output=True,
+        check=False,
+        cwd=project_root or ROOT.parent,
+        env=env,
+        timeout=OAG_CALL_TIMEOUT_SECONDS,
+    )
+
+
+def run_decision_harness(*args: str, project_root: Path | None = None) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "OAG_DISABLE_BACKEND": "1"}
+    if project_root:
+        env["OAG_PROJECT_ROOT"] = str(project_root)
+    return subprocess.run(
+        [sys.executable, str(DECISION_HARNESS), *args],
         text=True,
         capture_output=True,
         check=False,
@@ -1280,6 +1324,70 @@ def test_wavefront_scheduler(tmp_root: Path) -> None:
     ip.mkdir()
     run_id = "RUN_WAVE_SMOKE"
 
+    def approve_wavefront_task(task_id: str, *barrier_outputs: str) -> None:
+        review_pending = run_wavefront(
+            "record",
+            "--ip-dir",
+            str(ip),
+            "--run-id",
+            run_id,
+            "--task-id",
+            task_id,
+            "--status",
+            "review_pending",
+            "--receipt",
+            str(ip / "knowledge" / "subagents" / f"{task_id.lower()}_receipt.json"),
+            "--json",
+            project_root=project,
+        )
+        assert review_pending.returncode == 0, review_pending.stderr or review_pending.stdout
+        decision_id = f"DEC_{task_id}_SMOKE"
+        decision_args = [
+            "record",
+            "--ip-dir",
+            str(ip),
+            "--run-id",
+            run_id,
+            "--task-id",
+            task_id,
+            "--decision-id",
+            decision_id,
+            "--decision-type",
+            "custom_review",
+            "--verdict",
+            "approved",
+            "--summary",
+            f"{task_id} handoff reviewed by smoke test.",
+            "--checked-against",
+            f"{ip}/ontology/runs/{run_id}/wavefront_task_graph.json#{task_id}",
+            "--preserved",
+            "declared wavefront barrier semantics",
+            "--json",
+        ]
+        for token in barrier_outputs:
+            decision_args.extend(["--barrier-output", token])
+        decision = run_decision_harness(*decision_args, project_root=project)
+        assert decision.returncode == 0, decision.stderr or decision.stdout
+        decision_path = json.loads(decision.stdout)["path"]
+        handoff_args = [
+            "record",
+            "--ip-dir",
+            str(ip),
+            "--run-id",
+            run_id,
+            "--task-id",
+            task_id,
+            "--status",
+            "handoff_pass",
+            "--decision",
+            decision_path,
+            "--json",
+        ]
+        for token in barrier_outputs:
+            handoff_args.extend(["--barrier-output", token])
+        handoff = run_wavefront(*handoff_args, project_root=project)
+        assert handoff.returncode == 0, handoff.stderr or handoff.stdout
+
     plan = run_wavefront(
         "plan",
         "--ip-dir",
@@ -1380,7 +1488,7 @@ def test_wavefront_scheduler(tmp_root: Path) -> None:
         for item in json.loads(bad_barrier_record.stdout)["issues"]
     ), bad_barrier_record.stdout
 
-    record_common = run_wavefront(
+    missing_decision_record = run_wavefront(
         "record",
         "--ip-dir",
         str(ip),
@@ -1392,28 +1500,15 @@ def test_wavefront_scheduler(tmp_root: Path) -> None:
         "handoff_pass",
         "--barrier-output",
         "tb_common_import_clean",
-        "--barrier-output",
-        "helper_api_manifest",
         "--json",
         project_root=project,
     )
-    assert record_common.returncode == 0, record_common.stderr or record_common.stdout
-    record_scoreboard = run_wavefront(
-        "record",
-        "--ip-dir",
-        str(ip),
-        "--run-id",
-        run_id,
-        "--task-id",
-        "TB_SCOREBOARD_SCHEMA",
-        "--status",
-        "handoff_pass",
-        "--barrier-output",
-        "scoreboard_schema_frozen",
-        "--json",
-        project_root=project,
-    )
-    assert record_scoreboard.returncode == 0, record_scoreboard.stderr or record_scoreboard.stdout
+    assert missing_decision_record.returncode != 0, missing_decision_record.stdout
+    missing_decision_codes = {item["code"] for item in json.loads(missing_decision_record.stdout)["issues"]}
+    assert "HANDOFF_DECISION_REQUIRED" in missing_decision_codes, missing_decision_record.stdout
+
+    approve_wavefront_task("TB_COMMON_API", "tb_common_import_clean", "helper_api_manifest")
+    approve_wavefront_task("TB_SCOREBOARD_SCHEMA", "scoreboard_schema_frozen")
 
     scenario_ready = run_wavefront("ready", "--ip-dir", str(ip), "--run-id", run_id, "--json", project_root=project)
     assert scenario_ready.returncode == 0, scenario_ready.stderr or scenario_ready.stdout
@@ -1432,22 +1527,7 @@ def test_wavefront_scheduler(tmp_root: Path) -> None:
         project_root=project,
     )
     assert claim_scenario.returncode == 0, claim_scenario.stderr or claim_scenario.stdout
-    record_scenario = run_wavefront(
-        "record",
-        "--ip-dir",
-        str(ip),
-        "--run-id",
-        run_id,
-        "--task-id",
-        "TB_SCENARIO_A",
-        "--status",
-        "handoff_pass",
-        "--barrier-output",
-        "scenario_import_clean",
-        "--json",
-        project_root=project,
-    )
-    assert record_scenario.returncode == 0, record_scenario.stderr or record_scenario.stdout
+    approve_wavefront_task("TB_SCENARIO_A", "scenario_import_clean")
     verify = run_wavefront("verify", "--ip-dir", str(ip), "--run-id", run_id, "--json", project_root=project)
     assert verify.returncode == 0, verify.stderr or verify.stdout
 
@@ -3219,6 +3299,85 @@ def main() -> int:
         assert sim_config["result"]["updates"]["hook_auto_continue_until"] == "sim", sim_config
         sim_stop = call({"tool": "oag.stop_check", "arguments": {"ip_dir": str(limit_ip), "run_id": limit_run_id}})
         assert sim_stop["result"]["should_continue"] is True, sim_stop
+        bounded_rtl = call(
+            {
+                "tool": "oag.run.next",
+                "arguments": {
+                    "ip_dir": str(limit_ip),
+                    "run_id": limit_run_id,
+                    "loop_policy": {"until": "rtl"},
+                },
+            }
+        )
+        assert bounded_rtl["result"]["next_batch"] is None, bounded_rtl
+        assert bounded_rtl["result"]["loop_stop_reason"] == "boundary_reached", bounded_rtl
+        hook_rtl = run_loop_hook("--ip-dir", str(limit_ip), "--run-id", limit_run_id, "--until", "rtl", "--json")
+        assert hook_rtl.returncode == 0, hook_rtl.stderr or hook_rtl.stdout
+        hook_rtl_json = json.loads(hook_rtl.stdout)
+        assert hook_rtl_json["decision"] == "stop", hook_rtl_json
+        assert hook_rtl_json["reason"] == "boundary_reached", hook_rtl_json
+        hook_tb = run_loop_hook(
+            "--ip-dir",
+            str(limit_ip),
+            "--run-id",
+            limit_run_id,
+            "--until",
+            "tb",
+            "--requirement",
+            "REQ_DEMO_COUNTER_CX1_001",
+            "--json",
+        )
+        assert hook_tb.returncode == 0, hook_tb.stderr or hook_tb.stdout
+        hook_tb_json = json.loads(hook_tb.stdout)
+        assert hook_tb_json["decision"] == "continue", hook_tb_json
+        tb_batch = hook_tb_json["recommended_batch"]
+        assert tb_batch["boundary_stage"] == "evidence", hook_tb_json
+        assert "REQ_DEMO_COUNTER_CX1_001" in tb_batch["requirements"], hook_tb_json
+        bad_req = run_loop_hook(
+            "--ip-dir",
+            str(limit_ip),
+            "--run-id",
+            limit_run_id,
+            "--until",
+            "tb",
+            "--requirement",
+            "REQ_DOES_NOT_EXIST",
+            "--json",
+        )
+        assert bad_req.returncode == 0, bad_req.stderr or bad_req.stdout
+        bad_req_json = json.loads(bad_req.stdout)
+        assert bad_req_json["decision"] == "stop", bad_req_json
+        assert bad_req_json["reason"] == "no_runnable_batch", bad_req_json
+        loop_stop = call(
+            {
+                "tool": "oag.stop_check",
+                "arguments": {
+                    "ip_dir": str(limit_ip),
+                    "run_id": limit_run_id,
+                    "loop_policy": {"until": "rtl"},
+                },
+            }
+        )
+        assert loop_stop["result"]["should_continue"] is False, loop_stop
+        assert loop_stop["result"]["reason"] == "boundary_reached", loop_stop
+        runner = run_loop_runner(
+            "--ip-dir",
+            str(limit_ip),
+            "--run-id",
+            limit_run_id,
+            "--until",
+            "tb",
+            "--requirement",
+            "REQ_DEMO_COUNTER_CX1_001",
+            "--mode",
+            "plan_only",
+            "--json",
+        )
+        assert runner.returncode == 0, runner.stderr or runner.stdout
+        runner_json = json.loads(runner.stdout)
+        assert runner_json["decision"] == "continue", runner_json
+        assert runner_json["reason"] == "plan_available", runner_json
+        assert Path(runner_json["loop_decision_path"]).is_file(), runner_json
         none_config = call(
             {
                 "tool": "oag.configure",

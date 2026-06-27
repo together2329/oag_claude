@@ -33,7 +33,10 @@ It lives under:
 
 - `pending`: not claimed and may become ready.
 - `claimed`: owned by an active worker.
-- `handoff_pass`: worker produced bounded handoff evidence.
+- `review_pending`: worker produced a receipt, but reviewer approval has not
+  unlocked downstream work yet.
+- `handoff_pass`: reviewer-approved bounded handoff evidence; dependencies may
+  now unlock.
 - `blocked`: worker found a blocker.
 - `failed`: worker failed its scoped task.
 - `inconclusive`: worker could not determine result.
@@ -50,5 +53,7 @@ It lives under:
 
 - Starting TB scenario shards before helper/API/schema barriers exist.
 - Letting two workers edit the same helper, runner, filelist, or result file.
+- Recording `handoff_pass` directly from a worker receipt without an approved
+  `oag_wavefront_decision.v1`.
 - Allowing a worker receipt to claim closure.
 - Repairing failing simulation before read-only failure triage.

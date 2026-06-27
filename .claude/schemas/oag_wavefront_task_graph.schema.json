@@ -114,7 +114,7 @@
             "enum": ["none", "exclusive_file", "integration_owner"]
           },
           "status": {
-            "enum": ["pending", "claimed", "handoff_pass", "blocked", "failed", "inconclusive", "waived", "closed"]
+            "enum": ["pending", "claimed", "review_pending", "handoff_pass", "blocked", "failed", "inconclusive", "waived", "closed"]
           },
           "claimed_by": {
             "type": "string"

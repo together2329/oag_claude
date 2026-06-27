@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "oag_wavefront_decision.schema.json",
+  "title": "OAG Wavefront Review Decision",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "product_name",
+    "internal_gateway",
+    "decision_id",
+    "decision_type",
+    "target",
+    "verdict",
+    "rationale",
+    "reviewer",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oag_wavefront_decision.v1"
+    },
+    "product_name": {
+      "const": "IP Dev Agent"
+    },
+    "internal_gateway": {
+      "const": "Ontology Agent Gateway"
+    },
+    "decision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_type": {
+      "enum": [
+        "requirement_to_obligation",
+        "obligation_to_contract",
+        "rtl_readiness",
+        "rtl_conformance",
+        "tb_proof_adequacy",
+        "evidence_validation",
+        "custom_review"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["kind", "run_id", "task_id"],
+      "properties": {
+        "kind": {
+          "const": "wavefront_task"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "verdict": {
+      "enum": [
+        "approved",
+        "rejected",
+        "needs_human_review",
+        "needs_clarification",
+        "needs_decision",
+        "blocked",
+        "inconclusive",
+        "waived"
+      ]
+    },
+    "rationale": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["summary", "checked_against", "blockers"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checked_against": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "preserved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "unlocks": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "wavefront_status": {
+          "type": "string"
+        },
+        "barrier_outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

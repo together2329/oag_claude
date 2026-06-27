@@ -21,10 +21,13 @@ are satisfied.
 3. Check ready tasks.
 4. Claim only dependency-satisfied tasks.
 5. Create dispatch records for write-capable tasks.
-6. Record worker handoff status and barrier outputs.
-7. Let a single integration owner write shared run artifacts.
-8. Use read-only triage before repair when simulation fails.
-9. Let parent/gate decide closure.
+6. Record worker receipts as `review_pending`.
+7. Review the handoff with `oag-custom-reviewer` or a narrower reviewer role.
+8. Record `handoff_pass` and barrier outputs only after an approved
+   `oag_wavefront_decision.v1` record.
+9. Let a single integration owner write shared run artifacts.
+10. Use read-only triage before repair when simulation fails.
+11. Let parent/gate decide closure.
 
 ## Commands
 
@@ -54,7 +57,35 @@ python3 .claude/scripts/oag_wavefront.py claim \
   --json
 ```
 
-Record bounded worker status:
+Record bounded worker status after the worker receipt:
+
+```bash
+python3 .claude/scripts/oag_wavefront.py record \
+  --ip-dir <ip> \
+  --run-id <run_id> \
+  --task-id <task_id> \
+  --status review_pending \
+  --receipt <ip>/knowledge/subagents/<receipt>.json \
+  --json
+```
+
+Create a reviewer decision:
+
+```bash
+python3 .claude/scripts/oag_decision_harness.py record \
+  --ip-dir <ip> \
+  --run-id <run_id> \
+  --task-id <task_id> \
+  --decision-type rtl_conformance \
+  --verdict approved \
+  --summary "Reviewer-approved handoff rationale." \
+  --checked-against ontology/contracts.yaml#CONTRACT_ID \
+  --preserved "assigned contract guarantees" \
+  --barrier-output <token> \
+  --json
+```
+
+Record handoff only after review approval:
 
 ```bash
 python3 .claude/scripts/oag_wavefront.py record \
@@ -62,6 +93,7 @@ python3 .claude/scripts/oag_wavefront.py record \
   --run-id <run_id> \
   --task-id <task_id> \
   --status handoff_pass \
+  --decision <ip>/knowledge/decisions/<decision>.json \
   --barrier-output <token> \
   --json
 ```
@@ -79,3 +111,6 @@ python3 .claude/scripts/oag_wavefront.py verify --ip-dir <ip> --run-id <run_id> 
 - Shared artifacts require one integration owner.
 - Scenario TB tasks must wait for helper/API/schema barriers.
 - Worker tasks must not claim completion or signoff.
+- Worker receipts do not unlock downstream work; they move tasks to
+  `review_pending`.
+- No approved reviewer decision, no `handoff_pass`.

@@ -23,8 +23,18 @@ from oag_wavefront_core import (
 
 TASK_ID_RE: Final = re.compile(r"^[A-Za-z0-9_.-]+$")
 DONE_STATUSES: Final = {"handoff_pass", "closed", "waived"}
-ACTIVE_STATUSES: Final = {"claimed"}
-VALID_STATUSES: Final = {"pending", "claimed", "handoff_pass", "blocked", "failed", "inconclusive", "waived", "closed"}
+ACTIVE_STATUSES: Final = {"claimed", "review_pending"}
+VALID_STATUSES: Final = {
+    "pending",
+    "claimed",
+    "review_pending",
+    "handoff_pass",
+    "blocked",
+    "failed",
+    "inconclusive",
+    "waived",
+    "closed",
+}
 VALID_KINDS: Final = {"read_only", "write", "integration", "closure"}
 VALID_OWNERSHIP: Final = {"none", "exclusive_file", "integration_owner"}
 
